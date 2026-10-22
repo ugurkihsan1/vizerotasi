@@ -1,5 +1,6 @@
 import { CountryStory } from "./CountryStory";
-import { FlatList, View, Text, ScrollView } from "react-native";
+import { FlatList, View, Text, ScrollView, Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useMemo, useState, type ReactElement } from "react";
 import {
@@ -8,19 +9,21 @@ import {
   useFollows,
   type FeedFilter,
 } from "../lib/data";
+import { useAuth } from "../lib/auth";
 import { rankFeed } from "../lib/ranking";
 import { configured } from "../lib/supabase";
 import { PostCard } from "./PostCard";
-import { styles, Chip, Empty, ErrorState, Skeleton, Busy } from "./ui";
-export const filters = [
-  "Sana Özel",
-  "Yeni",
-  "Deneyimler",
-  "Sorular",
-  "Kritik",
-  "Onaylananlar",
-  "Retler",
-];
+import {
+  styles,
+  Chip,
+  Empty,
+  ErrorState,
+  Skeleton,
+  Busy,
+  Sheet,
+  Button,
+  colors,
+} from "./ui";
 export function Feed({
   country,
   author,
@@ -38,10 +41,21 @@ export function Feed({
   baseFilter?: FeedFilter;
   contentOnly?: boolean;
 }) {
-  const [selected, setSelected] = useState("Sana Özel");
+  const [selected, setSelected] = useState("Tümü");
+  const [open, setOpen] = useState(false);
   const [first, setFirst] = useState(false);
   const [employment, setEmployment] = useState("");
   const [city, setCity] = useState("");
+  const [result, setResult] = useState("");
+  const [critical, setCritical] = useState(false);
+  const [newest, setNewest] = useState(false);
+  const { session } = useAuth();
+  const count =
+    Number(first) +
+    Number(!!employment) +
+    Number(!!city) +
+    Number(!!result) +
+    Number(critical);
   const query = useFeed(
     {
       ...baseFilter,
@@ -52,20 +66,14 @@ export function Feed({
       first,
       employment: employment || undefined,
       city: city || undefined,
-      kind:
-        selected === "Deneyimler"
+      kind: critical
+        ? "tip"
+        : selected === "Deneyimler"
           ? "experience"
           : selected === "Sorular"
             ? "question"
-            : selected === "Kritik"
-              ? "tip"
-              : baseFilter.kind,
-      result:
-        selected === "Onaylananlar"
-          ? "approved"
-          : selected === "Retler"
-            ? "rejected"
-            : undefined,
+            : baseFilter.kind,
+      result: result || baseFilter.result,
     },
     !contentOnly,
   );
@@ -73,14 +81,17 @@ export function Feed({
   const { data: follows } = useFollows();
   const posts = useMemo(() => {
     const items = query.data?.pages.flat() ?? [];
-    return selected === "Sana Özel" ? rankFeed(items, follows ?? []) : items;
-  }, [query.data, selected, follows]);
+    return newest ? items : rankFeed(items, follows ?? []);
+  }, [query.data, newest, follows]);
+  const primary = !country && !author && !saved;
   const top = (
-    <View style={{ gap: 16, paddingBottom: 16 }}>
+    <View style={{ gap: 18, paddingBottom: 16 }}>
       {header}
-      {!country && !author && !saved && (
-        <View>
-          <Text style={[styles.heading, { marginBottom: 12 }]}>Ülkeler</Text>
+      {primary && (
+        <View style={{ gap: 10 }}>
+          <Text style={styles.muted}>
+            Bir ülke seç, sana benzeyen deneyimleri keşfet.
+          </Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -103,47 +114,68 @@ export function Feed({
           </ScrollView>
         </View>
       )}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8 }}
-      >
-        {filters.map((f) => (
-          <Chip
-            key={f}
-            label={f}
-            active={selected === f}
-            onPress={() => setSelected(f)}
-          />
-        ))}
-      </ScrollView>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8 }}
-      >
-        <Chip
-          label="İlk Schengen"
-          active={first}
-          onPress={() => setFirst(!first)}
-        />
-        {["Çalışan", "Öğrenci", "Serbest çalışan"].map((x) => (
-          <Chip
-            key={x}
-            label={x}
-            active={employment === x}
-            onPress={() => setEmployment(employment === x ? "" : x)}
-          />
-        ))}
-        {["İstanbul", "Ankara", "İzmir"].map((x) => (
-          <Chip
-            key={x}
-            label={x}
-            active={city === x}
-            onPress={() => setCity(city === x ? "" : x)}
-          />
-        ))}
-      </ScrollView>
+      {!author && !saved && (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+          }}
+        >
+          {!country && (
+            <View
+              accessibilityLabel="İçerik türü"
+              style={{ flexDirection: "row", gap: 14, flex: 1 }}
+            >
+              {["Tümü", "Deneyimler", "Sorular"].map((label) => (
+                <Pressable
+                  key={label}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: selected === label }}
+                  aria-selected={selected === label}
+                  onPress={() => {
+                    setSelected(label);
+                    setCritical(false);
+                  }}
+                  style={{
+                    minHeight: 44,
+                    justifyContent: "center",
+                    borderBottomWidth: selected === label ? 2 : 0,
+                    borderBottomColor: colors.blue,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: selected === label ? "700" : "400",
+                      color: selected === label ? colors.navy : colors.muted,
+                    }}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={count ? `Filtrele (${count})` : "Filtrele"}
+            onPress={() => setOpen(true)}
+            style={{
+              minHeight: 44,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            <Ionicons name="options-outline" size={19} color={colors.muted} />
+            <Text style={styles.muted}>
+              Filtrele{count ? ` · ${count}` : ""}
+            </Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
   if (contentOnly)
@@ -153,44 +185,145 @@ export function Feed({
       </ScrollView>
     );
   return (
-    <FlatList
-      style={styles.page}
-      contentContainerStyle={{ padding: 20, paddingBottom: 40, gap: 16 }}
-      data={posts}
-      keyExtractor={(x) => x.id}
-      renderItem={({ item }) => <PostCard post={item} />}
-      ListHeaderComponent={top}
-      ListEmptyComponent={
-        !configured ? (
-          <Empty
-            title="Topluluk için ilk adım"
-            body="Supabase bağlantısı henüz kurulmadı. Bağlantı tamamlandığında gerçek paylaşımlar burada görünecek."
+    <>
+      <FlatList
+        style={styles.page}
+        contentContainerStyle={{ padding: 20, paddingBottom: 40, gap: 16 }}
+        data={posts}
+        keyExtractor={(p) => p.id}
+        renderItem={({ item }) => <PostCard post={item} />}
+        ListHeaderComponent={top}
+        ListEmptyComponent={
+          !configured ? (
+            <Empty
+              title="Topluluğa şu an ulaşılamıyor"
+              body="Biraz sonra yeniden deneyebilirsin."
+            />
+          ) : query.isPending ? (
+            <Skeleton />
+          ) : query.isError ? (
+            <ErrorState retry={() => void query.refetch()} />
+          ) : (
+            <Empty
+              title={
+                saved
+                  ? "Henüz bir şey kaydetmedin."
+                  : count
+                    ? "Bu filtrelerde henüz paylaşım yok."
+                    : "Her rota bir deneyimle başlar."
+              }
+              body={
+                count
+                  ? "Filtrelerini genişleterek yeniden bakabilirsin."
+                  : "Ülke topluluklarını keşfet; hazır olduğunda deneyiminle sen de yol göster."
+              }
+              action={
+                saved
+                  ? "Akışa dön"
+                  : session
+                    ? "Deneyimini paylaş"
+                    : "Topluluğa katıl"
+              }
+              onPress={() =>
+                router.push(
+                  saved ? "/" : session ? "/create" : "/auth?mode=signup",
+                )
+              }
+            />
+          )
+        }
+        refreshing={query.isRefetching}
+        onRefresh={() => void query.refetch()}
+        onEndReached={() => {
+          if (query.hasNextPage && !query.isFetchingNextPage)
+            void query.fetchNextPage();
+        }}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={query.isFetchingNextPage ? <Busy /> : undefined}
+      />
+      <Sheet
+        visible={open}
+        onClose={() => setOpen(false)}
+        title="Sana benzeyen başvuruları bul"
+      >
+        <Text style={styles.muted}>İhtiyacın olanları seçmen yeterli.</Text>
+        <Text style={styles.heading}>Sıralama</Text>
+        <View style={styles.row}>
+          <Chip
+            label="Sana özel"
+            active={!newest}
+            onPress={() => setNewest(false)}
           />
-        ) : query.isPending ? (
-          <Skeleton />
-        ) : query.isError ? (
-          <ErrorState retry={() => void query.refetch()} />
-        ) : (
-          <Empty
-            title={
-              saved
-                ? "Henüz bir şey kaydetmedin."
-                : "Burada ilk paylaşım senin olabilir 👀"
-            }
-            body="Deneyimini paylaş, topluluğa yol göster."
-            action="Paylaşım oluştur"
-            onPress={() => router.push("/create")}
+          <Chip
+            label="En yeni"
+            active={newest}
+            onPress={() => setNewest(true)}
           />
-        )
-      }
-      refreshing={query.isRefetching}
-      onRefresh={() => void query.refetch()}
-      onEndReached={() => {
-        if (query.hasNextPage && !query.isFetchingNextPage)
-          void query.fetchNextPage();
-      }}
-      onEndReachedThreshold={0.4}
-      ListFooterComponent={query.isFetchingNextPage ? <Busy /> : undefined}
-    />
+        </View>
+        <Text style={styles.heading}>Başvuru</Text>
+        <View style={styles.row}>
+          <Chip
+            label="İlk Schengen"
+            active={first}
+            onPress={() => setFirst(!first)}
+          />
+          <Chip
+            label="Kritik bilgiler"
+            active={critical}
+            onPress={() => setCritical(!critical)}
+          />
+        </View>
+        <Text style={styles.heading}>Çalışma durumu</Text>
+        <View style={styles.row}>
+          {["Çalışan", "Öğrenci", "Serbest çalışan", "Emekli"].map((x) => (
+            <Chip
+              key={x}
+              label={x}
+              active={employment === x}
+              onPress={() => setEmployment(employment === x ? "" : x)}
+            />
+          ))}
+        </View>
+        <Text style={styles.heading}>Başvuru şehri</Text>
+        <View style={styles.row}>
+          {["İstanbul", "Ankara", "İzmir"].map((x) => (
+            <Chip
+              key={x}
+              label={x}
+              active={city === x}
+              onPress={() => setCity(city === x ? "" : x)}
+            />
+          ))}
+        </View>
+        <Text style={styles.heading}>Sonuç</Text>
+        <View style={styles.row}>
+          {[
+            ["approved", "Onaylandı"],
+            ["rejected", "Reddedildi"],
+            ["waiting", "Bekliyor"],
+          ].map(([value, label]) => (
+            <Chip
+              key={value}
+              label={label}
+              active={result === value}
+              onPress={() => setResult(result === value ? "" : value)}
+            />
+          ))}
+        </View>
+        <Button label="Sonuçları göster" onPress={() => setOpen(false)} />
+        <Button
+          secondary
+          label="Filtreleri temizle"
+          onPress={() => {
+            setFirst(false);
+            setEmployment("");
+            setCity("");
+            setResult("");
+            setCritical(false);
+            setNewest(false);
+          }}
+        />
+      </Sheet>
+    </>
   );
 }

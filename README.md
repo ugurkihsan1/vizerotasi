@@ -70,7 +70,7 @@ E2E varsayılan olarak `/usr/bin/chromium` kullanır; farklı sistemde `CHROMIUM
 
 ## Doğrulama sınırları ve yayın öncesi işler
 
-Bu repo çalıştırılabilir bir ilk uygulama sağlar; henüz production’a hazır olduğu iddia edilmez. Mevcut ortamda canlı Supabase projesi yok. Gerçek kayıt/giriş/doğrulama/şifre kurtarma, avatar HTTP upload, çok kullanıcılı uçtan uca akışlar ve gerçek cihaz etkileşimleri projenin bağlanmasından sonra doğrulanmalıdır. Native export, imzalı IPA/APK derlemesi veya cihaz testi değildir.
+Bu repo çalıştırılabilir bir ilk uygulama sağlar; henüz production’a hazır olduğu iddia edilmez. Canlı Supabase projesinin Auth ve public veri erişimi doğrulandı. Gerçek bir kullanıcı hesabıyla e-posta teslimi henüz test edilmedi. Gerçek kayıt/giriş/doğrulama/şifre kurtarma, avatar HTTP upload, çok kullanıcılı uçtan uca akışlar ve gerçek cihaz etkileşimleri projenin bağlanmasından sonra doğrulanmalıdır. Native export, imzalı IPA/APK derlemesi veya cihaz testi değildir.
 
 Tam ürün talebindeki henüz tamamlanmamış işler: anket ve topluluk özeti kartları, gelişmiş ülke yönetimi ve production analytics sağlayıcısı bağlantısı. Push delivery, Google/Apple girişleri ve universal links sonraki entegrasyonlar olarak bırakıldı; çalışmayan butonlar gösterilmez. Bildirimler veritabanında üretilir ve uygulama açıkken sorgulanır; gereksiz Realtime aboneliği açılmaz.
 
@@ -78,6 +78,16 @@ Yayın için hukuki metinler/veri sorumlusu/iletişim ve hesap silme süreci, ge
 
 ## Netlify üzerinden iPhone’da açma
 
-Netlify’da **Add new project → Import an existing project → GitHub** üzerinden `ugurkihsan1/vizerotasi` deposunu seçin. `netlify.toml` derleme komutunu ve yayın klasörünü tanımlar. Netlify ortam değişkenlerine `EXPO_PUBLIC_SUPABASE_URL` ve `EXPO_PUBLIC_SUPABASE_ANON_KEY` değerlerini ekleyin; yalnız publishable/anon anahtarı kullanın. Ardından deploy başlatın ve oluşan HTTPS adresini iPhone’da Safari ile açın.
+Netlify’da **Add new project → Import an existing project → GitHub** üzerinden `ugurkihsan1/vizerotasi` deposunu seçin. `netlify.toml` derleme komutunu ve yayın klasörünü tanımlar. `src/config/supabase.public.json` yalnız herkese açık proje URL’si ve publishable anahtarını içerir; sunucu yetkili bir sır değildir. Netlify değişkenleri boş olduğunda yayın bu public yapılandırmayı kullanır. Başka bir projeye geçmek için `EXPO_PUBLIC_SUPABASE_URL` ve `EXPO_PUBLIC_SUPABASE_ANON_KEY` değerlerini birlikte tanımlayın; secret/service-role anahtarı kullanmayın. Ardından deploy başlatın ve oluşan HTTPS adresini iPhone’da Safari ile açın.
 
 Supabase **Authentication → URL Configuration** içinde Site URL’yi yayınlanan HTTPS adresi yapın ve Redirect URLs listesine `<yayınlanan-HTTPS-adresi>/auth` ekleyin. Web sürümü ve native geliştirme derlemesi farklı dağıtımlardır; Netlify bağlantısı iPhone’a native uygulama kurmaz.
+
+## İspanya turistik vize kaynağı
+
+`src/content/spain-tourism.json`, yüklenen BLS İstanbul PDF’sinden hazırlanmış 13 sıralı belge, çalışma durumu alt listeleri, kaynak kapsamı ve rehber bölümlerini içerir. Orijinal yüklenen PDF `public/documents/spain-tourism.pdf` altında sunulur. Yayın/güncelleme tarihi bilinmiyor; tarih üretilmedi. Bu kaynak İstanbul turistik C vizesi kapsamındadır; bütün İspanya temsilciliklerine genellenmez.
+
+`supabase/migrations/202610220002_spain_tourism.sql` mevcut belge modeline ek kaynak/koşul/sıra metadata’sı ekler ve yalnız yeni, deterministik İspanya kaynak kayıtlarını oluşturur. Önceki migration’dan sonra SQL Editor’da bu yeni dosyanın tamamını çalıştırın veya Supabase CLI ile `db push` kullanın. Migration tekrar çalıştırılabilir, mevcut içerikleri ve moderasyon kayıtlarını güncellemez, RLS’yi değiştirmez. Canlı veritabanına bu migration yönetici erişimi olmadan uygulanmadı.
+
+Migration uygulanana kadar İspanya ekranı paketlenmiş aynı kaynak verisini gösterir. Sonrasında veritabanındaki yönetici düzenlemeleri bu kayıtlara öncelik kazanır; frontend içeriği ayrı kopyalarla elle değiştirilmez. Özel `details` JSON alanı belge 7 ve 12’nin alt koşullarını taşır. Checklist işaretleri kullanıcı/cihaz bazında saklanır, belge uygunluğu veya vize onayı anlamına gelmez.
+
+Yayımlanan web için Supabase Auth Site URL: `https://delicate-scone-eeabc7.netlify.app`; Redirect URLs: `https://delicate-scone-eeabc7.netlify.app/auth` ve parola kurtarma için `https://delicate-scone-eeabc7.netlify.app/auth?recovery=1`. Bu yönetim ayarları public API anahtarıyla değiştirilemez; Dashboard’da kaydedilmelidir.

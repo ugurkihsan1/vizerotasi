@@ -35,6 +35,12 @@ beforeAll(async () => {
   await pg.exec(
     readFileSync("supabase/migrations/202610220001_community.sql", "utf8"),
   );
+  await pg.exec(
+    readFileSync("supabase/migrations/202610220002_spain_tourism.sql", "utf8"),
+  );
+  await pg.exec(
+    readFileSync("supabase/migrations/202610220002_spain_tourism.sql", "utf8"),
+  );
   for (const [id, name] of [
     [a, "alice"],
     [b, "bob"],
@@ -322,6 +328,40 @@ describe("PostgreSQL RLS and trusted workflow", () => {
         [a],
       ),
     ).rejects.toThrow();
+  });
+  it("seeds Spain source data idempotently without touching other countries", async () => {
+    const r = await as(
+      null,
+      "select * from country_documents where country_id='spain' order by sort_order",
+    );
+    expect(r.rows).toHaveLength(13);
+    expect(r.rows[0]).toMatchObject({
+      sort_order: 1,
+      source_type: "application_center",
+      source_updated_at: null,
+    });
+    expect(
+      (
+        await as(
+          null,
+          "select * from country_documents where country_id<>'spain'",
+        )
+      ).rows,
+    ).toHaveLength(0);
+  });
+  it("does not let ordinary users edit source metadata", async () => {
+    await as(
+      a,
+      "update country_documents set source_scope='forged' where country_id='spain'",
+    );
+    expect(
+      (
+        await as(
+          null,
+          "select * from country_documents where source_scope='forged'",
+        )
+      ).rows,
+    ).toHaveLength(0);
   });
   it("has RLS on every application table", async () => {
     const r = await root(

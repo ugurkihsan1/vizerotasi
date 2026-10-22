@@ -1,8 +1,12 @@
+import {
+  SpainDocuments,
+  SpainGuide,
+} from "../../src/components/SpainDocuments";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../src/lib/auth";
 import { useLocalSearchParams, router } from "expo-router";
 import { useState, useEffect } from "react";
-import { View, Text, FlatList, Linking } from "react-native";
+import { View, Text, FlatList, Linking, ScrollView } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useCountries, useDocuments, useToggle } from "../../src/lib/data";
 import { db, configured } from "../../src/lib/supabase";
@@ -153,8 +157,22 @@ export default function Country() {
           🔥 Son 7 gün: {stats.data?.recent ?? 0} paylaşım
         </Text>
       </View>
-      <View style={styles.row}>
-        {["Akış", "Deneyimler", "Sorular", "Kritik", "Belgeler"].map((t) => (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8 }}
+      >
+        {(id === "spain"
+          ? [
+              "Akış",
+              "Deneyimler",
+              "Sorular",
+              "Ret Deneyimleri",
+              "Belgeler",
+              "Rehber",
+            ]
+          : ["Akış", "Deneyimler", "Sorular", "Kritik", "Belgeler"]
+        ).map((t) => (
           <Chip
             key={t}
             label={t}
@@ -162,9 +180,12 @@ export default function Country() {
             onPress={() => setTab(t)}
           />
         ))}
-      </View>
+      </ScrollView>
     </View>
   );
+  if (id === "spain" && tab === "Belgeler")
+    return <SpainDocuments header={header} />;
+  if (id === "spain" && tab === "Rehber") return <SpainGuide header={header} />;
   return tab === "Belgeler" ? (
     <FlatList
       style={styles.page}
@@ -186,6 +207,7 @@ export default function Country() {
       country={id}
       header={header}
       baseFilter={{
+        result: tab === "Ret Deneyimleri" ? "rejected" : undefined,
         kind:
           tab === "Deneyimler"
             ? "experience"

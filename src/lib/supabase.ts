@@ -1,12 +1,20 @@
+import publicConfig from "../config/supabase.public.json";
+import { resolvePublicConfig } from "./public-config";
 import "react-native-url-polyfill/auto";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient, processLock } from "@supabase/supabase-js";
 import { AppState, Platform } from "react-native";
-const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-export const configured = Boolean(url && key);
-export const supabase = configured
-  ? createClient(url!, key!, {
+// Only the publishable client key is bundled. RLS protects the public API.
+const config = resolvePublicConfig(
+  {
+    url: process.env.EXPO_PUBLIC_SUPABASE_URL,
+    key: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  },
+  publicConfig,
+);
+export const configured = !!config;
+export const supabase = config
+  ? createClient(config.url, config.key, {
       auth: {
         storage: AsyncStorage,
         autoRefreshToken: true,

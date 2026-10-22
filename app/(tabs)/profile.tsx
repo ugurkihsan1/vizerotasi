@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { router } from "expo-router";
 import { useAuth } from "../../src/lib/auth";
 import { ProfileScreen } from "../../src/screens/ProfileScreen";
@@ -11,9 +11,21 @@ export default function Profile() {
       <View style={styles.content}>
         <Empty
           title="Senin rotan, senin topluluğun"
-          action="Giriş yap / Üye ol"
-          onPress={() => router.push("/auth")}
+          body="Deneyimlerini paylaşmak ve kaydettiklerine dönmek için hesabını oluştur."
+          action="Üye ol"
+          onPress={() => router.push("/auth?mode=signup")}
         />
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => router.push("/auth")}
+          style={{
+            minHeight: 44,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={styles.muted}>Zaten hesabın var mı? Giriş yap</Text>
+        </Pressable>
       </View>
     );
   if (!profile)

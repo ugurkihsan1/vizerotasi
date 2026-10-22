@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs, router } from "expo-router";
-import { Text, Pressable } from "react-native";
+import { Text } from "react-native";
 import { colors } from "../../src/components/ui";
 import { useNotifications } from "../../src/lib/data";
 export default function TabLayout() {
@@ -13,15 +13,6 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.muted,
         tabBarStyle: { height: 80, paddingTop: 8, paddingBottom: 16 },
         headerTitleStyle: { fontWeight: "800", color: colors.navy },
-        headerRight: () => (
-          <Pressable
-            accessibilityLabel="Ara"
-            onPress={() => router.push("/discover")}
-            style={{ padding: 16 }}
-          >
-            <Ionicons name="search-outline" size={23} color={colors.navy} />
-          </Pressable>
-        ),
       }}
     >
       <Tabs.Screen

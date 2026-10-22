@@ -1,3 +1,5 @@
+import { Ionicons } from "@expo/vector-icons";
+import { processingDays } from "../lib/dates";
 import { Text, View, Pressable, Share } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -75,23 +77,59 @@ export function Actions({ post }: { post: Post }) {
   return (
     <View style={{ gap: 8 }}>
       <View style={[styles.row, { justifyContent: "space-between" }]}>
-        <Button
-          secondary
-          label={`${vote.active ? "♥" : "♡"} ${post.helpful_count} Faydalı`}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${post.helpful_count} Faydalı`}
+          accessibilityState={{ selected: vote.active }}
           disabled={session?.user.id === post.user_id || vote.pending}
           onPress={() => gate.require(() => void act(vote.toggle))}
-        />
-        <Button
-          secondary
-          label={`↗ ${post.comment_count} Yanıt`}
+          style={{
+            minHeight: 44,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <Ionicons
+            name={vote.active ? "heart" : "heart-outline"}
+            size={21}
+            color={vote.active ? colors.blue : colors.muted}
+          />
+          <Text style={styles.muted}>{post.helpful_count} Faydalı</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${post.comment_count} Yanıt`}
           onPress={() => router.push(postPath(post))}
-        />
-        <Button
-          secondary
-          label={save.active ? "▣ Kaydedildi" : "▧ Kaydet"}
+          style={{
+            minHeight: 44,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <Ionicons name="chatbubble-outline" size={20} color={colors.muted} />
+          <Text style={styles.muted}>{post.comment_count} Yanıt</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={save.active ? "Kaydı kaldır" : "Kaydet"}
+          accessibilityState={{ selected: save.active }}
           disabled={save.pending}
           onPress={() => gate.require(() => void act(save.toggle))}
-        />
+          style={{
+            minWidth: 44,
+            minHeight: 44,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Ionicons
+            name={save.active ? "bookmark" : "bookmark-outline"}
+            size={21}
+            color={save.active ? colors.blue : colors.muted}
+          />
+        </Pressable>
       </View>
       <Message text={error} />
       {gate.view}
@@ -121,13 +159,7 @@ export function PostCard({
   const { data: countries } = useCountries();
   const { data: author } = useProfile(post.user_id);
   const country = countries?.find((x) => x.id === post.country_id);
-  const days =
-    post.decision_date && post.application_date
-      ? Math.round(
-          (Date.parse(post.decision_date) - Date.parse(post.application_date)) /
-            86400000,
-        )
-      : null;
+  const days = processingDays(post.application_date, post.decision_date);
   return (
     <View
       style={[
@@ -199,9 +231,11 @@ export function PostCard({
             >
               {resultLabels[post.result]}
             </Text>
-            {days !== null && (
-              <Text style={styles.muted}>{days} günde sonuçlandı</Text>
-            )}
+            <Text style={styles.muted}>
+              {days === null
+                ? "Süre: Belirtilmedi"
+                : `${days} günde sonuçlandı`}
+            </Text>
           </View>
         )}
         <Text style={styles.heading}>{post.title}</Text>
