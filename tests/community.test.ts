@@ -454,3 +454,47 @@ it("keeps administrator setup compatible with quality-based badge rules", async 
   expect((await metrics(author)).membership_level).toBe("Yeni Üye");
   expect(await awardIds(author)).not.toContain("buyukelci");
 });
+
+it("lets a normal member submit categorized critical information and only exposes it publicly after approval", async () => {
+  const author = await user(30),
+    admin = await user(40, "admin");
+  const inserted = await as(
+    author,
+    "insert into posts(user_id,country_id,kind,category_id,title,body) values($1,'spain','tip','invitation','Davet mektubunu erkenden hazırlayın','Ev sahibimin davet mektubunu hazırlaması zaman aldı; erkenden iletişime geçin.') returning id,status",
+    [author],
+  );
+  const pending = inserted.rows[0] as { id: string; status: string };
+  expect(pending.status).toBe("pending");
+  const read = () =>
+    as(
+      null,
+      "select id from posts where country_id='spain' and kind='tip' and status='approved' and not is_sample and category_id in ('invitation') and id=$1",
+      [pending.id],
+    );
+  expect((await read()).rows).toHaveLength(0);
+  await expect(
+    as(author, "select moderate($1,'approved')", [pending.id]),
+  ).rejects.toThrow();
+  await as(admin, "select moderate($1,'approved')", [pending.id]);
+  expect((await read()).rows).toHaveLength(1);
+  expect(
+    (
+      await as(
+        null,
+        "select id from posts where country_id='estonia' and kind='tip' and status='approved' and category_id='invitation' and id=$1",
+        [pending.id],
+      )
+    ).rows,
+  ).toHaveLength(0);
+  expect(
+    (
+      await as(
+        null,
+        "select id from posts where country_id='spain' and kind='tip' and status='approved' and category_id='appointment' and id=$1",
+        [pending.id],
+      )
+    ).rows,
+  ).toHaveLength(0);
+  await as(admin, "select moderate($1,'rejected')", [pending.id]);
+  expect((await read()).rows).toHaveLength(0);
+});

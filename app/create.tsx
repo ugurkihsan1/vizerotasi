@@ -32,20 +32,29 @@ import {
   Message,
 } from "../src/components/ui";
 import type { Kind } from "../src/lib/types";
+import {
+  criticalTipPlacement,
+  guideTopicLabels,
+} from "../src/lib/guide-topics";
 export default function Create() {
   const params = useLocalSearchParams<{
     kind?: string;
     country?: string;
     title?: string;
+    category?: string;
   }>();
   const [kind, setKind] = useState<Kind | null>(
-    params.kind === "question" ? "question" : null,
+    params.kind === "question" || params.kind === "tip" ? params.kind : null,
   );
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
-  const [category, setCategory] = useState("other");
+  const [category, setCategory] = useState(
+    params.category && guideTopicLabels[params.category]
+      ? params.category
+      : "other",
+  );
   const cache = useQueryClient();
   const { session } = useAuth();
   const countries = useCountries();
@@ -222,6 +231,7 @@ export default function Create() {
         Haptics.NotificationFeedbackType.Success,
       ).catch(() => {});
       void cache.invalidateQueries({ queryKey: ["feed"] });
+      void cache.invalidateQueries({ queryKey: ["guide-community-tips"] });
     } catch (e) {
       setMessage(friendlyError(e));
     } finally {
@@ -247,7 +257,9 @@ export default function Create() {
           body={
             kind === "experience"
               ? "Onaylandığında toplulukta yayınlanacak ve +8 katkı puanı kazanacaksın."
-              : "Onaylandığında toplulukta yayınlanacak."
+              : kind === "tip"
+                ? `Onaylandığında toplulukta yayınlanacak. ${criticalTipPlacement(getValues("country_id"), category)}`
+                : "Onaylandığında toplulukta yayınlanacak."
           }
           action="Profilime git"
           onPress={() => router.replace("/profile")}
@@ -458,15 +470,53 @@ export default function Create() {
               {privacyWarning}
             </Text>
             {kind !== "experience" && (
-              <View style={styles.row}>
-                {categories.data?.map((c) => (
-                  <Chip
-                    key={c.id}
-                    label={c.name}
-                    active={category === c.id}
-                    onPress={() => setCategory(c.id)}
+              <View style={{ gap: 10 }}>
+                <Text style={styles.pillText}>
+                  {kind === "tip"
+                    ? "Kritik bilgi hangi konuyla ilgili?"
+                    : "Konu"}
+                </Text>
+                <View style={styles.row}>
+                  {categories.data?.map((c) => (
+                    <Chip
+                      key={c.id}
+                      label={c.name}
+                      active={category === c.id}
+                      onPress={() => setCategory(c.id)}
+                    />
+                  ))}
+                </View>
+                {kind === "tip" && (
+                  <Controller
+                    control={control}
+                    name="country_id"
+                    render={({ field: { value } }) => (
+                      <View
+                        style={{
+                          padding: 12,
+                          backgroundColor: "#F0EBFA",
+                          borderRadius: 10,
+                          gap: 4,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontWeight: "600",
+                            color: "#644A94",
+                          }}
+                        >
+                          Onaylandıktan sonra nerede görünecek?
+                        </Text>
+                        <Text style={[styles.muted, { color: "#71579D" }]}>
+                          {value
+                            ? criticalTipPlacement(value, category)
+                            : "Ülke ve konu seç; notun ilgili başvuru adımına bağlansın."}
+                        </Text>
+                      </View>
+                    )}
                   />
-                ))}
+                )}
               </View>
             )}
             {text(

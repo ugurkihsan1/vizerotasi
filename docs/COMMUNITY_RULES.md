@@ -41,3 +41,21 @@ Sunucu puanları ve rozetleri hesaplar; istemci bunları yazamaz. Onaylar, kald�
 İspanya belge listesinde önemli kaynak koşulları mor, açılır uyarılarla görünür. Diğer ülkelerde de ilgili belgeye yönetici notu eklenebilir. Yönetim → Belge uyarılarını yönet ekranında ülke ve belge seçilir. Kullanıcı deneyimi notu aynı ülkedeki onaylı, örnek olmayan bir **deneyim gönderisine** bağlanmalıdır. Editör açıklaması ayrı etiket taşır. Notlar önce bekler; yetkili onayından sonra görünür. Kaynak gönderi kaldırılırsa deneyim notu da halktan gizlenir.
 
 Benzer deneyim sayısı yalnızca gerçek, farklı hesapların bildirimlerinden hesaplanır. Notu oluşturan kişi ve kaynak deneyimin yazarı kendi notunu doğrulayamaz. Ekran görüntüsündeki demo sayılar ve doğrulanmamış ıslak imza talepleri gerçek bilgi olarak eklenmemiştir. Kullanıcı notları resmî belge koşulunun yerine geçmez.
+
+### Üyelerin kritik bilgilerinin rehbere otomatik bağlanması
+
+Normal üyeler **Kritik bilgi paylaş** ekranında ülkeyi ve konuyu seçer. Gönderi mevcut moderasyon sürecine girer. Onaylanan, örnek olmayan kritik bilgiler ikinci bir yönetici notu oluşturulmadan orijinal gönderiden okunur:
+
+| İspanya konusu           | Rehberdeki yer             | Belge listesindeki yer                            |
+| ------------------------ | -------------------------- | ------------------------------------------------- |
+| Randevu                  | Randevu                    | —                                                 |
+| Davet Mektubu            | Konaklama ve davet mektubu | 4. Konaklama belgeleri                            |
+| Pasaport                 | —                          | 1. Pasaport                                       |
+| Çalışan / Öğrenci        | —                          | 7. Çalışma veya gelir durumunu açıklayan belgeler |
+| Finansal Durum / Sponsor | —                          | 8. Maddi durumu gösteren belgeler                 |
+| Belgeler / Diğer         | Başvuru Süreci             | —                                                 |
+| Ret                      | Başvuru öncesi dikkat      | —                                                 |
+
+Mor alan **Topluluk notu** etiketiyle açılıp kapanır; içeriği ve orijinal paylaşımın yorumlarına bağlantıyı gösterir. Eski onaylı kritik paylaşımlar da kapsanır. Gönderinin onayı geri alınırsa veya silinirse bir sonraki yenilemede not da kalkar. Ülke, konu, onay, içerik türü ve örnek durumu sorguda birlikte filtrelenir. Notlar sayfalanır; açık ekranlar dakikada bir yenilenir. İspanya ekranına Kritik sekmesi de eklenmiştir.
+
+Bu otomatik bağlantı **mevcut posts tablosunu ve RLS kurallarını kullanır; ek SQL veya 004 güncellemesi gerektirmez**. Yönetimin ayrıca eklediği belge notları ve önceki rozet özellikleri için 004 gerekliliği sürer. Diğer ülkelerdeki kritik paylaşımlar ülkenin Kritik sekmesinde görünür.

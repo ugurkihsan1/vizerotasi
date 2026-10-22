@@ -6,12 +6,14 @@ export function CriticalNotice({
   title,
   source,
   count,
+  topic,
   children,
   initiallyOpen = false,
 }: {
   title: string;
-  source: "reference" | "experience" | "editorial";
+  source: "reference" | "experience" | "editorial" | "community";
   count?: number;
+  topic?: string;
   initiallyOpen?: boolean;
 } & PropsWithChildren) {
   const [open, setOpen] = useState(initiallyOpen);
@@ -49,9 +51,11 @@ export function CriticalNotice({
           <Text style={{ fontSize: 10, color: "#806A9D" }}>
             {source === "reference"
               ? "Başvuru merkezi belgesi"
-              : source === "editorial"
-                ? "Editör notu"
-                : `${count ?? 1} başvuru deneyimi · Kullanıcı aktarımı`}
+              : source === "community"
+                ? `Topluluk notu${topic ? ` · ${topic}` : ""}`
+                : source === "editorial"
+                  ? "Editör notu"
+                  : `${count ?? 1} başvuru deneyimi · Kullanıcı aktarımı`}
           </Text>
         </View>
         <Ionicons

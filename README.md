@@ -103,3 +103,7 @@ Arayüz; yerel SVG ülke illüstrasyonları, sıcak nötr zemin, lacivert/yeşil
 Ülke görselleri kendi bayraklarını taşır. Profil → Rozetlerim ve ilerlemem ekranı Gezgin, Kaşif, Seyyah, Rehber, Elçi ve Büyükelçi seviyelerinin tüm koşullarını gösterir. Avrupa Fatihi, Yol Arkadaşı, Dedektif ve ilk 1000 üyeye Öncü Üye ek rozetleri sunulur. Puan ve rozetler yalnızca sunucuda hesaplanır; doğrulanmış ihlaller gerekçeli yönetici işlemiyle puan düşürür.
 
 Mevcut Supabase projesinde [COMMUNITY_UPGRADE.sql](docs/COMMUNITY_UPGRADE.sql) dosyasının tamamını SQL Editor’da **bir defa** uygulayın. Bu dosya 002/003 güncellemelerini içerir ve 004 topluluk kurallarını kurar. Yeni Supabase projelerinde CLI tüm migration’ları sırasıyla uygular. Ayrıntılı eşikler, puan tavanları, inceleme süreci ve belge notları için [topluluk kuralları](docs/COMMUNITY_RULES.md). Şema uygulanana kadar ekranlar mevcut profilleri okumayı sürdürür; yeni ödüller ve belge notu işlemleri etkinleşmez.
+
+### Kritik paylaşımdan rehberde topluluk notuna
+
+İspanya için normal üyenin onaylanan kritik paylaşımı seçilen konuya göre ilgili rehber adımında veya belge altında mor **Topluluk notu** olarak otomatik görünür. Randevu → Randevu; Davet Mektubu → Konaklama ve davet mektubu / Konaklama belgeleri. Form notun yerini gösterir; rehberden açılan form ülke ve konuyu önceden seçer. Mevcut onaylı paylaşımlar da dahildir. Bu bağlantı için yeni SQL çalıştırılmaz; mevcut gönderi onayı yeterlidir. Konu eşleştirmeleri [topluluk kurallarında](docs/COMMUNITY_RULES.md) açıklanır.

@@ -192,6 +192,7 @@ export default function Country() {
               "Deneyimler",
               "Sorular",
               "Ret Deneyimleri",
+              "Kritik",
               "Belgeler",
               "Rehber",
             ]

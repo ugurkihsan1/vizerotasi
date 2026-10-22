@@ -1,4 +1,6 @@
 import { SourceDocumentWarning, DocumentWarnings } from "./DocumentWarnings";
+import { CommunityTips } from "./CommunityTips";
+import { spainDocumentTopics } from "../lib/guide-topics";
 import { useEffect, useState } from "react";
 import {
   View,
@@ -136,6 +138,10 @@ function DocumentAccordion({
         documentId={doc.id}
         documentKey={`spain-tourism-${doc.sort_order}`}
       />
+      <CommunityTips
+        country="spain"
+        categories={spainDocumentTopics[doc.sort_order] ?? []}
+      />
       {open && (
         <View style={{ gap: 14 }}>
           <Text style={styles.text}>{doc.body}</Text>
@@ -193,6 +199,22 @@ function DocumentAccordion({
           onPress={() => {
             setCommunity(false);
             router.push({ pathname: "/discover", params: { q: doc.title } });
+          }}
+        />
+        <Button
+          secondary
+          label="Bu belge hakkında kritik bilgi paylaş"
+          onPress={() => {
+            setCommunity(false);
+            router.push({
+              pathname: "/create",
+              params: {
+                kind: "tip",
+                country: "spain",
+                category:
+                  spainDocumentTopics[doc.sort_order]?.[0] ?? "documents",
+              },
+            });
           }}
         />
         <Button
@@ -380,15 +402,18 @@ export function SpainDocuments({ header }: { header: React.ReactElement }) {
 function GuideSection({
   title,
   children,
+  notes,
 }: {
   title: string;
   children: React.ReactNode;
+  notes?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   return (
     <View style={styles.card}>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel={title}
         accessibilityState={{ expanded: open }}
         aria-expanded={open}
         onPress={() => setOpen(!open)}
@@ -407,6 +432,7 @@ function GuideSection({
         />
       </Pressable>
       {open && children}
+      {notes}
     </View>
   );
 }
@@ -424,7 +450,15 @@ function ScrollGuide({ header }: { header: React.ReactElement }) {
         <View style={{ gap: 16, paddingBottom: 16 }}>
           {header}
           <SpainSource />
-          <GuideSection title="Başvuru Süreci">
+          <GuideSection
+            title="Başvuru Süreci"
+            notes={
+              <CommunityTips
+                country="spain"
+                categories={["documents", "other"]}
+              />
+            }
+          >
             <Text style={styles.muted}>Başvuru öncesi evrak kontrolü</Text>
             {spainGuide.process.map((s, i) => (
               <Text key={s} style={styles.text}>
@@ -432,14 +466,64 @@ function ScrollGuide({ header }: { header: React.ReactElement }) {
               </Text>
             ))}
           </GuideSection>
-          <GuideSection title="Randevu">
+          <GuideSection
+            title="Randevu"
+            notes={
+              <CommunityTips country="spain" categories={["appointment"]} />
+            }
+          >
             <Text style={styles.text}>{spainGuide.appointment}</Text>
+            <Button
+              secondary
+              label="Randevu hakkında kritik bilgi paylaş"
+              onPress={() =>
+                router.push({
+                  pathname: "/create",
+                  params: {
+                    kind: "tip",
+                    country: "spain",
+                    category: "appointment",
+                  },
+                })
+              }
+            />
+          </GuideSection>
+          <GuideSection
+            title="Konaklama ve davet mektubu"
+            notes={
+              <CommunityTips country="spain" categories={["invitation"]} />
+            }
+          >
+            <Text style={styles.text}>
+              {spainGuide.documents.find((d) => d.sort_order === 4)?.body}
+            </Text>
+            <Button
+              secondary
+              label="Davet mektubu hakkında kritik bilgi paylaş"
+              onPress={() =>
+                router.push({
+                  pathname: "/create",
+                  params: {
+                    kind: "tip",
+                    country: "spain",
+                    category: "invitation",
+                  },
+                })
+              }
+            />
           </GuideSection>
           <Text style={styles.heading}>Genel Bakış</Text>
         </View>
       }
       renderItem={({ item }) => (
-        <GuideSection title={item.title}>
+        <GuideSection
+          title={item.title}
+          notes={
+            item.title === "Başvuru öncesi dikkat" ? (
+              <CommunityTips country="spain" categories={["rejection"]} />
+            ) : undefined
+          }
+        >
           <Text style={styles.text}>{item.body}</Text>
         </GuideSection>
       )}
