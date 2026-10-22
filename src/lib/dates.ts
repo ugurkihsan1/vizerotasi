@@ -24,3 +24,27 @@ export function processingDays(
   if (a === null || b === null || b < a || b > now) return null;
   return Math.round((b - a) / DAY);
 }
+
+/** Display date-only values without shifting their calendar day. */
+export function formatDate(value: string | null | undefined): string {
+  if (!value) return "—";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-");
+    return `${day}/${month}/${year}`;
+  }
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("tr-TR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "Europe/Istanbul",
+  })
+    .format(date)
+    .replace(/\./g, "/");
+}
+export function formatDateTime(value: string): string {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "—";
+  return `${formatDate(value)} ${new Intl.DateTimeFormat("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" }).format(date)}`;
+}

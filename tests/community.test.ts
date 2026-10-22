@@ -618,3 +618,74 @@ it("applies the repeatable comments/country upgrade without restoring removed co
     ).rows,
   ).toHaveLength(13);
 });
+
+it("stores optional experience history and invitation notes in RLS-protected feeds without requiring a narrative", async () => {
+  const author = await user(),
+    admin = await user(40, "admin");
+  const history = [
+    {
+      country: "Fransa",
+      issue_date: "2024-07-01",
+      duration: "6 ay",
+      entries: "multi",
+      notes: "Önceki vize notu",
+    },
+  ];
+  const r = await as(
+    author,
+    "insert into posts(user_id,country_id,kind,title,body,city,center,result,first_schengen,employment_status,financing,previous_visas,invitation_notes) values($1,'germany','experience','Kültürel etkinlik deneyimi','','İstanbul','iData','approved',false,'Öğrenci','Sponsor',$2,'Davetiyem etkinlik düzenleyicisindendi.') returning id",
+    [author, JSON.stringify(history)],
+  );
+  const id = (r.rows[0] as { id: string }).id;
+  expect(
+    (await as(null, "select id from feed where id=$1", [id])).rows,
+  ).toHaveLength(0);
+  await as(admin, "select moderate($1,'approved')", [id]);
+  expect(
+    (
+      await as(
+        null,
+        "select body,previous_visas,invitation_notes from feed where id=$1",
+        [id],
+      )
+    ).rows[0],
+  ).toMatchObject({
+    body: "",
+    previous_visas: history,
+    invitation_notes: "Davetiyem etkinlik düzenleyicisindendi.",
+  });
+  await expect(
+    as(author, "update posts set previous_visas=$2 where id=$1", [id, "[]"]),
+  ).rejects.toThrow();
+  for (const invalid of [
+    [{ ...history[0], issue_date: "2024-02-30" }],
+    [{ ...history[0], unknown: "private-extra" }],
+    Array(11).fill(history[0]),
+  ])
+    await expect(
+      root("update posts set previous_visas=$2 where id=$1", [
+        id,
+        JSON.stringify(invalid),
+      ]),
+    ).rejects.toThrow();
+  await expect(
+    root("update posts set first_schengen=true where id=$1", [id]),
+  ).rejects.toThrow();
+  await expect(
+    as(
+      author,
+      "insert into posts(user_id,country_id,kind,title,body) values($1,'germany','question','An invalid empty question','')",
+      [author],
+    ),
+  ).rejects.toThrow();
+  await root("select 1");
+  await pg.exec(readFileSync("docs/FORMS_UPGRADE.sql", "utf8"));
+  expect(
+    (await as(null, "select previous_visas from feed where id=$1", [id]))
+      .rows[0],
+  ).toMatchObject({ previous_visas: history });
+  expect(
+    (await as(null, "select id from forum_categories where id='doc-insurance'"))
+      .rows,
+  ).toHaveLength(1);
+});

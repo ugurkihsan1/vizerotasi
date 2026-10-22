@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { processingDays } from "../lib/dates";
+import { CountryFlag } from "./CountryFlag";
+import { processingDays, formatDate } from "../lib/dates";
 import { Text, View, Pressable, Share } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -178,6 +179,7 @@ export function PostCard({
     <View
       style={[
         styles.card,
+        { padding: 0, gap: 0, overflow: "hidden" },
         post.kind === "tip" && {
           backgroundColor: "#FFF9ED",
           borderColor: "#EEE1C5",
@@ -185,137 +187,154 @@ export function PostCard({
         post.kind === "question" && { borderColor: "#DDE6E9" },
       ]}
     >
-      <View style={[styles.row, { justifyContent: "space-between" }]}>
-        <Pressable
-          accessibilityRole="link"
-          onPress={() => router.push(`/country/${post.country_id}`)}
+      {post.kind === "experience" && post.result && (
+        <View
+          style={{
+            paddingHorizontal: 20,
+            paddingVertical: 13,
+            minHeight: 46,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            backgroundColor:
+              post.result === "approved"
+                ? "#CDECD9"
+                : post.result === "rejected"
+                  ? "#F7D1CD"
+                  : "#FFE8A6",
+          }}
         >
-          <Text style={styles.pillText}>
-            {country?.flag} {country?.name ?? "Ülke"}
+          <Text
+            style={{
+              fontWeight: "800",
+              fontSize: 14,
+              color:
+                post.result === "approved"
+                  ? "#176744"
+                  : post.result === "rejected"
+                    ? "#A22E30"
+                    : "#866000",
+            }}
+          >
+            {resultLabels[post.result]}
           </Text>
-        </Pressable>
-        <Text
-          style={[
-            styles.muted,
-            { color: post.kind === "tip" ? colors.amber : colors.blue },
-          ]}
-        >
-          {kindLabels[post.kind]}
-        </Text>
-      </View>
-      <Pressable
-        style={styles.row}
-        accessibilityRole="link"
-        onPress={() => author && router.push(`/profile/${author.username}`)}
-      >
-        <Avatar name={author?.display_name ?? "Üye"} url={author?.avatar_url} />
-        <View>
-          <Text style={styles.pillText}>
-            {author?.username ?? "Topluluk üyesi"}
-          </Text>
-          <Text style={styles.muted}>
-            {author?.membership_level} ·{" "}
-            {new Date(post.created_at).toLocaleDateString("tr-TR", {
-              day: "numeric",
-              month: "short",
-            })}
-          </Text>
+          {post.result !== "waiting" && days !== null && (
+            <Text
+              style={{ fontSize: 12, fontWeight: "600", color: colors.navy }}
+            >
+              {days} günde sonuçlandı
+            </Text>
+          )}
         </View>
-      </Pressable>
-      {post.status !== "approved" && (
-        <Text style={{ color: colors.amber }}>{statusLabels[post.status]}</Text>
       )}
-      {post.is_sample && (
-        <Text style={{ color: colors.amber }}>Örnek İçerik</Text>
-      )}
-      <Pressable
-        accessibilityRole="link"
-        onPress={() => !detail && router.push(postPath(post))}
-        style={{ gap: 12 }}
-      >
-        {post.result && (
-          <View
+      <View style={{ padding: 20, gap: 14 }}>
+        <View style={[styles.row, { justifyContent: "space-between" }]}>
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => router.push(`/country/${post.country_id}`)}
+          >
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 7 }}
+            >
+              {country && (
+                <CountryFlag
+                  code={country.code}
+                  emoji={country.flag}
+                  name={country.name}
+                />
+              )}
+              <Text style={styles.pillText}>{country?.name ?? "Ülke"}</Text>
+            </View>
+          </Pressable>
+          <Text
             style={[
-              styles.row,
-              {
-                padding: 14,
-                borderRadius: 16,
-                backgroundColor:
-                  post.result === "approved"
-                    ? "#EDF5EE"
-                    : post.result === "rejected"
-                      ? "#FCF0ED"
-                      : "#FFF5DF",
-                justifyContent: "space-between",
-              },
+              styles.muted,
+              { color: post.kind === "tip" ? colors.amber : colors.blue },
             ]}
           >
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: "800",
-                color:
-                  post.result === "approved"
-                    ? colors.green
-                    : post.result === "rejected"
-                      ? colors.red
-                      : colors.amber,
-              }}
-            >
-              {resultLabels[post.result]}
+            {kindLabels[post.kind]}
+          </Text>
+        </View>
+        <Pressable
+          style={styles.row}
+          accessibilityRole="link"
+          onPress={() => author && router.push(`/profile/${author.username}`)}
+        >
+          <Avatar
+            name={author?.display_name ?? "Üye"}
+            url={author?.avatar_url}
+          />
+          <View>
+            <Text style={styles.pillText}>
+              {author?.username ?? "Topluluk üyesi"}
             </Text>
-            <Text style={[styles.muted, { fontWeight: "600", fontSize: 12 }]}>
-              {days === null
-                ? "Süre: Belirtilmedi"
-                : `${days} günde sonuçlandı`}
+            <Text style={styles.muted}>
+              {author?.membership_level} · {formatDate(post.created_at)}
             </Text>
           </View>
-        )}
-        <Text style={styles.heading}>{post.title}</Text>
-        {post.kind === "experience" && (
-          <View style={styles.row}>
-            {[
-              post.first_schengen ? "İlk Schengen" : null,
-              post.employment_status,
-              post.city,
-              post.financing,
-            ]
-              .filter(Boolean)
-              .map((x) => (
-                <View key={x} style={styles.pill}>
-                  <Text style={styles.pillText}>{x}</Text>
-                </View>
-              ))}
-          </View>
-        )}
-        {post.kind === "experience" && (
-          <Text style={styles.muted}>
-            İstenen: {post.requested_days ?? "—"} gün · Verilen:{" "}
-            {post.granted_days ?? "—"} gün{" "}
-            {post.entries &&
-              `· ${{ single: "Tek giriş", double: "Çift giriş", multi: "Çok giriş" }[post.entries] ?? ""}`}
+        </Pressable>
+        {post.status !== "approved" && (
+          <Text style={{ color: colors.amber }}>
+            {statusLabels[post.status]}
           </Text>
         )}
-        <Text style={styles.text} numberOfLines={detail ? undefined : 4}>
-          {post.body}
-        </Text>
-        {post.kind === "tip" && (
-          <Text style={styles.muted}>
-            {
+        {post.is_sample && (
+          <Text style={{ color: colors.amber }}>Örnek İçerik</Text>
+        )}
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => !detail && router.push(postPath(post))}
+          style={{ gap: 12 }}
+        >
+          <Text style={styles.heading}>{post.title}</Text>
+          {post.kind === "experience" && (
+            <View style={styles.row}>
+              {[
+                post.first_schengen ? "İlk Schengen" : null,
+                post.employment_status,
+                post.city,
+                post.financing,
+              ]
+                .filter(Boolean)
+                .map((x) => (
+                  <View key={x} style={styles.pill}>
+                    <Text style={styles.pillText}>{x}</Text>
+                  </View>
+                ))}
+            </View>
+          )}
+          {post.kind === "experience" && (
+            <Text style={styles.muted}>
+              İstenen: {post.requested_days ?? "—"} gün · Verilen:{" "}
+              {post.granted_days ?? "—"} gün{" "}
+              {post.entries &&
+                `· ${{ single: "Tek giriş", double: "Çift giriş", multi: "Çok giriş" }[post.entries] ?? ""}`}
+            </Text>
+          )}
+          {!!post.body && (
+            <Text style={styles.text} numberOfLines={detail ? undefined : 4}>
+              {post.body}
+            </Text>
+          )}
+          {post.kind === "tip" && (
+            <Text style={styles.muted}>
               {
-                submission: "Topluluk paylaşımı",
-                official: "🏛 Resmî Kaynak",
-                editorial: "✍ Editör Notu",
-                community_verified: "✓ Topluluk Tarafından Doğrulandı",
-              }[post.source_type]
-            }
-            {post.last_verified_at
-              ? ` · ${new Date(post.last_verified_at).toLocaleDateString("tr-TR")}`
-              : ""}
-          </Text>
-        )}
-      </Pressable>
-      {post.status === "approved" && <Actions post={post} />}
+                {
+                  submission: "Topluluk paylaşımı",
+                  official: "🏛 Resmî Kaynak",
+                  editorial: "✍ Editör Notu",
+                  community_verified: "✓ Topluluk Tarafından Doğrulandı",
+                }[post.source_type]
+              }
+              {post.last_verified_at
+                ? ` · ${formatDate(post.last_verified_at)}`
+                : ""}
+            </Text>
+          )}
+        </Pressable>
+        {post.status === "approved" && <Actions post={post} />}
+      </View>
     </View>
   );
 }

@@ -1,3 +1,4 @@
+import { formatDate } from "../lib/dates";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { View, Text } from "react-native";
 import { router } from "expo-router";
@@ -28,8 +29,7 @@ export function ProfileComments({ user }: { user: string }) {
         <View key={c.id} style={styles.card}>
           <Text style={styles.text}>{c.body}</Text>
           <Text style={styles.muted}>
-            {statusLabels[c.status]} ·{" "}
-            {new Date(c.created_at).toLocaleDateString("tr-TR")}
+            {statusLabels[c.status]} · {formatDate(c.created_at)}
           </Text>
           <Button
             secondary

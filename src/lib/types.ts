@@ -1,3 +1,4 @@
+import type { PreviousVisa } from "./schemas";
 import type { ProgressMetrics } from "./community";
 export type Kind = "experience" | "question" | "tip" | "update";
 export type Status = "pending" | "approved" | "rejected" | "needs_revision";
@@ -24,6 +25,9 @@ export interface Profile {
   created_at: string;
 }
 export interface Post {
+  previous_visas?: PreviousVisa[];
+  invitation_notes?: string;
+  invitation?: boolean | null;
   id: string;
   user_id: string;
   country_id: string;

@@ -455,7 +455,7 @@ function ScrollGuide({ header }: { header: React.ReactElement }) {
             notes={
               <CommunityTips
                 country="spain"
-                categories={["documents", "other"]}
+                categories={["documents", "doc-form", "other"]}
               />
             }
           >

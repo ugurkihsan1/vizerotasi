@@ -1,3 +1,4 @@
+import { formatDateTime } from "../../src/lib/dates";
 import { FlatList, Text, Pressable, View } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
@@ -34,9 +35,7 @@ function NotificationRow({
         {!n.read_at ? "• " : ""}
         {n.message}
       </Text>
-      <Text style={styles.muted}>
-        {new Date(n.created_at).toLocaleString("tr-TR")}
-      </Text>
+      <Text style={styles.muted}>{formatDateTime(n.created_at)}</Text>
     </Pressable>
   );
 }

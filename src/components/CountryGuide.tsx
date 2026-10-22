@@ -1,3 +1,4 @@
+import { formatDate } from "../lib/dates";
 import { useState, useEffect } from "react";
 import { View, Text, FlatList, Pressable, Linking } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,6 +13,7 @@ import { useDocuments } from "../lib/data";
 import { useAuth } from "../lib/auth";
 import type { Document } from "../lib/types";
 import { styles, colors, Button, Message } from "./ui";
+import { documentTopics } from "../lib/guide-topics";
 import { GuideSection } from "./SpainDocuments";
 import { CommunityTips } from "./CommunityTips";
 import { DocumentWarnings } from "./DocumentWarnings";
@@ -103,7 +105,7 @@ function DocumentCard({
       )}
       <CommunityTips
         country={doc.country_id}
-        categories={doc.topic_ids ?? []}
+        categories={documentTopics(doc.key ?? "", doc.topic_ids ?? [])}
       />
       <DocumentWarnings country={doc.country_id} documentId={doc.id} />
       {open && (
@@ -112,7 +114,7 @@ function DocumentCard({
           <Text style={[styles.muted, { fontSize: 11 }]}>
             {doc.source_name ?? "Kaynak"}
             {doc.source_checked_at
-              ? ` · Kontrol: ${doc.source_checked_at}`
+              ? ` · Kontrol: ${formatDate(doc.source_checked_at)}`
               : ""}
           </Text>
           {doc.source_url && (
@@ -127,7 +129,9 @@ function DocumentCard({
                 params: {
                   kind: "tip",
                   country: doc.country_id,
-                  category: doc.topic_ids?.[0] ?? "documents",
+                  category:
+                    documentTopics(doc.key ?? "", doc.topic_ids ?? [])[0] ??
+                    "documents",
                 },
               })
             }
@@ -226,7 +230,7 @@ export function CountryGuide({
                 notes={
                   <CommunityTips
                     country={country}
-                    categories={["documents", "other"]}
+                    categories={["documents", "doc-form", "other"]}
                   />
                 }
               >
@@ -323,7 +327,7 @@ export function CountryGuide({
             <Text style={styles.pillText}>Resmî kaynaklar</Text>
             <Text style={styles.muted}>
               Ülkeye özgü talimatlar ve ortak Schengen koşulları ayrı
-              kaynaklardır. Bağlantılar 22.10.2026 tarihinde kontrol edildi; bu,
+              kaynaklardır. Bağlantılar 22/10/2026 tarihinde kontrol edildi; bu,
               belgelerin yayın tarihi değildir.
             </Text>
             {guide.sources.map((s) => (

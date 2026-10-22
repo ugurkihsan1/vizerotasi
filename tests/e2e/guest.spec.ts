@@ -71,12 +71,12 @@ test("signup submits required metadata and offers a clear verification state", a
     });
   });
   await page.goto("/auth?mode=signup");
-  await page.getByLabel("Görünen ad", { exact: true }).fill("Test Yolcu");
+  await page.getByLabel("Adınız", { exact: true }).fill("Test Yolcu");
   await page.getByLabel("Kullanıcı adı", { exact: true }).fill("test_yolcu");
   await page.getByLabel("E-posta", { exact: true }).fill("ui-test@example.com");
   await page
-    .getByLabel("Şifre · en az 12 karakter", { exact: true })
-    .fill("test-only-password-123");
+    .getByLabel("Şifre · en az 8 karakter", { exact: true })
+    .fill("Test1234");
   await page
     .getByRole("switch", {
       name: "Kullanım koşullarını kabul ediyorum",
@@ -211,6 +211,12 @@ test("approved member tips appear in their guide step and invitation document au
     body: "Ev sahibimin davet mektubunu hazırlaması zaman aldı; seyahatinden önce hazırlığa başla.",
     category_id: "invitation",
   };
+  const insurance = {
+    id: "00000000-0000-0000-0000-000000000113",
+    title: "Sigorta poliçesini önceden kontrol et",
+    body: "Poliçemdeki seyahat tarihlerini başvuru öncesinde tekrar kontrol ettim.",
+    category_id: "doc-insurance",
+  };
   await page.route("https://*.supabase.co/rest/v1/posts?**", async (route) => {
     const p = new URL(route.request().url()).searchParams;
     expect(p.get("country_id")).toBe("eq.spain");
@@ -219,7 +225,7 @@ test("approved member tips appear in their guide step and invitation document au
     expect(p.get("is_sample")).toBe("eq.false");
     const topics = p.get("category_id") ?? "";
     await route.fulfill({
-      json: [appointment, invitation].filter((t) =>
+      json: [appointment, invitation, insurance].filter((t) =>
         topics.includes(t.category_id),
       ),
     });
@@ -257,6 +263,21 @@ test("approved member tips appear in their guide step and invitation document au
       .getByRole("button", { name: invitation.title, exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Belgeler", exact: true }).click();
+  const insuranceDocument = page
+    .getByRole("checkbox", { name: /seyahat sağlık sigortası.*Hazırladım/i })
+    .locator("../..");
+  await expect(
+    insuranceDocument.getByRole("button", {
+      name: insurance.title,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await insuranceDocument
+    .getByRole("button", { name: insurance.title, exact: true })
+    .click();
+  await expect(
+    insuranceDocument.getByText(insurance.body, { exact: true }),
+  ).toBeVisible();
   const document = page
     .getByRole("checkbox", {
       name: "Konaklama belgeleri: Hazırladım",
@@ -397,7 +418,7 @@ test("a normal member can choose the guide topic and submit a critical note for 
     ),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Davet Mektubu", exact: true })
+    .getByRole("button", { name: "Davet mektubu", exact: true })
     .click();
   await expect(
     page.getByText(
@@ -546,4 +567,308 @@ test("all ten country cards load bundled landmark photographs and expose photo c
   await expect(
     page.getByRole("button", { name: "Fotoğraf lisansı", exact: true }),
   ).toBeVisible();
+});
+
+async function member(page: Page) {
+  await fixtures(page);
+  const user = {
+    id: "00000000-0000-0000-0000-000000000200",
+    aud: "authenticated",
+    role: "authenticated",
+    email: "fixture@example.com",
+    app_metadata: { provider: "email", providers: ["email"] },
+    user_metadata: {},
+    created_at: "2026-10-01T00:00:00Z",
+  };
+  const exp = Math.floor(Date.now() / 1000) + 3600;
+  const jwt = `${Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url")}.${Buffer.from(JSON.stringify({ sub: user.id, exp, aud: "authenticated", role: "authenticated" })).toString("base64url")}.fixture-signature`;
+  await page.addInitScript(
+    ({ jwt, exp, user }) =>
+      localStorage.setItem(
+        "sb-ebnkdgvngufxarkwiyxt-auth-token",
+        JSON.stringify({
+          access_token: jwt,
+          refresh_token: "fixture-refresh",
+          expires_at: exp,
+          expires_in: 3600,
+          token_type: "bearer",
+          user,
+        }),
+      ),
+    { jwt, exp, user },
+  );
+  await page.route("https://*.supabase.co/rest/v1/profiles?**", (route) =>
+    route.fulfill({
+      json: {
+        id: user.id,
+        username: "fixture_member",
+        display_name: "Normal member",
+        role: "user",
+        membership_level: "Yeni Üye",
+        reputation: 0,
+        created_at: user.created_at,
+      },
+    }),
+  );
+}
+
+test("document subtypes submit a precise country-guide category", async ({
+  page,
+}) => {
+  await member(page);
+  let submitted: Record<string, unknown> | undefined;
+  await page.route("https://*.supabase.co/rest/v1/posts", async (route) => {
+    submitted = route.request().postDataJSON();
+    await route.fulfill({ status: 201, body: "" });
+  });
+  await page.goto("/create?kind=tip&country=spain");
+  await page.getByRole("button", { name: "Belgeler", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Belge türünü seç", exact: true })
+    .click();
+  await page.getByRole("radio", { name: /seyahat sağlık sigortası/i }).click();
+  await expect(page.getByText(/mor topluluk notu/)).toBeVisible();
+  await page
+    .getByLabel("Kısa bir başlık", { exact: true })
+    .fill("Sigorta belgesindeki imza");
+  await page
+    .getByLabel("Detaylar", { exact: true })
+    .fill(
+      "Sigorta belgesini hazırlarken başvuru merkezinin güncel belge listesini kontrol ettim.",
+    );
+  await page
+    .getByRole("button", { name: "İncelemeye gönder", exact: true })
+    .click();
+  await expect(
+    page.getByText("Gönderin incelemeye alındı 🎉", { exact: true }),
+  ).toBeVisible();
+  expect(submitted).toMatchObject({
+    country_id: "spain",
+    category_id: "doc-insurance",
+    kind: "tip",
+  });
+});
+
+test("experience accepts optional narrative, visa history and invitation notes with segmented dates", async ({
+  page,
+}) => {
+  await member(page);
+  let submitted: Record<string, unknown> | undefined;
+  await page.route("https://*.supabase.co/rest/v1/posts", async (route) => {
+    submitted = route.request().postDataJSON();
+    await route.fulfill({ status: 201, body: "" });
+  });
+  await page.goto("/create?country=spain");
+  await page.getByRole("button", { name: /Vize deneyimi paylaş/ }).click();
+  await page.getByLabel("Başvuru şehri", { exact: true }).fill("İstanbul");
+  await page.getByLabel("Başvuru merkezi", { exact: true }).fill("BLS");
+  await page
+    .getByRole("button", { name: "Kültürel etkinlik", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Devam", exact: true }).click();
+  await page
+    .getByRole("switch", { name: "İlk Schengen vizem", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Önceki vize ekle", exact: true })
+    .click();
+  await page.getByLabel("Vizeyi veren ülke", { exact: true }).fill("Fransa");
+  await page
+    .getByLabel("Vize süresi (ör. 6 ay, 1 yıl) · isteğe bağlı", { exact: true })
+    .fill("6 ay");
+  await page
+    .getByLabel("Davetiye durumunu açıkla (isteğe bağlı)", { exact: true })
+    .fill("Kültür etkinliği davetiyem e-posta ile geldi.");
+  await page.getByRole("button", { name: "Devam", exact: true }).click();
+  await page.getByLabel("Başvuru tarihi · gün", { exact: true }).fill("01");
+  await expect(
+    page.getByLabel("Başvuru tarihi · ay", { exact: true }),
+  ).toBeFocused();
+  await page.keyboard.type("10");
+  await expect(
+    page.getByLabel("Başvuru tarihi · yıl", { exact: true }),
+  ).toBeFocused();
+  await page.keyboard.type("2026");
+  await page.getByRole("button", { name: "Devam", exact: true }).click();
+  await page
+    .getByLabel("Kısa bir başlık", { exact: true })
+    .fill("Kültürel etkinlik başvurum");
+  await expect(
+    page.getByLabel("Başvuru sürecinde neler yaşadın? (isteğe bağlı)", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "İncelemeye gönder", exact: true })
+    .click();
+  await expect(
+    page.getByText("Gönderin incelemeye alındı 🎉", { exact: true }),
+  ).toBeVisible();
+  expect(submitted).toMatchObject({
+    body: "",
+    application_date: "2026-10-01",
+    purpose: "Kültürel etkinlik",
+    first_schengen: false,
+    previous_visas: [
+      expect.objectContaining({ country: "Fransa", duration: "6 ay" }),
+    ],
+    invitation_notes: "Kültür etkinliği davetiyem e-posta ile geldi.",
+  });
+});
+
+test("experience result wraps the card top and Germany uses a rendered flag", async ({
+  page,
+}) => {
+  await fixtures(page);
+  const base = {
+    id: "00000000-0000-0000-0000-000000000444",
+    user_id: "00000000-0000-0000-0000-000000000200",
+    country_id: "germany",
+    kind: "experience",
+    title: "Almanya kültür başvurum",
+    body: "",
+    status: "approved",
+    created_at: "2026-10-22T10:00:00Z",
+    helpful_count: 0,
+    comment_count: 0,
+    is_sample: false,
+    result: "approved",
+    application_date: "2026-10-01",
+    decision_date: "2026-10-21",
+    source_type: "experience",
+  };
+  await page.route("https://*.supabase.co/rest/v1/countries?**", (route) =>
+    route.fulfill({
+      json: [{ id: "germany", name: "Almanya", flag: "🇩🇪", code: "DE" }],
+    }),
+  );
+  await page.route("https://*.supabase.co/rest/v1/feed?**", (route) =>
+    route.fulfill({ json: [base] }),
+  );
+  await page.addInitScript(() => localStorage.setItem("onboarding-v1", "done"));
+  await page.goto("/");
+  const flag = page.getByRole("img", {
+    name: "Almanya bayrağı 🇩🇪",
+    exact: true,
+  });
+  await expect(flag).toBeVisible();
+  await expect(flag).toHaveAttribute("src", /^data:image\/svg/);
+  const cap = page.getByText("✓ Onaylandı", { exact: true }).locator("..");
+  await expect(cap).toHaveCSS("background-color", "rgb(205, 236, 217)");
+  const card = cap.locator("..");
+  expect(
+    await cap.evaluate((el) => el.parentElement?.firstElementChild === el),
+  ).toBe(true);
+  const capBox = await cap.boundingBox(),
+    cardBox = await card.boundingBox();
+  expect(Math.abs(capBox!.width - cardBox!.width)).toBeLessThan(3);
+  await page.screenshot({ path: "/tmp/forms-card-mobile.png" });
+  await expect(page.getByText("22/10/2026", { exact: false })).toBeVisible();
+});
+
+test("signup photo stays local through email confirmation and uploads only after login", async ({
+  page,
+}) => {
+  await fixtures(page);
+  const id = "00000000-0000-0000-0000-000000000200";
+  await page.route("https://*.supabase.co/auth/v1/signup**", (route) =>
+    route.fulfill({
+      json: {
+        id,
+        aud: "authenticated",
+        role: "authenticated",
+        email: "photo-fixture@example.com",
+        identities: [],
+        app_metadata: {},
+        user_metadata: {},
+        created_at: "2026-10-22T00:00:00Z",
+      },
+    }),
+  );
+  let uploads = 0;
+  page.on("request", (request) => {
+    if (
+      new URL(request.url()).pathname.startsWith("/storage/v1/object/avatars/")
+    )
+      uploads++;
+  });
+  await page.goto("/auth?mode=signup");
+  const chooser = page.waitForEvent("filechooser");
+  await page
+    .getByRole("button", {
+      name: "Profil fotoğrafı ekle (isteğe bağlı)",
+      exact: true,
+    })
+    .click();
+  await (await chooser).setFiles("assets/destinations/france.jpg");
+  await expect(
+    page.getByRole("img", { name: "Seçilen profil fotoğrafı", exact: true }),
+  ).toBeVisible();
+  await page.getByLabel("Adınız", { exact: true }).fill("Fotoğraf Yolcu");
+  await page.getByLabel("Kullanıcı adı", { exact: true }).fill("photo_fixture");
+  await page
+    .getByLabel("E-posta", { exact: true })
+    .fill("photo-fixture@example.com");
+  await page
+    .getByLabel("Şifre · en az 8 karakter", { exact: true })
+    .fill("Test1234");
+  await page
+    .getByRole("switch", {
+      name: "Kullanım koşullarını kabul ediyorum",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("switch", {
+      name: "Gizlilik politikasını kabul ediyorum",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", { name: "Hesabımı oluştur", exact: true })
+    .click();
+  await expect(
+    page.getByText(/Doğrulama bağlantısını e-postana gönderdik/),
+  ).toBeVisible();
+  expect(uploads).toBe(0);
+  const key = `pending-signup-avatar:v1:${id}`;
+  expect(await page.evaluate((key) => !!localStorage.getItem(key), key)).toBe(
+    true,
+  );
+  await member(page);
+  await page.route(
+    "https://*.supabase.co/storage/v1/object/avatars/**",
+    (route) => {
+      expect(new URL(route.request().url()).pathname).toContain(
+        `/avatars/${id}/`,
+      );
+      return route.fulfill({ json: { Key: "avatars/fixture.jpg" } });
+    },
+  );
+  let photoSaved = false;
+  await page.route("https://*.supabase.co/rest/v1/profiles?**", (route) => {
+    if (route.request().method() === "PATCH") {
+      expect(route.request().postDataJSON().avatar_url).toContain(
+        `/avatars/${id}/`,
+      );
+      photoSaved = true;
+      return route.fulfill({ status: 204, body: "" });
+    }
+    return route.fulfill({
+      json: {
+        id,
+        username: "photo_fixture",
+        display_name: "Fotoğraf Yolcu",
+        role: "user",
+        membership_level: "Yeni Üye",
+        reputation: 0,
+      },
+    });
+  });
+  await page.goto("/settings");
+  await expect.poll(() => photoSaved).toBe(true);
+  expect(uploads).toBe(1);
+  await expect
+    .poll(() => page.evaluate((key) => localStorage.getItem(key), key))
+    .toBe(null);
 });

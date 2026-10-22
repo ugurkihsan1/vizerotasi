@@ -28,7 +28,7 @@ Offline bayrağı uygulamanın Supabase isteklerini kapatmaz; Expo CLI’ın yar
 
 1. Supabase’te proje oluşturun. Dashboard SQL Editor’da `supabase/migrations/202610220001_community.sql` dosyasının **tamamını bir kez** uygulayın. Alternatif: Supabase CLI ile `supabase link --project-ref <ref>` ve `supabase db push`. Yerel Supabase için Docker ve CLI ile `supabase start` / `supabase db reset` kullanılabilir; bu ortamda Docker tabanlı kurulum çalıştırılmadı.
 2. `EXPO_PUBLIC_SUPABASE_URL` ve `EXPO_PUBLIC_SUPABASE_ANON_KEY` değerlerini `.env.local` veya ortam ayarlarına ekleyin. İkinci değer yalnız publishable/anon anahtarıdır. `service_role` anahtarını mobil pakete, repoya veya Expo public değişkenlerine koymayın.
-3. Auth → URL Configuration bölümüne geliştirme adreslerini ve `vizerotasi://auth` dönüş adresini ekleyin. Production’da gerçek alan adı / universal link ve uygulama şemasını yapılandırın. E-posta doğrulamasını açın, minimum şifreyi 12 karakter yapın ve SMTP gönderimini yapılandırın.
+3. Auth → URL Configuration bölümüne geliştirme adreslerini ve `vizerotasi://auth` dönüş adresini ekleyin. Production’da gerçek alan adı / universal link ve uygulama şemasını yapılandırın. E-posta doğrulamasını açın, minimum şifreyi 8 karakter yapın ve SMTP gönderimini yapılandırın.
 4. İlk hesabı uygulamadan oluşturup e-postasını doğrulayın. İlk yöneticiyi yalnız güvenilir SQL yönetim oturumunda atayın:
 
 ```sql
@@ -115,3 +115,9 @@ Mevcut İspanya rehberine ek olarak Almanya, Estonya, Polonya, Fransa, İtalya, 
 Supabase SQL Editor’da [COUNTRIES_AND_COMMENTS_UPGRADE.sql](docs/COUNTRIES_AND_COMMENTS_UPGRADE.sql) dosyasının tamamını uygulayın. Tekrarlanabilir dosya mevcut yönetici düzenlemelerini korur; 002 metadata, 005 anında yorum ve 006 ülke kayıtlarını kurar. Gönderiler inceleme akışında kalır; yorumlar ve yanıtlar doğrudan yayımlanır. Önceden kaldırılmış yorumlar yeniden yayımlanmaz. Veritabanı güncellenene kadar mevcut yorum durumu arayüzde doğru gösterilir; Norveç topluluğuna gönderim henüz açılmaz.
 
 [EAS / App Store gönderim kılavuzu](docs/APP_STORE_TR.md) bu proje için hazırlanmıştır. `eas.json`, üretim build sayacı ve Türkçe galeri izni açıklaması hazırdır. Gerçek Expo proje bağlantısı, Apple kimliği/sertifikaları, imzalı IPA ve mağaza başvurusu oluşturulmadı. Hesap silme, kullanıcı engelleme/filtreleme ve eksiksiz gizlilik/destek metinleri mağaza başvurusundan önce tamamlanmalıdır.
+
+## Üyelik ve ayrıntılı deneyim formu
+
+Adınız / kullanıcı adı ayrımı, 8 karakter şifre alt sınırı, isteğe bağlı kayıt fotoğrafı, genişletilmiş seyahat amaçları, önceki vize geçmişi, davetiye notları ve gün/ay/yıl alanları eklidir. Deneyim anlatımı isteğe bağlıdır. Kritik bilgide Belgeler seçimi ülkeye özel belge alt türlerini açar; onaylanan not ilgili belgeye bağlanır. Deneyim kartlarının üst kenarı sonuca göre yeşil/kırmızı/sarı şerit taşır; web’de ülke bayrakları SVG ile gösterilir, native’de emoji kullanılır.
+
+Mevcut Supabase projesinde [FORMS_UPGRADE.sql](docs/FORMS_UPGRADE.sql) uygulanmalı ve uzak Auth minimum şifresi 8 yapılmalıdır. [Kurulum ve fotoğraf davranışı](docs/FORMS_UPGRADE_TR.md). Uzak yönetici erişimi bulunmadığı için bu iki işlem yayınla otomatik uygulanmaz.

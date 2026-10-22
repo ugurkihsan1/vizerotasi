@@ -66,3 +66,75 @@ describe("submission validation", () => {
     ).toBe(true);
   });
 });
+
+it("accepts eight-character signup passwords but rejects seven characters", () => {
+  const values = {
+    display_name: "Ayşe",
+    username: "ayse",
+    email: "ayse@example.com",
+    password: "Abc12345",
+    terms: true,
+    privacy: true,
+  };
+  expect(signupSchema.safeParse(values).success).toBe(true);
+  expect(
+    signupSchema.safeParse({ ...values, password: "Abc1234" }).success,
+  ).toBe(false);
+});
+it("allows an empty experience narrative and bounded optional visa history", () => {
+  const values = {
+    country_id: "germany",
+    title: "Kültürel etkinlik deneyimim",
+    body: "",
+    advice: "",
+    city: "İstanbul",
+    center: "iData",
+    visa_type: "C",
+    purpose: "Kültürel etkinlik",
+    first_schengen: false,
+    employment_status: "Öğrenci",
+    financing: "Sponsor",
+    invitation: true,
+    invitation_notes: "Etkinlik düzenleyicisinin davetiyesi vardı.",
+    previous_visas: [
+      {
+        country: "Fransa",
+        issue_date: "2024-07-01",
+        duration: "6 ay",
+        entries: "multi",
+        notes: "Sorunsuz kullandım.",
+      },
+    ],
+    application_date: "2026-10-01",
+    appointment_date: "",
+    passport_date: "",
+    decision_date: "2026-10-20",
+    result: "approved",
+    requested_days: 9,
+    granted_days: 30,
+    entries: "multi",
+  };
+  expect(experienceSchema.safeParse(values).success).toBe(true);
+  expect(
+    experienceSchema.safeParse({
+      ...values,
+      previous_visas: [
+        { ...values.previous_visas[0], issue_date: "2024-02-30" },
+      ],
+    }).success,
+  ).toBe(false);
+  expect(
+    experienceSchema.safeParse({
+      ...values,
+      previous_visas: Array(11).fill(values.previous_visas[0]),
+    }).success,
+  ).toBe(false);
+  expect(
+    shortPostSchema.safeParse({
+      country_id: "germany",
+      title: "Soru başlığım",
+      body: "",
+      category_id: "documents",
+    }).success,
+  ).toBe(false);
+});

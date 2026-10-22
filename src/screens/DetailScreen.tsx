@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from "../lib/dates";
 import { useState } from "react";
 import { View, Text, FlatList, Linking } from "react-native";
 import { useLocalSearchParams } from "expo-router";
@@ -131,7 +132,7 @@ function CommentRow({
       </View>
       <Text style={styles.text}>{comment.body}</Text>
       <Text style={styles.muted}>
-        {new Date(comment.created_at).toLocaleString("tr-TR")}
+        {formatDateTime(comment.created_at)}
         {comment.status !== "approved"
           ? ` · ${statusLabels[comment.status]}`
           : ""}
@@ -237,10 +238,7 @@ export default function DetailScreen() {
                 ["Pasaport", p.passport_date],
               ].map(([label, date]) => (
                 <Text key={label} style={styles.text}>
-                  ● {label} ·{" "}
-                  {date
-                    ? new Date(date).toLocaleDateString("tr-TR")
-                    : "Henüz belirtilmedi"}
+                  ● {label} · {date ? formatDate(date) : "Henüz belirtilmedi"}
                 </Text>
               ))}
               {p.advice && (
@@ -249,6 +247,59 @@ export default function DetailScreen() {
                   <Text style={styles.text}>{p.advice}</Text>
                 </>
               )}
+            </View>
+          )}
+          {p.kind === "experience" && !!p.invitation_notes && (
+            <View style={styles.card}>
+              <Text style={styles.heading}>Davetiye durumu</Text>
+              <Text style={styles.muted}>
+                {p.invitation ? "Davetiyesi var" : "Davetiyeye ilişkin not"}
+              </Text>
+              <Text style={styles.text}>{p.invitation_notes}</Text>
+            </View>
+          )}
+          {p.kind === "experience" && !!p.previous_visas?.length && (
+            <View style={styles.card}>
+              <Text style={styles.heading}>Önceki Schengen vizeleri</Text>
+              {p.previous_visas.map((visa, index) => (
+                <View
+                  key={index}
+                  style={{
+                    gap: 6,
+                    paddingTop: 10,
+                    borderTopWidth: 1,
+                    borderTopColor: "#E4E9E2",
+                  }}
+                >
+                  <Text style={styles.pillText}>
+                    {index + 1}. {visa.country}
+                  </Text>
+                  {visa.issue_date && (
+                    <Text style={styles.muted}>
+                      Veriliş: {formatDate(visa.issue_date)}
+                    </Text>
+                  )}
+                  {!!visa.duration && (
+                    <Text style={styles.text}>
+                      Vize süresi: {visa.duration}
+                    </Text>
+                  )}
+                  {!!visa.entries && (
+                    <Text style={styles.muted}>
+                      {
+                        {
+                          single: "Tek giriş",
+                          double: "Çift giriş",
+                          multi: "Çok giriş",
+                        }[visa.entries]
+                      }
+                    </Text>
+                  )}
+                  {!!visa.notes && (
+                    <Text style={styles.text}>{visa.notes}</Text>
+                  )}
+                </View>
+              ))}
             </View>
           )}
           {p.source_url && (

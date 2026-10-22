@@ -1,3 +1,12 @@
+import { Image } from "expo-image";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  pickAvatar,
+  avatarPreview,
+  savePendingAvatar,
+  finishPendingAvatar,
+  type AvatarDraft,
+} from "../src/lib/avatar";
 import { Brand } from "../src/components/Brand";
 import { useState, useEffect } from "react";
 import {
@@ -38,6 +47,8 @@ export default function Auth() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [sent, setSent] = useState(false);
+  const [photo, setPhoto] = useState<AvatarDraft | null>(null);
+  const cache = useQueryClient();
   const {
     control,
     handleSubmit,
@@ -121,7 +132,7 @@ export default function Auth() {
               username:
                 "3–24 karakter kullan; yalnız küçük harf, rakam ve alt çizgi.",
               email: "Geçerli bir e-posta adresi yaz.",
-              password: "En az 12 karakter kullan.",
+              password: "En az 8 karakter kullan.",
               terms: "Kullanım koşullarını kabul etmelisin.",
               privacy: "Gizlilik politikasını kabul etmelisin.",
             }[name];
@@ -144,13 +155,31 @@ export default function Auth() {
           },
         });
         if (r.error) throw r.error;
+        let photoNotice = "";
+        if (photo && r.data.user) {
+          try {
+            await savePendingAvatar(r.data.user.id, photo);
+            if (r.data.session) {
+              await finishPendingAvatar(r.data.user.id);
+              await cache.invalidateQueries({ queryKey: ["profile"] });
+            }
+          } catch {
+            photoNotice =
+              " Fotoğrafın kaydedilemedi; giriş yaptıktan sonra Ayarlar’dan ekleyebilirsin.";
+          }
+        }
         if (r.data.session) {
           router.replace("/");
           return;
         }
         setSent(true);
         setMessage(
-          "Doğrulama bağlantısını e-postana gönderdik. Spam klasörünü de kontrol et.",
+          "Doğrulama bağlantısını e-postana gönderdik. Spam klasörünü de kontrol et." +
+            (photo && !photoNotice
+              ? Platform.OS === "web"
+                ? " Fotoğrafın bu tarayıcıda saklandı; e-postanı doğrulayıp aynı tarayıcıdan giriş yaptığında profiline eklenecek."
+                : " Fotoğrafın bu uygulamada saklandı; e-postanı doğrulayıp bu uygulamadan giriş yaptığında profiline eklenecek."
+              : photoNotice),
         );
       } else if (mode === "forgot") {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim())) {
@@ -166,8 +195,8 @@ export default function Auth() {
           "Hesap mevcutsa şifre yenileme bağlantısı e-postana gönderildi.",
         );
       } else if (mode === "reset") {
-        if (v.password.length < 12) {
-          setError("password", { message: "En az 12 karakter kullan." });
+        if (v.password.length < 8) {
+          setError("password", { message: "En az 8 karakter kullan." });
           return;
         }
         const r = await db().auth.updateUser({ password: v.password });
@@ -265,6 +294,46 @@ export default function Auth() {
         )}
         {!sent && (
           <>
+            {mode === "signup" && (
+              <View style={{ alignItems: "center", gap: 8 }}>
+                {photo && (
+                  <Image
+                    source={{ uri: avatarPreview(photo) }}
+                    style={{ width: 84, height: 84, borderRadius: 42 }}
+                    accessibilityLabel="Seçilen profil fotoğrafı"
+                  />
+                )}
+                <Button
+                  secondary
+                  label={
+                    photo
+                      ? "Profil fotoğrafını değiştir"
+                      : "Profil fotoğrafı ekle (isteğe bağlı)"
+                  }
+                  onPress={() =>
+                    void pickAvatar()
+                      .then((p) => {
+                        if (p) setPhoto(p);
+                      })
+                      .catch((e) =>
+                        setMessage(
+                          e instanceof Error
+                            ? e.message
+                            : "Fotoğraf seçilemedi.",
+                        ),
+                      )
+                  }
+                />
+                {photo && (
+                  <Button
+                    secondary
+                    label="Fotoğrafı kaldır"
+                    onPress={() => setPhoto(null)}
+                  />
+                )}
+                <Text style={styles.muted}>JPG / PNG · En fazla 2 MB</Text>
+              </View>
+            )}
             {mode === "signup" &&
               (["display_name", "username"] as const).map((name) => (
                 <Controller
@@ -273,9 +342,7 @@ export default function Auth() {
                   name={name}
                   render={({ field: { value, onChange } }) => (
                     <Field
-                      label={
-                        name === "username" ? "Kullanıcı adı" : "Görünen ad"
-                      }
+                      label={name === "username" ? "Kullanıcı adı" : "Adınız"}
                       value={value}
                       onChangeText={onChange}
                       error={errors[name]?.message}
@@ -310,7 +377,7 @@ export default function Auth() {
                 render={({ field: { value, onChange } }) => (
                   <Field
                     label={
-                      mode === "signup" ? "Şifre · en az 12 karakter" : "Şifre"
+                      mode === "signup" ? "Şifre · en az 8 karakter" : "Şifre"
                     }
                     value={value}
                     onChangeText={onChange}

@@ -12,7 +12,7 @@ export function authErrorMessage(error: unknown) {
     case "email_address_invalid":
       return "Geçerli bir e-posta adresi yaz.";
     case "weak_password":
-      return "En az 12 karakterden oluşan daha güçlü bir şifre seç.";
+      return "En az 8 karakterden oluşan daha güçlü bir şifre seç.";
     case "signup_disabled":
       return "Yeni üyelikler şu anda kapalı.";
     case "unexpected_failure":

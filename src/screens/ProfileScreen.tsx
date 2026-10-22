@@ -1,3 +1,4 @@
+import { formatDate } from "../lib/dates";
 import { MemberBadge } from "../components/MemberBadge";
 import { ProfileComments } from "../components/ProfileComments";
 import { SavedDocuments } from "../components/SavedDocuments";
@@ -199,8 +200,7 @@ export function ProfileScreen({
                 ))}
               </View>
               <Text style={[styles.muted, { fontSize: 11 }]}>
-                {new Date(profile.created_at).toLocaleDateString("tr-TR")}{" "}
-                tarihinde katıldı
+                {formatDate(profile.created_at)} tarihinde katıldı
               </Text>
             </View>
           </View>

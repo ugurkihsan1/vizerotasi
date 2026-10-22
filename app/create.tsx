@@ -9,7 +9,13 @@ import {
   Platform,
   Pressable,
 } from "react-native";
-import { useForm, Controller, type FieldPath } from "react-hook-form";
+import {
+  useForm,
+  Controller,
+  useFieldArray,
+  useWatch,
+  type FieldPath,
+} from "react-hook-form";
 import { useLocalSearchParams, router } from "expo-router";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
@@ -21,6 +27,7 @@ import {
   shortPostSchema,
   privacyWarning,
   type ExperienceInput,
+  travelPurposes,
 } from "../src/lib/schemas";
 import {
   styles,
@@ -30,11 +37,16 @@ import {
   Chip,
   Empty,
   Message,
+  Sheet,
 } from "../src/components/ui";
+import { DateInput } from "../src/components/DateInput";
 import type { Kind } from "../src/lib/types";
 import {
   criticalTipPlacement,
   guideTopicLabels,
+  criticalTopics,
+  documentOptions,
+  selectedDocumentPlacement,
 } from "../src/lib/guide-topics";
 export default function Create() {
   const params = useLocalSearchParams<{
@@ -55,6 +67,14 @@ export default function Create() {
       ? params.category
       : "other",
   );
+  const [categoryRoot, setCategoryRoot] = useState(
+    params.category && !criticalTopics.some((t) => t.id === params.category)
+      ? "documents"
+      : params.category && criticalTopics.some((t) => t.id === params.category)
+        ? params.category
+        : "other",
+  );
+  const [pickDocument, setPickDocument] = useState(false);
   const cache = useQueryClient();
   const { session } = useAuth();
   const countries = useCountries();
@@ -67,36 +87,56 @@ export default function Create() {
       return r.data as { id: string; name: string }[];
     },
   });
-  const {
-    control,
-    getValues,
-    setValue,
-    trigger,
-    formState: { errors },
-  } = useForm<ExperienceInput>({
-    defaultValues: {
-      country_id: params.country ?? "",
-      title: params.title ?? "",
-      body: "",
-      advice: "",
-      city: "",
-      center: "",
-      visa_type: "C",
-      purpose: "Turistik",
-      first_schengen: true,
-      employment_status: "Çalışan",
-      financing: "Kendim",
-      invitation: false,
-      application_date: "",
-      appointment_date: "",
-      passport_date: "",
-      decision_date: "",
-      result: "waiting",
-      requested_days: 7,
-      granted_days: 0,
-      entries: "single",
-    },
-  });
+  const { control, getValues, setValue, trigger, getFieldState } =
+    useForm<ExperienceInput>({
+      defaultValues: {
+        country_id: params.country ?? "",
+        title: params.title ?? "",
+        body: "",
+        advice: "",
+        city: "",
+        center: "",
+        visa_type: "C",
+        purpose: "Turistik",
+        first_schengen: true,
+        employment_status: "Çalışan",
+        financing: "Kendim",
+        invitation: false,
+        invitation_notes: "",
+        previous_visas: [],
+        application_date: "",
+        appointment_date: "",
+        passport_date: "",
+        decision_date: "",
+        result: "waiting",
+        requested_days: 7,
+        granted_days: 0,
+        entries: "single",
+      },
+    });
+  const firstSchengen = useWatch({ control, name: "first_schengen" });
+  const selectedCountry = useWatch({ control, name: "country_id" });
+  const history = useFieldArray({ control, name: "previous_visas" });
+  const documentChoices = documentOptions(selectedCountry);
+  const placement =
+    categoryRoot === "documents"
+      ? selectedDocumentPlacement(selectedCountry, category)
+      : criticalTipPlacement(selectedCountry, category);
+  const date = (name: FieldPath<ExperienceInput>, label: string) => (
+    <Controller
+      key={name}
+      control={control}
+      name={name}
+      render={({ field: { value, onChange } }) => (
+        <DateInput
+          label={label}
+          value={String(value ?? "")}
+          onChange={onChange}
+          error={getFieldState(name).error?.message}
+        />
+      )}
+    />
+  );
   const text = (
     name: FieldPath<ExperienceInput>,
     label: string,
@@ -108,12 +148,18 @@ export default function Create() {
       control={control}
       name={name}
       rules={{
-        required: ![
-          "advice",
-          "appointment_date",
-          "passport_date",
-          "decision_date",
-        ].includes(name),
+        required:
+          !(
+            name.startsWith("previous_visas.") ||
+            name === "invitation_notes" ||
+            (kind === "experience" && name === "body")
+          ) &&
+          ![
+            "advice",
+            "appointment_date",
+            "passport_date",
+            "decision_date",
+          ].includes(name),
       }}
       render={({ field: { value, onChange } }) => (
         <Field
@@ -122,8 +168,18 @@ export default function Create() {
           onChangeText={(x) => onChange(numeric ? Number(x) : x)}
           multiline={multiline}
           keyboardType={numeric ? "number-pad" : "default"}
-          maxLength={multiline ? 8000 : 180}
-          error={errors[name]?.message}
+          maxLength={
+            name === "invitation_notes"
+              ? 2000
+              : name.startsWith("previous_visas.")
+                ? name.endsWith(".notes")
+                  ? 500
+                  : 100
+                : multiline
+                  ? 8000
+                  : 180
+          }
+          error={getFieldState(name).error?.message}
         />
       )}
     />
@@ -144,7 +200,15 @@ export default function Create() {
             {values.map((v) => (
               <Chip
                 key={v}
-                label={v}
+                label={
+                  name.endsWith(".entries")
+                    ? ({
+                        single: "Tek giriş",
+                        double: "Çift giriş",
+                        multi: "Çok giriş",
+                      }[v] ?? v)
+                    : v
+                }
                 active={value === v}
                 onPress={() => onChange(v)}
               />
@@ -164,7 +228,10 @@ export default function Create() {
           <Switch
             accessibilityLabel={label}
             value={value}
-            onValueChange={onChange}
+            onValueChange={(next) => {
+              onChange(next);
+              if (name === "first_schengen" && next) history.replace([]);
+            }}
           />
           <Text style={styles.text}>{label}</Text>
         </View>
@@ -184,7 +251,10 @@ export default function Create() {
                 key={c.id}
                 active={value === c.id}
                 label={`${c.flag} ${c.name}`}
-                onPress={() => onChange(c.id)}
+                onPress={() => {
+                  onChange(c.id);
+                  if (categoryRoot === "documents") setCategory("documents");
+                }}
               />
             ))}
           </View>
@@ -219,6 +289,7 @@ export default function Create() {
         kind === "experience"
           ? {
               ...v,
+              previous_visas: v.first_schengen ? [] : v.previous_visas,
               appointment_date: v.appointment_date || null,
               passport_date: v.passport_date || null,
               decision_date: v.decision_date || null,
@@ -267,7 +338,7 @@ export default function Create() {
             kind === "experience"
               ? "Onaylandığında toplulukta yayınlanacak ve +8 katkı puanı kazanacaksın."
               : kind === "tip"
-                ? `Onaylandığında toplulukta yayınlanacak. ${criticalTipPlacement(getValues("country_id"), category)}`
+                ? `Onaylandığında toplulukta yayınlanacak. ${placement}`
                 : "Onaylandığında toplulukta yayınlanacak."
           }
           action="Profilime git"
@@ -379,17 +450,78 @@ export default function Create() {
             {text("city", "Başvuru şehri")}
             {text("center", "Başvuru merkezi")}
             {choices("visa_type", "Vize türü", ["C", "D"])}
-            {choices("purpose", "Seyahat amacı", [
-              "Turistik",
-              "İş",
-              "Eğitim",
-              "Aile / arkadaş ziyareti",
-            ])}
+            {choices("purpose", "Seyahat amacı", travelPurposes)}
           </>
         )}
         {kind === "experience" && step === 1 && (
           <>
-            {toggle("first_schengen", "İlk Schengen başvurum")}
+            {toggle("first_schengen", "İlk Schengen vizem")}
+            {!firstSchengen && (
+              <View style={styles.card}>
+                <Text style={styles.heading}>Önceki Schengen vizelerin</Text>
+                <Text style={styles.muted}>
+                  İsteğe bağlı. Önceki vize deneyimini paylaş; pasaport veya
+                  vize numarası yazma.
+                </Text>
+                {history.fields.map((entry, index) => (
+                  <View
+                    key={entry.id}
+                    style={{
+                      gap: 12,
+                      paddingTop: 12,
+                      borderTopWidth: 1,
+                      borderTopColor: "#E4E9E2",
+                    }}
+                  >
+                    <Text style={styles.pillText}>
+                      {index + 1}. önceki vize
+                    </Text>
+                    {text(
+                      `previous_visas.${index}.country`,
+                      "Vizeyi veren ülke",
+                    )}
+                    {date(
+                      `previous_visas.${index}.issue_date`,
+                      "Vizenin veriliş tarihi (isteğe bağlı)",
+                    )}
+                    {text(
+                      `previous_visas.${index}.duration`,
+                      "Vize süresi (ör. 6 ay, 1 yıl) · isteğe bağlı",
+                    )}
+                    {choices(
+                      `previous_visas.${index}.entries`,
+                      "Giriş hakkı (isteğe bağlı)",
+                      ["single", "double", "multi"],
+                    )}
+                    {text(
+                      `previous_visas.${index}.notes`,
+                      "Önceki vizene ilişkin not (isteğe bağlı)",
+                      true,
+                    )}
+                    <Button
+                      secondary
+                      label={`${index + 1}. vizeyi kaldır`}
+                      onPress={() => history.remove(index)}
+                    />
+                  </View>
+                ))}
+                {history.fields.length < 10 && (
+                  <Button
+                    secondary
+                    label="Önceki vize ekle"
+                    onPress={() =>
+                      history.append({
+                        country: "",
+                        issue_date: "",
+                        duration: "",
+                        entries: "",
+                        notes: "",
+                      })
+                    }
+                  />
+                )}
+              </View>
+            )}
             {choices("employment_status", "Çalışma durumu", [
               "Çalışan",
               "Öğrenci",
@@ -405,20 +537,19 @@ export default function Create() {
               "Karışık",
             ])}
             {toggle("invitation", "Davetiyem var")}
+            {text(
+              "invitation_notes",
+              "Davetiye durumunu açıkla (isteğe bağlı)",
+              true,
+            )}
           </>
         )}
         {kind === "experience" && step === 2 && (
           <>
-            {text("application_date", "Başvuru tarihi · YYYY-AA-GG")}
-            {text(
-              "appointment_date",
-              "Randevu tarihi · YYYY-AA-GG (opsiyonel)",
-            )}
-            {text("decision_date", "Sonuç tarihi · YYYY-AA-GG (opsiyonel)")}
-            {text(
-              "passport_date",
-              "Pasaport teslim tarihi · YYYY-AA-GG (opsiyonel)",
-            )}
+            {date("application_date", "Başvuru tarihi")}
+            {date("appointment_date", "Randevu tarihi (isteğe bağlı)")}
+            {date("decision_date", "Sonuç tarihi (isteğe bağlı)")}
+            {date("passport_date", "Pasaport teslim tarihi (isteğe bağlı)")}
             <Controller
               control={control}
               name="result"
@@ -486,15 +617,79 @@ export default function Create() {
                     : "Konu"}
                 </Text>
                 <View style={styles.row}>
-                  {categories.data?.map((c) => (
+                  {(kind === "tip"
+                    ? criticalTopics
+                    : (categories.data?.filter(
+                        (c) => !c.id.startsWith("doc-"),
+                      ) ?? [])
+                  ).map((c) => (
                     <Chip
                       key={c.id}
                       label={c.name}
-                      active={category === c.id}
-                      onPress={() => setCategory(c.id)}
+                      active={
+                        (kind === "tip" ? categoryRoot : category) === c.id
+                      }
+                      onPress={() => {
+                        setCategoryRoot(c.id);
+                        setCategory(c.id);
+                      }}
                     />
                   ))}
                 </View>
+                {kind === "tip" && categoryRoot === "documents" && (
+                  <View
+                    style={{
+                      gap: 8,
+                      paddingLeft: 12,
+                      borderLeftWidth: 3,
+                      borderLeftColor: "#DCD2ED",
+                    }}
+                  >
+                    <Text style={styles.pillText}>Belge türü</Text>
+                    <Button
+                      secondary
+                      disabled={!selectedCountry}
+                      label={
+                        category === "documents"
+                          ? "Belge türünü seç"
+                          : (documentChoices.find((d) => d.id === category)
+                              ?.name ?? "Belge türünü seç")
+                      }
+                      onPress={() => setPickDocument(true)}
+                    />
+                    {!selectedCountry && (
+                      <Text style={styles.muted}>
+                        Belge türlerini görmek için ülke seç.
+                      </Text>
+                    )}
+                    <Sheet
+                      visible={pickDocument}
+                      onClose={() => setPickDocument(false)}
+                      title="Hangi belgeyle ilgili?"
+                    >
+                      <ScrollView>
+                        {documentChoices.map((d) => (
+                          <Pressable
+                            key={d.id}
+                            accessibilityRole="radio"
+                            accessibilityLabel={d.name}
+                            accessibilityState={{ checked: category === d.id }}
+                            onPress={() => {
+                              setCategory(d.id);
+                              setPickDocument(false);
+                            }}
+                            style={{ paddingVertical: 14, minHeight: 48 }}
+                          >
+                            <Text style={styles.text}>
+                              {d.name}
+                              {category === d.id ? " ✓" : ""}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </Sheet>
+                  </View>
+                )}
                 {kind === "tip" && (
                   <Controller
                     control={control}
@@ -519,7 +714,7 @@ export default function Create() {
                         </Text>
                         <Text style={[styles.muted, { color: "#71579D" }]}>
                           {value
-                            ? criticalTipPlacement(value, category)
+                            ? placement
                             : "Ülke ve konu seç; notun ilgili başvuru adımına bağlansın."}
                         </Text>
                       </View>
@@ -535,7 +730,7 @@ export default function Create() {
             {text(
               "body",
               kind === "experience"
-                ? "Başvuru sürecinde neler yaşadın?"
+                ? "Başvuru sürecinde neler yaşadın? (isteğe bağlı)"
                 : "Detaylar",
               true,
             )}

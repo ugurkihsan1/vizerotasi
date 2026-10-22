@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { ScrollView, Text, View, Switch } from "react-native";
-import * as ImagePicker from "expo-image-picker";
+import { pickAvatar, uploadAvatar } from "../src/lib/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useAuth } from "../src/lib/auth";
 import { db } from "../src/lib/supabase";
 import { styles, Button, Field, Message } from "../src/components/ui";
 export default function Settings() {
-  const { profile, session } = useAuth();
+  const { profile, session, avatarNotice } = useAuth();
   const [name, setName] = useState(profile?.display_name ?? "");
   const [bio, setBio] = useState(profile?.bio ?? "");
   const [message, setMessage] = useState("");
@@ -27,37 +27,9 @@ export default function Settings() {
   });
   async function avatar() {
     try {
-      const permission =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        setMessage("Fotoğraf seçmek için galeri izni gerekli.");
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.7,
-      });
-      if (result.canceled) return;
-      const asset = result.assets[0];
-      if (asset.fileSize && asset.fileSize > 2097152) {
-        setMessage("En fazla 2 MB fotoğraf seç.");
-        return;
-      }
-      const bytes = await (await fetch(asset.uri)).arrayBuffer();
-      const path = `${session!.user.id}/${Date.now()}.${asset.mimeType === "image/png" ? "png" : "jpg"}`;
-      const upload = await db()
-        .storage.from("avatars")
-        .upload(path, bytes, { contentType: asset.mimeType ?? "image/jpeg" });
-      if (upload.error) throw upload.error;
-      const url = db().storage.from("avatars").getPublicUrl(path)
-        .data.publicUrl;
-      const update = await db()
-        .from("profiles")
-        .update({ avatar_url: url })
-        .eq("id", session!.user.id);
-      if (update.error) throw update.error;
+      const selected = await pickAvatar();
+      if (!selected || !session) return;
+      await uploadAvatar(selected, session.user.id);
       await cache.invalidateQueries({ queryKey: ["profile"] });
       setMessage("Fotoğrafın güncellendi.");
     } catch {
@@ -75,7 +47,7 @@ export default function Settings() {
             onPress={() => void avatar()}
           />
           <Field
-            label="Görünen ad"
+            label="Adınız"
             value={name}
             onChangeText={setName}
             maxLength={60}
@@ -145,7 +117,7 @@ export default function Settings() {
           />
         </>
       )}
-      <Message text={message} />
+      <Message text={message || avatarNotice || ""} />
       <Button
         secondary
         label="Fotoğraf kaynakları"

@@ -21,3 +21,10 @@ it("retains genuinely long valid durations", () =>
   ));
 it("handles leap days without timezone offsets", () =>
   expect(processingDays("2024-02-28", "2024-03-01", now)).toBe(2));
+
+it("shows date-only values and Istanbul timestamps in day/month/year order", async () => {
+  const { formatDate, formatDateTime } = await import("../src/lib/dates");
+  expect(formatDate("2026-01-09")).toBe("09/01/2026");
+  expect(formatDateTime("2026-10-21T22:05:00Z")).toBe("22/10/2026 01:05");
+  expect(formatDate(null)).toBe("—");
+});
