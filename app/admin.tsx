@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { db } from "../src/lib/supabase";
@@ -44,6 +45,11 @@ export default function Admin() {
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Topluluk yönetimi</Text>
+      <Button
+        secondary
+        label="Belge uyarılarını yönet"
+        onPress={() => router.push("/document-notes")}
+      />
       <Message text={message} />
       <View style={styles.card}>
         <Text style={styles.heading}>Ülke belgesi ekle</Text>

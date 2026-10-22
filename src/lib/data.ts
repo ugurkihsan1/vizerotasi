@@ -181,8 +181,9 @@ export function useToggle(
     | "helpful_votes"
     | "saved_items"
     | "followed_countries"
-    | "comment_helpful_votes",
-  column: "post_id" | "country_id" | "document_id" | "comment_id",
+    | "comment_helpful_votes"
+    | "document_note_confirmations",
+  column: "post_id" | "country_id" | "document_id" | "comment_id" | "note_id",
   target: string,
 ) {
   const { session } = useAuth();
@@ -228,6 +229,9 @@ export function useToggle(
       cache.invalidateQueries({ queryKey: ["feed"] });
       cache.invalidateQueries({ queryKey: ["post"] });
       cache.invalidateQueries({ queryKey: ["follows"] });
+      cache.invalidateQueries({ queryKey: ["document-notes"] });
+      cache.invalidateQueries({ queryKey: ["public-profile"] });
+      cache.invalidateQueries({ queryKey: ["profile"] });
     },
   });
   return {

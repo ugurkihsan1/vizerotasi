@@ -1,3 +1,4 @@
+import { SourceDocumentWarning, DocumentWarnings } from "./DocumentWarnings";
 import { useEffect, useState } from "react";
 import {
   View,
@@ -129,6 +130,12 @@ function DocumentAccordion({
           />
         </Pressable>
       </View>
+      <SourceDocumentWarning order={doc.sort_order} />
+      <DocumentWarnings
+        country="spain"
+        documentId={doc.id}
+        documentKey={`spain-tourism-${doc.sort_order}`}
+      />
       {open && (
         <View style={{ gap: 14 }}>
           <Text style={styles.text}>{doc.body}</Text>

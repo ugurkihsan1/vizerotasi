@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import levels from "../../src/content/community-levels.json";
 // Deterministic UI tests use transport fixtures only; the shipped app uses real Supabase.
 async function fixtures(page: Page) {
   await page.route("https://*.supabase.co/**", async (route) => {
@@ -10,6 +11,20 @@ async function fixtures(page: Page) {
           { id: "estonia", name: "Estonya", flag: "🇪🇪", code: "EE" },
         ],
       });
+    if (u.pathname === "/rest/v1/rpc/country_stats")
+      return route.fulfill({
+        json: [
+          {
+            experiences: 0,
+            questions: 0,
+            tips: 0,
+            average_days: null,
+            recent: 0,
+          },
+        ],
+      });
+    if (u.pathname === "/rest/v1/membership_levels")
+      return route.fulfill({ json: levels });
     return route.fulfill({ json: [] });
   });
 }
@@ -132,4 +147,50 @@ test("password recovery is a focused step, not a permanent fourth mode", async (
     .click();
   await expect(page.getByLabel("E-posta", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Şifre", { exact: true })).toHaveCount(0);
+});
+
+test("badge levels explain all quality gates and separate achievements", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.goto("/badges");
+  for (const name of [
+    "Gezgin",
+    "Kaşif",
+    "Seyyah",
+    "Rehber",
+    "Elçi",
+    "Büyükelçi",
+  ])
+    await expect(
+      page.getByRole("button", { name: `${name} koşulları`, exact: true }),
+    ).toBeVisible();
+  for (const name of ["Avrupa Fatihi", "Yol Arkadaşı", "Dedektif", "Öncü Üye"])
+    await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Büyükelçi koşulları", exact: true })
+    .click();
+  await expect(
+    page.getByText("Farklı destekleyen üye", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("Üyelik günü", { exact: true })).toBeVisible();
+});
+test("critical document notices expand and do not invent community evidence", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.goto("/country/spain");
+  await page.getByRole("button", { name: "Belgeler", exact: true }).click();
+  const notice = page.getByRole("button", {
+    name: "Sigortanın süresini ve teminatını kontrol et",
+    exact: true,
+  });
+  await expect(notice).toHaveAttribute("aria-expanded", "false");
+  await notice.click();
+  await expect(notice).toHaveAttribute("aria-expanded", "true");
+  await expect(
+    page.getByText(/BLS İstanbul listesi: seyahatten 1 gün önce/),
+  ).toBeVisible();
+  await expect(page.getByText(/kişi benzer deneyim bildirdi/)).toHaveCount(0);
+  await expect(page.getByText("Demo", { exact: true })).toHaveCount(0);
 });

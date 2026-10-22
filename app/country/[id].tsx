@@ -1,3 +1,4 @@
+import { DocumentWarnings } from "../../src/components/DocumentWarnings";
 import { DestinationArt } from "../../src/components/DestinationArt";
 import {
   SpainDocuments,
@@ -70,6 +71,7 @@ function DocumentRow({ doc }: { doc: Document }) {
       </View>
       <Sheet visible={open} onClose={() => setOpen(false)} title={doc.title}>
         <Text style={styles.text}>{doc.body}</Text>
+        <DocumentWarnings country={doc.country_id} documentId={doc.id} />
         {doc.source_url && (
           <Button
             secondary

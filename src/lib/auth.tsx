@@ -56,6 +56,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     enabled: !!session,
     refetchInterval: 30000,
     queryFn: async () => {
+      await db().rpc("refresh_my_progress");
       const { data, error } = await db()
         .from("profiles")
         .select("*")

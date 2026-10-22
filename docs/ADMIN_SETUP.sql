@@ -25,7 +25,7 @@ begin
  insert into public.reputation_events(user_id,reference,points) values(author,(case when is_comment then 'comment' else 'post' end)||'_approval:'||target::text,pts) on conflict(reference) do nothing;
  get diagnostics inserted=row_count;
  if inserted=1 then update public.profiles set reputation=reputation+pts where id=author; end if;
- for b in select * from public.badges loop
+ for b in select * from public.badges where coalesce(to_jsonb(badges)->>'badge_group','legacy')='legacy' loop
  n:=0;
  if b.kind='experience' then select count(*) into n from public.posts where user_id=author and kind='experience' and status='approved';
  elsif b.kind='comment' then select count(*) into n from public.comments where user_id=author and status='approved';

@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { ModerationReport } from "../src/components/ModerationReport";
 import { useState } from "react";
 import { View, Text, FlatList } from "react-native";
@@ -107,6 +108,11 @@ export default function Moderation() {
               />
             ))}
           </View>
+          <Button
+            secondary
+            label="Belge notlarını incele"
+            onPress={() => router.push("/document-notes")}
+          />
           <Message text={error} />
         </View>
       }

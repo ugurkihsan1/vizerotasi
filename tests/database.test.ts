@@ -45,6 +45,12 @@ beforeAll(async () => {
   await pg.exec(
     readFileSync("supabase/migrations/202610220003_admin_review.sql", "utf8"),
   );
+  await pg.exec(
+    readFileSync(
+      "supabase/migrations/202610220004_community_progress.sql",
+      "utf8",
+    ),
+  );
   for (const [id, name] of [
     [a, "alice"],
     [b, "bob"],

@@ -1,3 +1,5 @@
+import { View, Text } from "react-native";
+import { useCountries } from "../lib/data";
 import { Image } from "expo-image";
 const palettes: Record<string, [string, string, string]> = {
   spain: ["#F5CEAB", "#D9805C", "#924F46"],
@@ -37,6 +39,57 @@ export function destinationSvg(id: string) {
       .join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="184" viewBox="0 0 360 184"><rect width="360" height="184" fill="${sky}"/><circle cx="281" cy="43" r="22" fill="#FFF8EA" opacity=".8"/><path d="M0 139Q65 97 126 139T256 133T380 136V184H0Z" fill="${building}" opacity=".22"/><path d="M18 51Q83 15 135 43" fill="none" stroke="${ink}" stroke-opacity=".25" stroke-dasharray="4 5" stroke-width="2"/>${landmark}<path d="M65 158H294" stroke="${ink}" opacity=".3" stroke-width="2"/></svg>`;
 }
+function flagSvg(code: string) {
+  const rect = (x: number, y: number, w: number, h: number, color: string) =>
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${color}"/>`;
+  const horizontal = (colors: string[]) =>
+    colors
+      .map((c, i) =>
+        rect(0, (i * 20) / colors.length, 30, 20 / colors.length, c),
+      )
+      .join("");
+  const vertical = (colors: string[]) =>
+    colors.map((c, i) => rect(i * 10, 0, 10, 20, c)).join("");
+  let body = "";
+  switch (code) {
+    case "DE":
+      body = horizontal(["#111111", "#DD2028", "#F4C844"]);
+      break;
+    case "EE":
+      body = horizontal(["#4891D9", "#151515", "#FFFFFF"]);
+      break;
+    case "PL":
+      body = horizontal(["#FFFFFF", "#DC143C"]);
+      break;
+    case "FR":
+      body = vertical(["#173A8A", "#FFFFFF", "#ED2939"]);
+      break;
+    case "IT":
+      body = vertical(["#169B62", "#FFFFFF", "#E53945"]);
+      break;
+    case "NL":
+      body = horizontal(["#AE1C28", "#FFFFFF", "#21468B"]);
+      break;
+    case "HU":
+      body = horizontal(["#CE2939", "#FFFFFF", "#477050"]);
+      break;
+    case "ES":
+      body = rect(0, 0, 30, 20, "#AA151B") + rect(0, 5, 30, 10, "#F1BF00");
+      break;
+    case "GR":
+      body =
+        horizontal(
+          Array.from({ length: 9 }, (_, i) => (i % 2 ? "#FFFFFF" : "#1767B0")),
+        ) +
+        rect(0, 0, 12, 11.12, "#1767B0") +
+        rect(4.5, 0, 2.5, 11.12, "#FFFFFF") +
+        rect(0, 4.4, 12, 2.3, "#FFFFFF");
+      break;
+    default:
+      return null;
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="20" viewBox="0 0 30 20">${body}</svg>`;
+}
 export function DestinationArt({
   id,
   height = 100,
@@ -44,14 +97,50 @@ export function DestinationArt({
   id: string;
   height?: number;
 }) {
+  const { data: countries } = useCountries();
+  const country = countries?.find((c) => c.id === id);
+  const flag = country ? flagSvg(country.code) : null;
   return (
-    <Image
-      source={{
-        uri: `data:image/svg+xml;utf8,${encodeURIComponent(destinationSvg(id))}`,
-      }}
-      contentFit="cover"
-      style={{ width: "100%", height }}
-      accessible={false}
-    />
+    <View style={{ width: "100%", height, overflow: "hidden" }}>
+      <Image
+        source={{
+          uri: `data:image/svg+xml;utf8,${encodeURIComponent(destinationSvg(id))}`,
+        }}
+        contentFit="cover"
+        style={{ width: "100%", height }}
+        accessible={false}
+      />
+      {country && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            left: 9,
+            top: 9,
+            padding: 4,
+            borderRadius: 8,
+            backgroundColor: "#FFFFFFF0",
+            borderWidth: 1,
+            borderColor: "#FFFFFF",
+            shadowColor: "#172F50",
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+          }}
+        >
+          {flag ? (
+            <Image
+              source={{
+                uri: `data:image/svg+xml;utf8,${encodeURIComponent(flag)}`,
+              }}
+              style={{ width: 27, height: 18, borderRadius: 2 }}
+              contentFit="contain"
+              accessible={false}
+            />
+          ) : (
+            <Text style={{ fontSize: 17 }}>{country.flag}</Text>
+          )}
+        </View>
+      )}
+    </View>
   );
 }

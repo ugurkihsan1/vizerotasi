@@ -97,3 +97,9 @@ Yayımlanan web için Supabase Auth Site URL: `https://delicate-scone-eeabc7.net
 Proje sahibi, Supabase SQL Editor’da `docs/ADMIN_SETUP.sql` dosyasının tamamını çalıştırabilir. Bu açık bootstrap işlemi yalnız `uugurrk` hesabını admin yapar ve admin self-review fonksiyonunu aynı transaction’da kurar. Uygulamanın public anahtarı rol atayamaz. Migration kullanan kurulumlarda `202610220003_admin_review.sql` uygulanır; ilk admin ataması yine güvenilir SQL yönetim oturumunda yapılır. Moderatörlerin kendi gönderilerini onaylama yasağı, normal kullanıcı RLS’si, audit kayıtları ve tek seferlik puan korunur.
 
 Arayüz; yerel SVG ülke illüstrasyonları, sıcak nötr zemin, lacivert/yeşil vurgular, mobil sekmeler, masaüstü içerik çerçevesi, kişisel inceleme durumu ve mevcut BLS İspanya rehberiyle güncellendi. Ülke görselleri temsili illüstrasyonlardır; kullanıcı deneyimi veya istatistik değildir. Örnek gönderi ya da sahte aktivite sayısı eklenmez.
+
+## Topluluk seviyeleri ve kritik belge uyarıları
+
+Ülke görselleri kendi bayraklarını taşır. Profil → Rozetlerim ve ilerlemem ekranı Gezgin, Kaşif, Seyyah, Rehber, Elçi ve Büyükelçi seviyelerinin tüm koşullarını gösterir. Avrupa Fatihi, Yol Arkadaşı, Dedektif ve ilk 1000 üyeye Öncü Üye ek rozetleri sunulur. Puan ve rozetler yalnızca sunucuda hesaplanır; doğrulanmış ihlaller gerekçeli yönetici işlemiyle puan düşürür.
+
+Mevcut Supabase projesinde [COMMUNITY_UPGRADE.sql](docs/COMMUNITY_UPGRADE.sql) dosyasının tamamını SQL Editor’da **bir defa** uygulayın. Bu dosya 002/003 güncellemelerini içerir ve 004 topluluk kurallarını kurar. Yeni Supabase projelerinde CLI tüm migration’ları sırasıyla uygular. Ayrıntılı eşikler, puan tavanları, inceleme süreci ve belge notları için [topluluk kuralları](docs/COMMUNITY_RULES.md). Şema uygulanana kadar ekranlar mevcut profilleri okumayı sürdürür; yeni ödüller ve belge notu işlemleri etkinleşmez.

@@ -1,3 +1,4 @@
+import { MemberBadge } from "../components/MemberBadge";
 import { ProfileComments } from "../components/ProfileComments";
 import { SavedDocuments } from "../components/SavedDocuments";
 import { View, Text, ScrollView, Pressable } from "react-native";
@@ -144,24 +145,10 @@ export function ProfileScreen({
                 <Text style={styles.muted}>@{profile.username}</Text>
               </View>
               <View style={styles.row}>
-                <View
-                  style={{
-                    backgroundColor: "#EAF2ED",
-                    paddingHorizontal: 10,
-                    paddingVertical: 5,
-                    borderRadius: 8,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      fontWeight: "700",
-                      color: colors.blue,
-                    }}
-                  >
-                    {profile.membership_level}
-                  </Text>
-                </View>
+                <MemberBadge
+                  label={profile.membership_level}
+                  pioneer={profile.is_pioneer}
+                />
                 {profile.role !== "user" && (
                   <Text
                     style={{
@@ -188,7 +175,7 @@ export function ProfileScreen({
                 }}
               >
                 {[
-                  [profile.reputation, "Katkı puanı"],
+                  [profile.badge_score ?? profile.reputation, "Rozet puanı"],
                   [stats.data?.contributions ?? 0, "Paylaşım"],
                   [stats.data?.helpful ?? 0, "Faydalı"],
                 ].map(([value, label]) => (
@@ -217,6 +204,26 @@ export function ProfileScreen({
               </Text>
             </View>
           </View>
+          {own && (
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Rozetlerim ve ilerlemem"
+              onPress={() => router.push("/badges")}
+              style={[
+                styles.card,
+                { flexDirection: "row", alignItems: "center", padding: 16 },
+              ]}
+            >
+              <Ionicons name="ribbon-outline" size={26} color={colors.blue} />
+              <View style={{ flex: 1, gap: 3 }}>
+                <Text style={styles.pillText}>Rozetlerim ve ilerlemem</Text>
+                <Text style={styles.muted}>
+                  Gezgin’den Büyükelçi’ye uzanan rotan
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+            </Pressable>
+          )}
           {badges.data && badges.data.length > 0 && (
             <ScrollView
               horizontal

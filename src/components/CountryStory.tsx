@@ -27,21 +27,6 @@ export function CountryStory({
         }}
       >
         <DestinationArt id={country.id} height={74} />
-        <View
-          style={{
-            position: "absolute",
-            left: 8,
-            top: 8,
-            width: 24,
-            height: 24,
-            borderRadius: 9,
-            backgroundColor: "#FFFFFFD9",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Text style={{ fontSize: 16 }}>{country.flag}</Text>
-        </View>
       </View>
       <View
         style={{

@@ -1,0 +1,456 @@
+import { beforeAll, afterAll, it, expect } from "vitest";
+import { PGlite } from "@electric-sql/pglite";
+import { readFileSync, readdirSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+let pg: PGlite;
+let serial = 0;
+async function root(sql: string, args: unknown[] = []) {
+  await pg.exec("reset role");
+  return pg.query(sql, args);
+}
+async function as(user: string | null, sql: string, args: unknown[] = []) {
+  await pg.exec(`reset role;set role ${user ? "authenticated" : "anon"}`);
+  await pg.query("select set_config('request.jwt.claim.sub',$1,false)", [
+    user ?? "",
+  ]);
+  return pg.query(sql, args);
+}
+async function user(age = 10, role = "user") {
+  const id = randomUUID();
+  await root("insert into auth.users values($1,$2)", [
+    id,
+    JSON.stringify({
+      username: `fixture_${++serial}`,
+      display_name: "Fixture member",
+      terms_accepted: true,
+      privacy_accepted: true,
+    }),
+  ]);
+  await root(
+    "update profiles set created_at=now()-($2::integer*interval '1 day'),role=$3 where id=$1",
+    [id, age, role],
+  );
+  return id;
+}
+async function post(
+  author: string,
+  country = "estonia",
+  kind = "experience",
+  category: string | null = null,
+  sample = false,
+) {
+  const r = await root(
+    "insert into posts(user_id,country_id,kind,title,body,city,result,first_schengen,employment_status,financing,status,category_id,is_sample,created_at) values($1,$2,$3,'Fixture contribution','This is a historical, approved database test fixture.','İstanbul','approved',true,'Çalışan','Kendim','approved',$4,$5,now()-interval '2 days') returning id",
+    [author, country, kind, category, sample],
+  );
+  return (r.rows[0] as { id: string }).id;
+}
+async function comment(author: string, source: string) {
+  const r = await root(
+    "insert into comments(user_id,post_id,body,status) values($1,$2,'A useful approved comment fixture.','approved') returning id",
+    [author, source],
+  );
+  return (r.rows[0] as { id: string }).id;
+}
+async function metrics(id: string) {
+  return (await root("select * from profiles where id=$1", [id])).rows[0] as {
+    badge_score: number;
+    membership_level: string;
+    member_number: number;
+    is_pioneer: boolean;
+    reputation_metrics: Record<string, number>;
+  };
+}
+async function awardIds(id: string) {
+  return (
+    await as(id, "select badge_id from user_badges where user_id=$1", [id])
+  ).rows.map((r) => (r as { badge_id: string }).badge_id);
+}
+async function gezginFixture() {
+  const author = await user(40);
+  const sourceUser = await user(60);
+  const source = await post(sourceUser);
+  const e1 = await post(author);
+  await post(author);
+  const c1 = await comment(author, source),
+    c2 = await comment(author, source);
+  const v1 = await user(10),
+    v2 = await user(10);
+  await post(v1, "estonia", "question");
+  await post(v2, "estonia", "question");
+  for (const [v, c] of [
+    [v1, c1],
+    [v1, c2],
+    [v2, c1],
+  ])
+    await as(v, "insert into comment_helpful_votes values($1,$2)", [v, c]);
+  return { author, e1, c1, c2, v1, v2 };
+}
+beforeAll(async () => {
+  pg = new PGlite();
+  await pg.exec(`
+ create role anon; create role authenticated; create schema auth; create schema storage;
+ create table auth.users(id uuid primary key,raw_user_meta_data jsonb);
+ create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ grant usage on schema auth,public to anon,authenticated;
+ grant execute on function auth.uid() to anon,authenticated;
+ create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+ create table storage.objects(id uuid primary key,bucket_id text,name text);
+ alter table storage.objects enable row level security;
+ create function storage.foldername(text) returns text[] language sql as $$select string_to_array($1,'/')$$;
+ alter default privileges in schema public grant select,insert,update,delete on tables to anon,authenticated;
+ alter default privileges in schema public grant usage,select on sequences to anon,authenticated;
+ `);
+  for (const file of readdirSync("supabase/migrations")
+    .filter((f) => f.endsWith(".sql") && !f.includes("004"))
+    .sort())
+    await pg.exec(readFileSync(`supabase/migrations/${file}`, "utf8"));
+  await pg.exec(readFileSync("docs/COMMUNITY_UPGRADE.sql", "utf8"));
+});
+afterAll(async () => {
+  await pg.close();
+});
+it("assigns durable pioneer numbers without trusting signup metadata", async () => {
+  const id = await user();
+  const p = await metrics(id);
+  expect(p.is_pioneer).toBe(true);
+  expect(p.membership_level).toBe("Öncü Üye");
+  expect(await awardIds(id)).toContain("pioneer-member");
+});
+it("blocks forged badge points, rank, cohort and internal refresh calls", async () => {
+  const id = await user();
+  for (const set of [
+    "badge_score=99999",
+    "membership_level='Büyükelçi'",
+    "member_number=1",
+    "reputation_metrics='{}'::jsonb",
+    "created_at='2000-01-01'",
+  ])
+    await expect(
+      as(id, `update profiles set ${set} where id=$1`, [id]),
+    ).rejects.toThrow();
+  await expect(
+    as(id, "select refresh_member_progress($1)", [id]),
+  ).rejects.toThrow();
+  await expect(
+    as(id, "select nextval('public.member_number_seq')"),
+  ).rejects.toThrow();
+  await as(id, "select refresh_my_progress()");
+});
+it("awards Gezgin from quality votes and multiple real experiences, and downgrades when a gate is lost", async () => {
+  const f = await gezginFixture();
+  expect((await metrics(f.author)).membership_level).toBe("Gezgin");
+  expect((await metrics(f.author)).reputation_metrics).toMatchObject({
+    approved_experiences: 2,
+    liked_comments: 2,
+    qualified_comment_votes: 3,
+    unique_supporters: 2,
+  });
+  await as(
+    f.v1,
+    "delete from comment_helpful_votes where user_id=$1 and comment_id=$2",
+    [f.v1, f.c2],
+  );
+  const p = await metrics(f.author);
+  expect(p.badge_score).toBeGreaterThan(40);
+  expect(p.membership_level).toBe("Öncü Üye");
+  expect(await awardIds(f.author)).not.toContain("gezgin");
+});
+it("does not count new-account vote rings or samples toward quality", async () => {
+  const author = await user();
+  await post(author);
+  await post(author);
+  const source = await post(await user());
+  const c = await comment(author, source);
+  const fresh = await user(0);
+  await post(fresh, "estonia", "question");
+  await as(fresh, "insert into comment_helpful_votes values($1,$2)", [
+    fresh,
+    c,
+  ]);
+  await post(author, "france", "experience", null, true);
+  expect((await metrics(author)).reputation_metrics).toMatchObject({
+    approved_experiences: 2,
+    experience_countries: 1,
+    qualified_comment_votes: 0,
+  });
+});
+it("requires experience diversity: five different Schengen countries earns Avrupa Fatihi", async () => {
+  const id = await user();
+  await root(
+    "insert into countries(id,name,code,flag,is_schengen) values('united-kingdom','Birleşik Krallık','GB','🇬🇧',false) on conflict do nothing",
+  );
+  for (const c of ["estonia", "germany", "france", "italy", "united-kingdom"])
+    await post(id, c);
+  expect(await awardIds(id)).not.toContain("europe-conqueror");
+  await post(id, "spain");
+  expect(await awardIds(id)).toContain("europe-conqueror");
+  await post(id, "spain");
+  expect((await metrics(id)).reputation_metrics.experience_countries).toBe(5);
+});
+it("counts different newcomers rather than repeated welcomes to one account", async () => {
+  const helper = await user(60);
+  for (let i = 0; i < 3; i++) {
+    const newcomer = await user(0);
+    const source = await post(newcomer);
+    await comment(helper, source);
+    if (i === 0) {
+      await comment(helper, source);
+      expect(await awardIds(helper)).not.toContain("travel-companion");
+    }
+  }
+  expect(await awardIds(helper)).toContain("travel-companion");
+  expect((await metrics(helper)).reputation_metrics.welcomed_members).toBe(3);
+});
+it("gives Dedektif for approved appointment information, not for asking questions", async () => {
+  const id = await user();
+  for (let i = 0; i < 3; i++)
+    await post(id, "estonia", "question", "appointment");
+  expect(await awardIds(id)).not.toContain("appointment-detective");
+  for (let i = 0; i < 3; i++) await post(id, "estonia", "tip", "appointment");
+  expect(await awardIds(id)).toContain("appointment-detective");
+});
+it("does not promote a member on raw points alone", async () => {
+  const id = await user(400),
+    admin = await user(400, "admin");
+  await post(id, "estonia", "question");
+  await as(
+    admin,
+    "select admin_adjust_reputation($1,99999,'Verified fixture bonus','quality-gates-test')",
+    [id],
+  );
+  const p = await metrics(id);
+  expect(p.badge_score).toBeGreaterThan(8000);
+  expect(p.membership_level).toBe("Öncü Üye");
+});
+it("queues independent reports without automatic punishment; confirmed penalties are private and idempotent", async () => {
+  const f = await gezginFixture();
+  const before = await metrics(f.author);
+  let reportId = "";
+  for (let i = 0; i < 3; i++) {
+    const reporter = await user();
+    const r = await as(
+      reporter,
+      "insert into reports(user_id,post_id,reason) values($1,$2,'Yanlış bilgi') returning id",
+      [reporter, f.e1],
+    );
+    reportId = (r.rows[0] as { id: string }).id;
+  }
+  expect((await metrics(f.author)).badge_score).toBe(before.badge_score);
+  const admin = await user(40, "admin");
+  expect(
+    (
+      await as(admin, "select * from member_feedback_queue where user_id=$1", [
+        f.author,
+      ])
+    ).rows[0],
+  ).toMatchObject({ reporters: 3 });
+  expect(
+    (await as(f.v1, "select * from member_feedback_queue")).rows,
+  ).toHaveLength(0);
+  await expect(
+    as(f.v1, "select review_member_report($1,true,50,'Untrusted review')", [
+      reportId,
+    ]),
+  ).rejects.toThrow();
+  await as(
+    admin,
+    "select review_member_report($1,true,50,'Confirmed misleading content')",
+    [reportId],
+  );
+  await as(
+    admin,
+    "select review_member_report($1,true,50,'Repeat must do nothing')",
+    [reportId],
+  );
+  const after = await metrics(f.author);
+  expect(after.badge_score).toBe(before.badge_score - 50);
+  expect(after.membership_level).toBe("Öncü Üye");
+  expect(
+    (
+      await as(
+        admin,
+        "select * from member_trust_adjustments where user_id=$1",
+        [f.author],
+      )
+    ).rows,
+  ).toHaveLength(1);
+  expect(
+    (await as(f.author, "select * from member_trust_adjustments")).rows,
+  ).toHaveLength(0);
+});
+it("keeps community warnings pending, enforces source country, and counts only distinct real confirmations", async () => {
+  const admin = await user(40, "admin"),
+    author = await user(),
+    reader = await user();
+  const source = await post(author, "spain");
+  await expect(
+    as(
+      reader,
+      "insert into document_notes(country_id,document_key,document_title,title,body,source_type,post_id) values('spain','spain-tourism-5','Sigorta','A critical warning','A sufficiently detailed real experience warning.','experience',$1)",
+      [source],
+    ),
+  ).rejects.toThrow();
+  await expect(
+    as(
+      admin,
+      "insert into document_notes(country_id,document_key,document_title,title,body,source_type,post_id) values('estonia','insurance','Sigorta','A critical warning','A sufficiently detailed real experience warning.','experience',$1)",
+      [source],
+    ),
+  ).rejects.toThrow();
+  const r = await as(
+    admin,
+    "insert into document_notes(country_id,document_key,document_title,title,body,source_type,post_id) values('spain','spain-tourism-5','Sigorta','A critical warning','A sufficiently detailed real experience warning.','experience',$1) returning id",
+    [source],
+  );
+  const id = (r.rows[0] as { id: string }).id;
+  expect(
+    (await as(null, "select * from document_note_feed where id=$1", [id])).rows,
+  ).toHaveLength(0);
+  await as(admin, "select moderate_document_note($1,'approved')", [id]);
+  expect(
+    (
+      await as(
+        null,
+        "select similar_count from document_note_feed where id=$1",
+        [id],
+      )
+    ).rows[0],
+  ).toMatchObject({ similar_count: 0 });
+  await as(
+    reader,
+    "insert into document_note_confirmations(user_id,note_id) values($1,$2)",
+    [reader, id],
+  );
+  await expect(
+    as(
+      reader,
+      "insert into document_note_confirmations(user_id,note_id) values($1,$2)",
+      [reader, id],
+    ),
+  ).rejects.toThrow();
+  await expect(
+    as(
+      author,
+      "insert into document_note_confirmations(user_id,note_id) values($1,$2)",
+      [author, id],
+    ),
+  ).rejects.toThrow();
+  expect(
+    (
+      await as(
+        null,
+        "select similar_count from document_note_feed where id=$1",
+        [id],
+      )
+    ).rows[0],
+  ).toMatchObject({ similar_count: 1 });
+  await as(admin, "select moderate($1,'rejected')", [source]);
+  expect(
+    (await as(null, "select * from document_note_feed where id=$1", [id])).rows,
+  ).toHaveLength(0);
+});
+it("keeps the founding cohort capped after deletion and never reuses a member number", async () => {
+  await root("select setval('public.member_number_seq',999,true)");
+  const thousand = await user(),
+    later = await user();
+  expect(await metrics(thousand)).toMatchObject({
+    member_number: 1000,
+    is_pioneer: true,
+  });
+  expect(await metrics(later)).toMatchObject({
+    member_number: 1001,
+    is_pioneer: false,
+    membership_level: "Yeni Üye",
+  });
+  await root("delete from auth.users where id=$1", [thousand]);
+  const newest = await user();
+  expect(await metrics(newest)).toMatchObject({
+    member_number: 1002,
+    is_pioneer: false,
+  });
+});
+it("makes Büyükelçi attainable only with sustained diversity and 200 independent supporters", async () => {
+  const author = await user(400),
+    source = await post(await user(400));
+  const voters = Array.from({ length: 200 }, () => ({
+    id: randomUUID(),
+    name: `fixture_${++serial}`,
+  }));
+  await root("set session_replication_role=replica");
+  try {
+    await root(
+      "insert into auth.users select id,jsonb_build_object('username',name) from jsonb_to_recordset($1::jsonb) as v(id uuid,name text)",
+      [JSON.stringify(voters)],
+    );
+    await root(
+      "insert into profiles(id,username,display_name,created_at) select id,name,'Established supporter',now()-interval '400 days' from jsonb_to_recordset($1::jsonb) as v(id uuid,name text)",
+      [JSON.stringify(voters)],
+    );
+    await root(
+      "insert into posts(user_id,country_id,kind,title,body,status,created_at) select id,'estonia','question','Historical question','A historical approved contribution fixture.','approved',now()-interval '2 days' from jsonb_to_recordset($1::jsonb) as v(id uuid)",
+      [JSON.stringify(voters)],
+    );
+    await root(
+      "insert into posts(user_id,country_id,kind,title,body,status,city,result,first_schengen,employment_status,financing,created_at) select $1,(array['estonia','germany','france','italy','spain','greece','netherlands','poland'])[1+(n%8)],'experience','Historical experience','A historical approved experience fixture.','approved','İstanbul','approved',true,'Çalışan','Kendim',now()-interval '2 days' from generate_series(1,120)n",
+      [author],
+    );
+    await root(
+      "insert into comments(user_id,post_id,body,status) select $1,$2,'An approved useful contribution.','approved' from generate_series(1,400)",
+      [author, source],
+    );
+    const comments = (
+      await root(
+        "select id from comments where user_id=$1 order by id limit 100",
+        [author],
+      )
+    ).rows as { id: string }[];
+    const votes = voters.flatMap((v, i) =>
+      Array.from({ length: 10 }, (_, j) => ({
+        user_id: v.id,
+        comment_id: comments[(i * 10 + j) % 100].id,
+      })),
+    );
+    await root(
+      "insert into comment_helpful_votes select user_id,comment_id from jsonb_to_recordset($1::jsonb) as v(user_id uuid,comment_id uuid)",
+      [JSON.stringify(votes)],
+    );
+  } finally {
+    await root("set session_replication_role=origin");
+  }
+  await root("select refresh_member_progress($1)", [author]);
+  expect(await metrics(author)).toMatchObject({
+    membership_level: "Büyükelçi",
+    badge_score: 8280,
+  });
+  expect(await awardIds(author)).toContain("buyukelci");
+  await root("delete from comment_helpful_votes where user_id=$1", [
+    voters[0].id,
+  ]);
+  const downgraded = await metrics(author);
+  expect(downgraded.badge_score).toBeGreaterThan(8000);
+  expect(downgraded.membership_level).toBe("Elçi");
+  expect(await awardIds(author)).not.toContain("buyukelci");
+});
+
+it("keeps administrator setup compatible with quality-based badge rules", async () => {
+  await root("select 1");
+  await pg.exec(readFileSync("docs/ADMIN_SETUP.sql", "utf8"));
+  const author = await user(400),
+    admin = await user(400, "admin");
+  await as(
+    admin,
+    "select admin_adjust_reputation($1,99999,'Compatibility fixture bonus','admin-setup-quality-test')",
+    [author],
+  );
+  const pending = await as(
+    author,
+    "insert into posts(user_id,country_id,kind,title,body) values($1,'spain','question','A genuine fixture question','An actual pending question fixture for moderation.') returning id",
+    [author],
+  );
+  await as(admin, "select moderate($1,'approved')", [
+    (pending.rows[0] as { id: string }).id,
+  ]);
+  expect((await metrics(author)).membership_level).toBe("Yeni Üye");
+  expect(await awardIds(author)).not.toContain("buyukelci");
+});

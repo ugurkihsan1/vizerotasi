@@ -54,6 +54,14 @@ export default function Layout() {
                 contentStyle: { backgroundColor: colors.bg },
               }}
             >
+              <Stack.Screen
+                name="badges"
+                options={{ title: "Rozetler ve seviyeler" }}
+              />
+              <Stack.Screen
+                name="document-notes"
+                options={{ title: "Belge uyarılarını yönet" }}
+              />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen
                 name="auth"

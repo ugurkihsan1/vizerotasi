@@ -1,3 +1,4 @@
+import type { ProgressMetrics } from "./community";
 export type Kind = "experience" | "question" | "tip" | "update";
 export type Status = "pending" | "approved" | "rejected" | "needs_revision";
 export interface Country {
@@ -14,6 +15,10 @@ export interface Profile {
   bio: string;
   role: "user" | "moderator" | "admin";
   reputation: number;
+  badge_score?: number;
+  member_number?: number;
+  is_pioneer?: boolean;
+  reputation_metrics?: ProgressMetrics;
   membership_level: string;
   created_at: string;
 }
