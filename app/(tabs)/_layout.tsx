@@ -1,7 +1,7 @@
 import { Brand } from "../../src/components/Brand";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs, router } from "expo-router";
-import { Text } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { colors } from "../../src/components/ui";
 import { useNotifications } from "../../src/lib/data";
 export default function TabLayout() {
@@ -63,19 +63,53 @@ export default function TabLayout() {
         }}
         options={{
           title: "Paylaş",
-          tabBarIcon: () => (
-            <Text
-              style={{
-                fontSize: 30,
-                color: "#FFF",
-                backgroundColor: colors.blue,
-                borderRadius: 18,
-                width: 44,
-                textAlign: "center",
-              }}
+          tabBarButton: ({
+            onPress,
+            onLongPress,
+            accessibilityLabel,
+            accessibilityState,
+            testID,
+          }) => (
+            <Pressable
+              onPress={onPress}
+              onLongPress={onLongPress}
+              accessibilityRole="button"
+              accessibilityLabel={accessibilityLabel ?? "Paylaş"}
+              accessibilityState={accessibilityState}
+              testID={testID}
+              style={({ pressed }) => ({
+                flex: 1,
+                minHeight: 52,
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 4,
+                opacity: pressed ? 0.75 : 1,
+                transform: [{ scale: pressed ? 0.96 : 1 }],
+              })}
             >
-              +
-            </Text>
+              <View
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 13,
+                  backgroundColor: colors.blue,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  shadowColor: colors.blue,
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.18,
+                  shadowRadius: 5,
+                  elevation: 2,
+                }}
+              >
+                <Ionicons name="add" size={25} color="#FFFFFF" />
+              </View>
+              <Text
+                style={{ fontSize: 10, fontWeight: "600", color: colors.blue }}
+              >
+                Paylaş
+              </Text>
+            </Pressable>
           ),
         }}
       />

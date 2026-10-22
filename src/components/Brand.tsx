@@ -27,9 +27,6 @@ export function Brand() {
         >
           vize rotası<Text style={{ color: colors.blue }}>・</Text>
         </Text>
-        <Text style={{ fontSize: 10, color: colors.muted, letterSpacing: 1.2 }}>
-          SCHENGEN TOPLULUĞU
-        </Text>
       </View>
     </View>
   );
