@@ -127,7 +127,11 @@ export default function Country() {
     tab?: string;
   }>();
   const [tab, setTab] = useState(
-    initialTab === "Belgeler" ? "Belgeler" : "Akış",
+    initialTab === "Belgeler"
+      ? "Belgeler"
+      : initialTab === "Rehber"
+        ? "Rehber"
+        : "Akış",
   );
   const { data: countries } = useCountries();
   const country = countries?.find((c) => c.id === id);

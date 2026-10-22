@@ -1,7 +1,11 @@
 import { test, expect, type Page } from "@playwright/test";
 import levels from "../../src/content/community-levels.json";
 // Deterministic UI tests use transport fixtures only; the shipped app uses real Supabase.
-async function fixtures(page: Page) {
+async function fixtures(page: Page, firstVisit = false) {
+  if (!firstVisit)
+    await page.addInitScript(() =>
+      localStorage.setItem("onboarding-planner-v1", "done"),
+    );
   await page.route("https://*.supabase.co/**", async (route) => {
     const u = new URL(route.request().url());
     if (u.pathname === "/rest/v1/countries")
@@ -871,4 +875,148 @@ test("signup photo stays local through email confirmation and uploads only after
   await expect
     .poll(() => page.evaluate((key) => localStorage.getItem(key), key))
     .toBe(null);
+});
+
+test("first visit asks about plans and booked applicants can open a persistent document checklist", async ({
+  page,
+}) => {
+  await fixtures(page, true);
+  await page.addInitScript(() => localStorage.setItem("onboarding-v1", "done"));
+  await page.goto("/");
+  await expect(
+    page.getByText("Yakında bir randevu ya da seyahat planın var mı?", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Devam", exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByRole("radio", { name: "Randevumu aldım", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Devam", exact: true }).click();
+  await expect(
+    page.getByText("Hangi ülke için randevu aldın?", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Devam", exact: true }),
+  ).toBeDisabled();
+  await page.getByRole("radio", { name: "İspanya", exact: true }).click();
+  await page.getByRole("button", { name: "Devam", exact: true }).click();
+  await expect(
+    page.getByText("Randevun hazır. Peki belgelerin?", { exact: true }),
+  ).toBeVisible();
+  await page.screenshot({ path: "/tmp/planner-booked-mobile.png" });
+  await page
+    .getByRole("button", { name: "Belge checklistine git", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/country\/spain\?/);
+  expect(new URL(page.url()).searchParams.get("tab")).toBe("Belgeler");
+  await expect(
+    page.getByText("0 / 13 belge işaretlendi", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("checkbox", { name: "Pasaport: Hazırladım", exact: true })
+    .click();
+  await expect(
+    page.getByText("1 / 13 belge işaretlendi", { exact: true }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByRole("checkbox", { name: "Pasaport: Hazırladım", exact: true }),
+  ).toBeChecked();
+  expect(
+    await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("travel-plan:v1")!),
+    ),
+  ).toEqual({ status: "booked", country_id: "spain" });
+  await page.goto("/");
+  await expect(page.getByText("Her rota bir deneyimle başlar.")).toBeVisible();
+  await expect(
+    page.getByRole("radio", { name: "Randevumu aldım", exact: true }),
+  ).toHaveCount(0);
+});
+
+for (const scenario of [
+  {
+    choice: "Randevu almayı planlıyorum",
+    question: "Hangi ülke için randevu alacaksın?",
+    country: "Almanya",
+    id: "germany",
+    status: "appointment",
+  },
+  {
+    choice: "Seyahat planlıyorum",
+    question: "Hangi ülkeye seyahat etmeyi planlıyorsun?",
+    country: "Norveç",
+    id: "norway",
+    status: "travel",
+  },
+])
+  test(`first visit guides ${scenario.status} plans to the selected country's guide`, async ({
+    page,
+  }) => {
+    await fixtures(page, true);
+    await page.goto("/");
+    await page
+      .getByRole("radio", { name: scenario.choice, exact: true })
+      .click();
+    await page.getByRole("button", { name: "Devam", exact: true }).click();
+    await expect(
+      page.getByText(scenario.question, { exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole("radio", { name: scenario.country, exact: true })
+      .click();
+    await page.getByRole("button", { name: "Devam", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "Belge checklistine git", exact: true }),
+    ).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Ülke rehberine git", exact: true })
+      .click();
+    await expect(page).toHaveURL(new RegExp(`/country/${scenario.id}\\?`));
+    expect(new URL(page.url()).searchParams.get("tab")).toBe("Rehber");
+    await expect(
+      page.getByText("Resmî kaynaklar", { exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(() =>
+        JSON.parse(localStorage.getItem("travel-plan:v1")!),
+      ),
+    ).toEqual({ status: scenario.status, country_id: scenario.id });
+  });
+
+test("visitors can skip planning or explore without a plan and are not asked again", async ({
+  page,
+}) => {
+  await fixtures(page, true);
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Şimdilik atla", exact: true })
+    .click();
+  await expect(
+    page.getByRole("radio", { name: "Randevumu aldım", exact: true }),
+  ).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByText("Her rota bir deneyimle başlar.")).toBeVisible();
+  await expect(
+    page.getByRole("radio", { name: "Randevumu aldım", exact: true }),
+  ).toHaveCount(0);
+  await page.evaluate(() => localStorage.removeItem("onboarding-planner-v1"));
+  await page.reload();
+  await page
+    .getByRole("radio", { name: "Şimdilik bir planım yok", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Topluluğu keşfet", exact: true })
+    .click();
+  await expect(
+    page.getByRole("radio", { name: "Randevumu aldım", exact: true }),
+  ).toHaveCount(0);
+  expect(
+    await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("travel-plan:v1")!),
+    ),
+  ).toEqual({ status: "none", country_id: null });
 });

@@ -1,106 +1,271 @@
 import { useEffect, useState } from "react";
-import { View, Text } from "react-native";
+import { View, Text, Pressable } from "react-native";
+import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCountries } from "../lib/data";
-import { useAuth } from "../lib/auth";
-import { db } from "../lib/supabase";
-import { Sheet, Button, Chip, styles, Message } from "./ui";
-const screens = [
-  [
-    "Gerçek deneyimleri keşfet.",
-    "Aynı yoldan geçen insanların paylaşımlarına göz at.",
-  ],
-  [
-    "Sana benzeyen başvuruları bul.",
-    "Ülke, çalışma durumu ve sonuçla akışını filtrele.",
-  ],
-  [
-    "Sor, paylaş, birlikte yol al.",
-    "Her katkı bir sonraki yolcuya ışık tutar.",
-  ],
-];
+import { CountryFlag } from "./CountryFlag";
+import { Sheet, Button, styles, colors } from "./ui";
+const plans = [
+  {
+    id: "booked",
+    title: "Randevumu aldım",
+    description: "Belgelerimi kontrol etmek istiyorum.",
+  },
+  {
+    id: "appointment",
+    title: "Randevu almayı planlıyorum",
+    description: "Başvuruya nereden başlayacağımı öğrenmek istiyorum.",
+  },
+  {
+    id: "travel",
+    title: "Seyahat planlıyorum",
+    description: "Gideceğim ülkenin başvuru koşullarını keşfetmek istiyorum.",
+  },
+  {
+    id: "none",
+    title: "Şimdilik bir planım yok",
+    description: "Topluluğa göz atmak istiyorum.",
+  },
+] as const;
+type Plan = (typeof plans)[number]["id"];
 export function Onboarding() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [message, setMessage] = useState("");
-  const { data: countries } = useCountries();
-  const { session } = useAuth();
+  const [plan, setPlan] = useState<Plan>();
+  const [countryId, setCountryId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const { data: countries, isPending, isError, refetch } = useCountries();
+  const country = countries?.find((c) => c.id === countryId);
   const cache = useQueryClient();
   useEffect(() => {
-    void AsyncStorage.getItem("onboarding-v1")
-      .then((x) => {
-        if (!x) setOpen(true);
+    let active = true;
+    void AsyncStorage.getItem("onboarding-planner-v1")
+      .then((value) => {
+        if (active && !value) setOpen(true);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (active) setOpen(true);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
-  async function finish() {
+  function navigate(destination?: "documents" | "guide") {
+    setOpen(false);
+    if (destination && country)
+      router.push({
+        pathname: "/country/[id]",
+        params: {
+          id: country.id,
+          tab: destination === "documents" ? "Belgeler" : "Rehber",
+        },
+      });
+  }
+  async function finish(destination?: "documents" | "guide", skipped = false) {
+    if (busy) return;
+    setBusy(true);
     try {
-      if (session && selected.length) {
-        const r = await db()
-          .from("followed_countries")
-          .upsert(
-            selected.map((country_id) => ({
-              user_id: session.user.id,
-              country_id,
-            })),
+      if (!skipped && plan) {
+        await AsyncStorage.setItem(
+          "travel-plan:v1",
+          JSON.stringify({ status: plan, country_id: country?.id ?? null }),
+        );
+        if (country) {
+          const saved = await AsyncStorage.getItem("guest-country-interests");
+          let interests: unknown;
+          try {
+            interests = saved ? JSON.parse(saved) : [];
+          } catch {
+            interests = [];
+          }
+          await AsyncStorage.setItem(
+            "guest-country-interests",
+            JSON.stringify([
+              ...new Set([
+                ...(Array.isArray(interests)
+                  ? interests.filter((x) => typeof x === "string")
+                  : []),
+                country.id,
+              ]),
+            ]),
           );
-        if (r.error) throw r.error;
-        await cache.invalidateQueries({ queryKey: ["follows"] });
+          void cache.invalidateQueries({ queryKey: ["follows"] });
+        }
       }
-      await AsyncStorage.setItem("onboarding-v1", "done");
-      await AsyncStorage.setItem(
-        "guest-country-interests",
-        JSON.stringify(selected),
-      );
-      await cache.invalidateQueries({ queryKey: ["follows"] });
-      setOpen(false);
+      await AsyncStorage.setItem("onboarding-planner-v1", "done");
     } catch {
-      setMessage("Tercihlerin kaydedilemedi. Tekrar deneyebilirsin.");
+      // Storage may be unavailable in private browsing; never block access to the guide.
+    } finally {
+      setBusy(false);
+      navigate(destination);
     }
   }
   return (
     <Sheet
       visible={open}
-      onClose={() => void finish()}
-      title={
-        step < 3 ? "Vize Rotası’na hoş geldin" : "İlgilendiğin ülkeleri seç"
-      }
+      onClose={() => void finish(undefined, true)}
+      title="Rotanı birlikte planlayalım"
     >
-      {step < 3 ? (
-        <View style={{ gap: 20 }}>
-          <Text style={{ fontSize: 45 }}>{["✦", "◎", "↗"][step]}</Text>
-          <Text style={styles.title}>{screens[step][0]}</Text>
-          <Text style={styles.text}>{screens[step][1]}</Text>
-          <Text style={styles.muted}>{step + 1} / 3</Text>
-          <Button label="Devam" onPress={() => setStep(step + 1)} />
-        </View>
-      ) : (
-        <>
-          <View style={styles.row}>
-            {countries?.map((c) => (
-              <Chip
-                key={c.id}
-                label={`${c.flag} ${c.name}`}
-                active={selected.includes(c.id)}
-                onPress={() =>
-                  setSelected(
-                    selected.includes(c.id)
-                      ? selected.filter((x) => x !== c.id)
-                      : [...selected, c.id],
-                  )
-                }
-              />
+      <View style={{ gap: 16 }}>
+        <Text style={[styles.muted, { color: colors.blue }]}>
+          {step + 1} / 3 · Sana uygun başlangıç
+        </Text>
+        {step === 0 && (
+          <>
+            <Text style={styles.title}>
+              Yakında bir randevu ya da seyahat planın var mı?
+            </Text>
+            <Text style={styles.muted}>
+              Sana doğru ülkenin rehberini ve belge listesini gösterelim.
+            </Text>
+            {plans.map((option) => (
+              <Pressable
+                key={option.id}
+                accessibilityRole="radio"
+                accessibilityLabel={option.title}
+                accessibilityState={{ checked: plan === option.id }}
+                onPress={() => setPlan(option.id)}
+                style={[
+                  styles.card,
+                  {
+                    padding: 15,
+                    gap: 4,
+                    borderColor: plan === option.id ? colors.blue : "#E9EDE8",
+                    backgroundColor: plan === option.id ? "#EAF3ED" : "#FFF",
+                  },
+                ]}
+              >
+                <Text style={styles.pillText}>
+                  {plan === option.id ? "● " : "○ "}
+                  {option.title}
+                </Text>
+                <Text style={styles.muted}>{option.description}</Text>
+              </Pressable>
             ))}
-          </View>
-          <Text style={styles.muted}>
-            Şimdilik seçim yapmadan da devam edebilirsin.
-          </Text>
-          <Message text={message} />
-          <Button label="Akışıma git" onPress={() => void finish()} />
-        </>
-      )}
+            <Button
+              label={plan === "none" ? "Topluluğu keşfet" : "Devam"}
+              disabled={!plan || busy}
+              onPress={() => (plan === "none" ? void finish() : setStep(1))}
+            />
+          </>
+        )}
+        {step === 1 && (
+          <>
+            <Text style={styles.title}>
+              {plan === "booked"
+                ? "Hangi ülke için randevu aldın?"
+                : plan === "appointment"
+                  ? "Hangi ülke için randevu alacaksın?"
+                  : "Hangi ülkeye seyahat etmeyi planlıyorsun?"}
+            </Text>
+            <Text style={styles.muted}>Başvuracağın ülkeyi seç.</Text>
+            <View style={styles.row}>
+              {countries?.map((c) => (
+                <Pressable
+                  key={c.id}
+                  accessibilityRole="radio"
+                  accessibilityLabel={c.name}
+                  accessibilityState={{ checked: countryId === c.id }}
+                  onPress={() => setCountryId(c.id)}
+                  style={[
+                    styles.pill,
+                    {
+                      minHeight: 48,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 9,
+                      borderWidth: 1,
+                      borderColor:
+                        countryId === c.id ? colors.blue : "transparent",
+                      backgroundColor: countryId === c.id ? "#DDEDE3" : "#FFF",
+                    },
+                  ]}
+                >
+                  <CountryFlag code={c.code} emoji={c.flag} name={c.name} />
+                  <Text style={styles.pillText}>{c.name}</Text>
+                </Pressable>
+              ))}
+            </View>
+            {isPending && <Text style={styles.muted}>Ülkeler yükleniyor…</Text>}
+            {isError && (
+              <Button
+                secondary
+                label="Ülkeleri yeniden yükle"
+                onPress={() => void refetch()}
+              />
+            )}
+            <Button
+              label="Devam"
+              disabled={!country}
+              onPress={() => setStep(2)}
+            />
+            <Button secondary label="Geri" onPress={() => setStep(0)} />
+          </>
+        )}
+        {step === 2 && country && (
+          <>
+            <Text style={{ fontSize: 36 }}>
+              {plan === "booked" ? "✓" : "↗"}
+            </Text>
+            <Text style={styles.title}>
+              {plan === "booked"
+                ? "Randevun hazır. Peki belgelerin?"
+                : `${country.name} rotan için ilk adım`}
+            </Text>
+            <View style={styles.card}>
+              <View style={styles.row}>
+                <CountryFlag
+                  code={country.code}
+                  emoji={country.flag}
+                  name={country.name}
+                />
+                <Text style={styles.heading}>{country.name}</Text>
+              </View>
+              <Text style={styles.text}>
+                {plan === "booked"
+                  ? "Belge checklistinde hazırladıklarını işaretle, eksik kalanları kolayca gör. Seçimlerin bu cihazda saklanır."
+                  : "Başvuru adımlarını ve resmî kaynaklara dayanan belge listesini ülke rehberinde incele."}
+              </Text>
+              <Text style={styles.muted}>
+                Liste turistik vize kapsamındadır; başvuru türüne göre güncel
+                resmî koşulları da kontrol et.
+              </Text>
+            </View>
+            <Button
+              label={
+                plan === "booked"
+                  ? "Belge checklistine git"
+                  : "Ülke rehberine git"
+              }
+              disabled={busy}
+              onPress={() =>
+                void finish(plan === "booked" ? "documents" : "guide")
+              }
+            />
+            <Button
+              secondary
+              label="Şimdilik topluluğu keşfet"
+              disabled={busy}
+              onPress={() => void finish()}
+            />
+            <Button
+              secondary
+              label="Geri"
+              disabled={busy}
+              onPress={() => setStep(1)}
+            />
+          </>
+        )}
+        {step < 2 && (
+          <Button
+            secondary
+            label="Şimdilik atla"
+            disabled={busy}
+            onPress={() => void finish(undefined, true)}
+          />
+        )}
+      </View>
     </Sheet>
   );
 }
