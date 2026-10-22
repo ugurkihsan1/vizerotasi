@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
   ScrollView,
@@ -6,6 +7,7 @@ import {
   Switch,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
 } from "react-native";
 import { useForm, Controller, type FieldPath } from "react-hook-form";
 import { useLocalSearchParams, router } from "expo-router";
@@ -22,6 +24,7 @@ import {
 } from "../src/lib/schemas";
 import {
   styles,
+  colors,
   Button,
   Field,
   Chip,
@@ -254,7 +257,11 @@ export default function Create() {
   if (!kind)
     return (
       <View style={styles.content}>
-        <Text style={styles.title}>Topluluğa ne katmak istersin?</Text>
+        <Text style={styles.title}>Senin deneyimin, birinin ilk adımı.</Text>
+        <Text style={styles.muted}>
+          Paylaşmak istediğin içerikle başla. Yayın öncesinde her gönderi
+          incelenir.
+        </Text>
         {(
           [
             ["experience", "✦ Vize deneyimi paylaş"],
@@ -262,7 +269,61 @@ export default function Create() {
             ["tip", "⚡ Kritik bilgi paylaş"],
           ] as const
         ).map(([k, l]) => (
-          <Button key={k} label={l} onPress={() => setKind(k)} />
+          <Pressable
+            key={k}
+            accessibilityRole="button"
+            accessibilityLabel={l}
+            onPress={() => setKind(k)}
+            style={[
+              styles.card,
+              { flexDirection: "row", alignItems: "center", padding: 18 },
+            ]}
+          >
+            <View
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: 16,
+                backgroundColor:
+                  k === "experience"
+                    ? "#E4EFE8"
+                    : k === "question"
+                      ? "#E6EDF4"
+                      : "#FBEDD4",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons
+                name={
+                  k === "experience"
+                    ? "paper-plane-outline"
+                    : k === "question"
+                      ? "chatbubble-ellipses-outline"
+                      : "bulb-outline"
+                }
+                size={24}
+                color={colors.blue}
+              />
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={styles.pillText}>
+                {k === "experience"
+                  ? "Vize deneyimi paylaş"
+                  : k === "question"
+                    ? "Soru sor"
+                    : "Kritik bilgi paylaş"}
+              </Text>
+              <Text style={[styles.muted, { fontSize: 12 }]}>
+                {k === "experience"
+                  ? "Başvurunu, sürecini ve sonucunu anlat."
+                  : k === "question"
+                    ? "Topluluğun deneyiminden yararlan."
+                    : "İşe yarayan bir detayı paylaş."}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+          </Pressable>
         ))}
       </View>
     );

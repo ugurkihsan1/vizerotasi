@@ -54,6 +54,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const profile = useQuery({
     queryKey: ["profile", session?.user.id],
     enabled: !!session,
+    refetchInterval: 30000,
     queryFn: async () => {
       const { data, error } = await db()
         .from("profiles")

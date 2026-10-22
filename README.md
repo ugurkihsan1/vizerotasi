@@ -35,7 +35,7 @@ Offline bayrağı uygulamanın Supabase isteklerini kapatmaz; Expo CLI’ın yar
 update public.profiles set role = 'admin' where username = 'kendi_kullanici_adiniz';
 ```
 
-5. İkinci bir moderatör hesabı oluşturun. Personel kendi içeriklerini onaylayamaz. Yönetim ekranından üyeye moderatör rolü atanabilir.
+5. İkinci bir moderatör hesabı oluşturun. Moderatörler kendi içeriklerini onaylayamaz. `202610220003_admin_review.sql` sonrasında yalnız adminler kendi gönderilerini kayıt altına alınan moderasyon işlemiyle yayınlayabilir. Yönetim ekranından üyeye moderatör rolü atanabilir.
 6. Supabase adresiniz için bulut ağ ayarlarında `<proje-ref>.supabase.co` erişimine izin verin. Henüz proje olmadığı için tahmini ağ kuralı veya kimlik bilgisi kaydedilmedi.
 
 Ülkeler ve kategori/rozet tanımları migration’da seed edilir. Kullanıcı içeriği seed edilmez. `is_sample` işaretli kayıt varsa arayüz “Örnek İçerik” etiketini gösterir; production’da örnek kullanıcı içeriği yayınlamayın. Ülke belge içerikleri yönetici tarafından resmî kaynaklarla eklenir; migration evrensel bir vize belge listesi iddia etmez.
@@ -91,3 +91,9 @@ Supabase **Authentication → URL Configuration** içinde Site URL’yi yayınla
 Migration uygulanana kadar İspanya ekranı paketlenmiş aynı kaynak verisini gösterir. Sonrasında veritabanındaki yönetici düzenlemeleri bu kayıtlara öncelik kazanır; frontend içeriği ayrı kopyalarla elle değiştirilmez. Özel `details` JSON alanı belge 7 ve 12’nin alt koşullarını taşır. Checklist işaretleri kullanıcı/cihaz bazında saklanır, belge uygunluğu veya vize onayı anlamına gelmez.
 
 Yayımlanan web için Supabase Auth Site URL: `https://delicate-scone-eeabc7.netlify.app`; Redirect URLs: `https://delicate-scone-eeabc7.netlify.app/auth` ve parola kurtarma için `https://delicate-scone-eeabc7.netlify.app/auth?recovery=1`. Bu yönetim ayarları public API anahtarıyla değiştirilemez; Dashboard’da kaydedilmelidir.
+
+## İlk admin ve kendi gönderisini yayınlama
+
+Proje sahibi, Supabase SQL Editor’da `docs/ADMIN_SETUP.sql` dosyasının tamamını çalıştırabilir. Bu açık bootstrap işlemi yalnız `uugurrk` hesabını admin yapar ve admin self-review fonksiyonunu aynı transaction’da kurar. Uygulamanın public anahtarı rol atayamaz. Migration kullanan kurulumlarda `202610220003_admin_review.sql` uygulanır; ilk admin ataması yine güvenilir SQL yönetim oturumunda yapılır. Moderatörlerin kendi gönderilerini onaylama yasağı, normal kullanıcı RLS’si, audit kayıtları ve tek seferlik puan korunur.
+
+Arayüz; yerel SVG ülke illüstrasyonları, sıcak nötr zemin, lacivert/yeşil vurgular, mobil sekmeler, masaüstü içerik çerçevesi, kişisel inceleme durumu ve mevcut BLS İspanya rehberiyle güncellendi. Ülke görselleri temsili illüstrasyonlardır; kullanıcı deneyimi veya istatistik değildir. Örnek gönderi ya da sahte aktivite sayısı eklenmez.

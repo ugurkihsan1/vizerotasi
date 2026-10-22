@@ -31,26 +31,40 @@ export const statusLabels = {
   rejected: "Yayına alınmadı",
   needs_revision: "Düzenleme istendi",
 };
-export function Avatar({ name, url }: { name: string; url?: string | null }) {
+export function Avatar({
+  name,
+  url,
+  size = 40,
+}: {
+  name: string;
+  url?: string | null;
+  size?: number;
+}) {
   return url ? (
     <Image
       source={url}
-      style={{ width: 40, height: 40, borderRadius: 20 }}
+      style={{ width: size, height: size, borderRadius: size / 2 }}
       cachePolicy="memory-disk"
       accessibilityLabel={name}
     />
   ) : (
     <View
       style={{
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: size,
+        height: size,
+        borderRadius: size / 2,
         backgroundColor: "#DCE9FC",
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      <Text style={{ fontWeight: "800", color: colors.blue }}>
+      <Text
+        style={{
+          fontWeight: "800",
+          color: colors.blue,
+          fontSize: size > 50 ? 24 : 14,
+        }}
+      >
         {name.slice(0, 2).toLocaleUpperCase("tr-TR")}
       </Text>
     </View>
@@ -164,7 +178,11 @@ export function PostCard({
     <View
       style={[
         styles.card,
-        post.kind === "tip" && { backgroundColor: "#FFF7E8" },
+        post.kind === "tip" && {
+          backgroundColor: "#FFF9ED",
+          borderColor: "#EEE1C5",
+        },
+        post.kind === "question" && { borderColor: "#DDE6E9" },
       ]}
     >
       <View style={[styles.row, { justifyContent: "space-between" }]}>
@@ -216,10 +234,25 @@ export function PostCard({
         style={{ gap: 12 }}
       >
         {post.result && (
-          <View style={styles.row}>
+          <View
+            style={[
+              styles.row,
+              {
+                padding: 14,
+                borderRadius: 16,
+                backgroundColor:
+                  post.result === "approved"
+                    ? "#EDF5EE"
+                    : post.result === "rejected"
+                      ? "#FCF0ED"
+                      : "#FFF5DF",
+                justifyContent: "space-between",
+              },
+            ]}
+          >
             <Text
               style={{
-                fontSize: 15,
+                fontSize: 13,
                 fontWeight: "800",
                 color:
                   post.result === "approved"
@@ -231,7 +264,7 @@ export function PostCard({
             >
               {resultLabels[post.result]}
             </Text>
-            <Text style={styles.muted}>
+            <Text style={[styles.muted, { fontWeight: "600", fontSize: 12 }]}>
               {days === null
                 ? "Süre: Belirtilmedi"
                 : `${days} günde sonuçlandı`}

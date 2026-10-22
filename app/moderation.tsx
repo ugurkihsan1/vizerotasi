@@ -18,7 +18,7 @@ import { PostCard } from "../src/components/PostCard";
 import type { Post, Comment, Status } from "../src/lib/types";
 export default function Moderation() {
   const { profile } = useAuth();
-  const [tab, setTab] = useState("experience");
+  const [tab, setTab] = useState("all");
   const [target, setTarget] = useState<{ id: string; decision: Status } | null>(
     null,
   );
@@ -50,7 +50,12 @@ export default function Moderation() {
                 .from("feed")
                 .select("*")
                 .eq("status", "pending")
-                .eq("kind", tab)
+                .in(
+                  "kind",
+                  tab === "all"
+                    ? ["experience", "question", "tip", "update"]
+                    : [tab],
+                )
                 .order("created_at")
                 .limit(50);
       if (r.error) throw r.error;
@@ -68,7 +73,7 @@ export default function Moderation() {
     });
     setBusy(false);
     if (r.error)
-      setError("Karar kaydedilemedi. Kendi içeriğini onaylayamazsın.");
+      setError("Karar kaydedilemedi. Yetkini ve bağlantını kontrol et.");
     else {
       setTarget(null);
       setNote("");
@@ -87,6 +92,7 @@ export default function Moderation() {
           <Text style={styles.title}>Birlikte güvenli bir topluluk.</Text>
           <View style={styles.row}>
             {Object.entries({
+              all: "Tüm gönderiler",
               experience: "Deneyimler",
               question: "Sorular",
               tip: "Kritik",
@@ -148,7 +154,9 @@ export default function Moderation() {
                       }[d]
                     }
                     secondary={d !== "approved"}
-                    disabled={item.user_id === profile?.id}
+                    disabled={
+                      item.user_id === profile?.id && profile?.role !== "admin"
+                    }
                     onPress={() => {
                       setError("");
                       setTarget({ id: item.id, decision: d });

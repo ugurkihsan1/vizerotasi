@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useState, type PropsWithChildren } from "react";
 import {
   View,
@@ -14,11 +15,11 @@ import {
 import { router } from "expo-router";
 import { useAuth } from "../lib/auth";
 export const colors = {
-  navy: "#12294B",
-  blue: "#2874F0",
-  bg: "#F3F6FB",
-  text: "#172F50",
-  muted: "#62738C",
+  navy: "#182E43",
+  blue: "#24766C",
+  bg: "#F5F5F0",
+  text: "#263E4F",
+  muted: "#6D7D87",
   green: "#13835A",
   amber: "#B16B12",
   red: "#BC4653",
@@ -32,17 +33,30 @@ export const styles = StyleSheet.create({
     gap: 10,
     flexWrap: "wrap",
   },
-  title: { fontSize: 25, fontWeight: "800", color: colors.navy },
-  heading: { fontSize: 18, fontWeight: "700", color: colors.navy },
+  title: {
+    fontSize: 27,
+    lineHeight: 34,
+    letterSpacing: -0.8,
+    fontWeight: "800",
+    color: colors.navy,
+  },
+  heading: {
+    fontSize: 18,
+    letterSpacing: -0.3,
+    fontWeight: "700",
+    color: colors.navy,
+  },
   text: { fontSize: 15, lineHeight: 23, color: colors.text },
   muted: { fontSize: 13, lineHeight: 20, color: colors.muted },
   card: {
     backgroundColor: "#FFF",
     borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "#E9EDE8",
     padding: 20,
     gap: 14,
     shadowColor: colors.navy,
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.035,
     shadowRadius: 12,
     elevation: 1,
   },
@@ -60,7 +74,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 22,
-    backgroundColor: "#E8EEF7",
+    backgroundColor: "#EAF0ED",
   },
   pillText: { fontSize: 13, fontWeight: "600", color: colors.navy },
 });
@@ -88,7 +102,7 @@ export function Button({
         paddingHorizontal: 18,
         paddingVertical: 12,
         borderRadius: 14,
-        backgroundColor: secondary ? "#E8EEF7" : colors.blue,
+        backgroundColor: secondary ? "#EAF0ED" : colors.blue,
         opacity: disabled ? 0.45 : pressed ? 0.75 : 1,
       })}
     >
@@ -222,8 +236,19 @@ export function Empty({
   onPress?: () => void;
 }) {
   return (
-    <View style={[styles.card, { alignItems: "center", paddingVertical: 35 }]}>
-      <Text style={{ fontSize: 30 }}>✦</Text>
+    <View style={[styles.card, { alignItems: "center", paddingVertical: 28 }]}>
+      <View
+        style={{
+          width: 64,
+          height: 64,
+          borderRadius: 23,
+          backgroundColor: "#E7EFEB",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Ionicons name="chatbubbles-outline" size={28} color={colors.blue} />
+      </View>
       <Text style={[styles.heading, { textAlign: "center" }]}>{title}</Text>
       {body && (
         <Text style={[styles.muted, { textAlign: "center" }]}>{body}</Text>
@@ -254,7 +279,7 @@ export function Skeleton() {
             style={{
               height: 30,
               width: "45%",
-              backgroundColor: "#E8EEF7",
+              backgroundColor: "#EAF0ED",
               borderRadius: 12,
             }}
           />

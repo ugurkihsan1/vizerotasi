@@ -4,7 +4,8 @@ import { readFileSync } from "node:fs";
 let pg: PGlite;
 const a = "00000000-0000-0000-0000-000000000001",
   b = "00000000-0000-0000-0000-000000000002",
-  mod = "00000000-0000-0000-0000-000000000003";
+  mod = "00000000-0000-0000-0000-000000000003",
+  admin = "00000000-0000-0000-0000-000000000004";
 let post: string, comment: string;
 async function as(user: string | null, sql: string, params: unknown[] = []) {
   await pg.exec(`reset role; set role ${user ? "authenticated" : "anon"};`);
@@ -41,10 +42,14 @@ beforeAll(async () => {
   await pg.exec(
     readFileSync("supabase/migrations/202610220002_spain_tourism.sql", "utf8"),
   );
+  await pg.exec(
+    readFileSync("supabase/migrations/202610220003_admin_review.sql", "utf8"),
+  );
   for (const [id, name] of [
     [a, "alice"],
     [b, "bob"],
     [mod, "moderator"],
+    [admin, "administrator"],
   ])
     await root("insert into auth.users values($1,$2)", [
       id,
@@ -56,6 +61,7 @@ beforeAll(async () => {
       }),
     ]);
   await root("update profiles set role='moderator' where id=$1", [mod]);
+  await root("update profiles set role='admin' where id=$1", [admin]);
 });
 afterAll(async () => {
   await pg.close();
@@ -362,6 +368,30 @@ describe("PostgreSQL RLS and trusted workflow", () => {
         )
       ).rows,
     ).toHaveLength(0);
+  });
+  it("allows an explicit admin self-review with an audit record and one award", async () => {
+    const r = await as(
+      admin,
+      "insert into posts(user_id,country_id,kind,title,body,city,result,first_schengen,employment_status,financing) values($1,'spain','experience','Administrator experience','This is a sufficiently detailed admin experience.','İstanbul','approved',true,'Çalışan','Kendim') returning id",
+      [admin],
+    );
+    const id = (r.rows[0] as { id: string }).id;
+    await as(admin, "select moderate($1,'approved')", [id]);
+    await as(admin, "select moderate($1,'approved')", [id]);
+    expect(
+      (await as(null, "select status from posts where id=$1", [id])).rows[0],
+    ).toMatchObject({ status: "approved" });
+    expect(
+      (await as(admin, "select reputation from profiles where id=$1", [admin]))
+        .rows[0],
+    ).toMatchObject({ reputation: 8 });
+    expect(
+      (
+        await as(admin, "select * from moderation_actions where post_id=$1", [
+          id,
+        ])
+      ).rows,
+    ).toHaveLength(1);
   });
   it("has RLS on every application table", async () => {
     const r = await root(

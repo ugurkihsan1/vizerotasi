@@ -1,3 +1,10 @@
+import {
+  HomeWelcome,
+  OwnSubmissionNotice,
+  SpainFeature,
+  CommunityNote,
+  CommunityEmpty,
+} from "./HomeSections";
 import { CountryStory } from "./CountryStory";
 import { FlatList, View, Text, ScrollView, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -88,10 +95,21 @@ export function Feed({
     <View style={{ gap: 18, paddingBottom: 16 }}>
       {header}
       {primary && (
-        <View style={{ gap: 10 }}>
-          <Text style={styles.muted}>
-            Bir ülke seç, sana benzeyen deneyimleri keşfet.
-          </Text>
+        <View style={{ gap: 18 }}>
+          {!header && <HomeWelcome />}
+          {!header && <OwnSubmissionNotice />}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Text style={styles.heading}>Rotanı keşfet</Text>
+            <Text style={{ fontSize: 11, color: colors.muted }}>
+              ÜLKE TOPLULUKLARI
+            </Text>
+          </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -112,6 +130,31 @@ export function Feed({
                 />
               ))}
           </ScrollView>
+        </View>
+      )}
+      {primary && !header && (
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Text style={styles.heading}>Topluluğun akışı</Text>
+          <View
+            style={{
+              backgroundColor: "#E8EFEB",
+              paddingHorizontal: 9,
+              paddingVertical: 4,
+              borderRadius: 8,
+            }}
+          >
+            <Text
+              style={{ fontSize: 10, fontWeight: "600", color: colors.blue }}
+            >
+              SANA ÖZEL
+            </Text>
+          </View>
         </View>
       )}
       {!author && !saved && (
@@ -203,14 +246,20 @@ export function Feed({
             <Skeleton />
           ) : query.isError ? (
             <ErrorState retry={() => void query.refetch()} />
+          ) : primary && !header && !count ? (
+            <CommunityEmpty />
           ) : (
             <Empty
               title={
-                saved
-                  ? "Henüz bir şey kaydetmedin."
-                  : count
-                    ? "Bu filtrelerde henüz paylaşım yok."
-                    : "Her rota bir deneyimle başlar."
+                author
+                  ? baseFilter.pending
+                    ? "İncelemede gönderin yok."
+                    : "Henüz yayınlanmış paylaşım yok."
+                  : saved
+                    ? "Henüz bir şey kaydetmedin."
+                    : count
+                      ? "Bu filtrelerde henüz paylaşım yok."
+                      : "Her rota bir deneyimle başlar."
               }
               body={
                 count
@@ -239,7 +288,16 @@ export function Feed({
             void query.fetchNextPage();
         }}
         onEndReachedThreshold={0.4}
-        ListFooterComponent={query.isFetchingNextPage ? <Busy /> : undefined}
+        ListFooterComponent={
+          query.isFetchingNextPage ? (
+            <Busy />
+          ) : primary && !header ? (
+            <View style={{ gap: 14, paddingTop: 8 }}>
+              <SpainFeature />
+              <CommunityNote />
+            </View>
+          ) : undefined
+        }
       />
       <Sheet
         visible={open}

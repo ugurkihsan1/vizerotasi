@@ -1,3 +1,4 @@
+import { Brand } from "../src/components/Brand";
 import { useState, useEffect } from "react";
 import {
   ScrollView,
@@ -204,6 +205,9 @@ export default function Auth() {
         ]}
         keyboardShouldPersistTaps="handled"
       >
+        <View style={{ paddingBottom: 8 }}>
+          <Brand />
+        </View>
         <View style={{ gap: 8 }}>
           <Text style={styles.title}>
             {mode === "signup"

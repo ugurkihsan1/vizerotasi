@@ -1,15 +1,15 @@
 import { ProfileComments } from "../components/ProfileComments";
 import { SavedDocuments } from "../components/SavedDocuments";
-import { View, Text } from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { db } from "../lib/supabase";
-import { useAuth } from "../lib/auth";
 import type { Profile } from "../lib/types";
 import { Feed } from "../components/Feed";
 import { Avatar } from "../components/PostCard";
-import { styles, Chip, Button } from "../components/ui";
+import { styles, Chip, colors } from "../components/ui";
 export function ProfileScreen({
   profile,
   own = false,
@@ -18,7 +18,6 @@ export function ProfileScreen({
   own?: boolean;
 }) {
   const [tab, setTab] = useState("Paylaşımlar");
-  const { session } = useAuth();
   const badges = useQuery({
     queryKey: ["badges", profile.id],
     queryFn: async () => {
@@ -51,39 +50,250 @@ export function ProfileScreen({
         pending: tab === "İncelemede",
       }}
       header={
-        <View style={{ gap: 16 }}>
-          <View style={styles.row}>
-            <Avatar name={profile.display_name} url={profile.avatar_url} />
-            <View>
-              <Text style={styles.title}>{profile.display_name}</Text>
-              <Text style={styles.muted}>@{profile.username}</Text>
+        <View style={{ gap: 18 }}>
+          <View style={[styles.card, { padding: 0, overflow: "hidden" }]}>
+            <View
+              style={{
+                height: 86,
+                backgroundColor: colors.navy,
+                overflow: "hidden",
+              }}
+            >
+              <View
+                style={{
+                  position: "absolute",
+                  width: 140,
+                  height: 140,
+                  borderRadius: 70,
+                  borderWidth: 1,
+                  borderColor: "#49645F",
+                  right: 20,
+                  top: -70,
+                }}
+              />
+              <View
+                style={{
+                  position: "absolute",
+                  width: 190,
+                  height: 190,
+                  borderRadius: 95,
+                  borderWidth: 1,
+                  borderColor: "#49645F",
+                  right: -5,
+                  top: -96,
+                }}
+              />
+              <Text
+                style={{
+                  position: "absolute",
+                  right: 22,
+                  bottom: 16,
+                  fontSize: 10,
+                  color: "#B2C9BF",
+                  letterSpacing: 1.8,
+                }}
+              >
+                HER DENEYİM BİR ROTA
+              </Text>
+            </View>
+            <View style={{ padding: 20, paddingTop: 0, gap: 13 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginTop: -36,
+                }}
+              >
+                <View
+                  style={{
+                    padding: 5,
+                    borderRadius: 44,
+                    backgroundColor: "#FFF",
+                  }}
+                >
+                  <Avatar
+                    name={profile.display_name}
+                    url={profile.avatar_url}
+                    size={66}
+                  />
+                </View>
+                {own && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Profil ve ayarlar"
+                    onPress={() => router.push("/settings")}
+                    style={{
+                      minHeight: 44,
+                      minWidth: 44,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginTop: 30,
+                    }}
+                  >
+                    <Ionicons
+                      name="settings-outline"
+                      size={22}
+                      color={colors.muted}
+                    />
+                  </Pressable>
+                )}
+              </View>
+              <View style={{ gap: 4 }}>
+                <Text style={styles.title}>{profile.display_name}</Text>
+                <Text style={styles.muted}>@{profile.username}</Text>
+              </View>
+              <View style={styles.row}>
+                <View
+                  style={{
+                    backgroundColor: "#EAF2ED",
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                    borderRadius: 8,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "700",
+                      color: colors.blue,
+                    }}
+                  >
+                    {profile.membership_level}
+                  </Text>
+                </View>
+                {profile.role !== "user" && (
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: colors.amber,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {profile.role === "admin" ? "Yönetici" : "Moderatör"}
+                  </Text>
+                )}
+              </View>
+              <Text style={styles.text}>
+                {profile.bio ||
+                  "Bir deneyim, başka birinin yolunu kolaylaştırır."}
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  paddingVertical: 15,
+                  borderTopWidth: 1,
+                  borderTopColor: "#EDF0EB",
+                  justifyContent: "space-between",
+                }}
+              >
+                {[
+                  [profile.reputation, "Katkı puanı"],
+                  [stats.data?.contributions ?? 0, "Paylaşım"],
+                  [stats.data?.helpful ?? 0, "Faydalı"],
+                ].map(([value, label]) => (
+                  <View
+                    key={label}
+                    style={{ alignItems: "center", gap: 4, flex: 1 }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 23,
+                        fontWeight: "800",
+                        color: colors.navy,
+                      }}
+                    >
+                      {value}
+                    </Text>
+                    <Text style={{ fontSize: 11, color: colors.muted }}>
+                      {label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+              <Text style={[styles.muted, { fontSize: 11 }]}>
+                {new Date(profile.created_at).toLocaleDateString("tr-TR")}{" "}
+                tarihinde katıldı
+              </Text>
             </View>
           </View>
-          <Text style={styles.text}>
-            {profile.bio || "Her deneyim bir sonraki yolcuya ışık tutar."}
-          </Text>
-          <Text style={styles.pillText}>
-            {profile.membership_level} · {profile.reputation} katkı puanı
-          </Text>
-          <Text style={styles.muted}>
-            {new Date(profile.created_at).toLocaleDateString("tr-TR")} tarihinde
-            katıldı
-          </Text>
-          <View style={styles.row}>
-            <Text style={styles.pill}>
-              {stats.data?.contributions ?? 0} katkı
-            </Text>
-            <Text style={styles.pill}>{stats.data?.helpful ?? 0} faydalı</Text>
-            <Text style={styles.pill}>{stats.data?.countries ?? 0} ülke</Text>
-          </View>
-          <View style={styles.row}>
-            {badges.data?.map((b) => (
-              <Text key={b.badge_id} style={styles.pill}>
-                🏅 {(b.badges as unknown as { name: string })?.name}
-              </Text>
-            ))}
-          </View>
-          <View style={styles.row}>
+          {badges.data && badges.data.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8 }}
+            >
+              {badges.data.map((b) => (
+                <View
+                  key={b.badge_id}
+                  style={{
+                    backgroundColor: "#FFF1D7",
+                    padding: 12,
+                    borderRadius: 14,
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: "#8E692C" }}>
+                    🏅 {(b.badges as unknown as { name: string })?.name}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+          {own && profile.role !== "user" && (
+            <View style={{ gap: 10 }}>
+              <Pressable
+                accessibilityRole="link"
+                onPress={() => router.push("/moderation")}
+                style={[
+                  styles.card,
+                  {
+                    flexDirection: "row",
+                    alignItems: "center",
+                    padding: 16,
+                    gap: 12,
+                    backgroundColor: "#ECF2ED",
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="shield-checkmark-outline"
+                  size={25}
+                  color={colors.blue}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.pillText}>Moderasyon kuyruğu</Text>
+                  <Text style={styles.muted}>
+                    Bekleyen paylaşımları incele ve yayınla
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={colors.blue}
+                />
+              </Pressable>
+              {profile.role === "admin" && (
+                <Pressable
+                  accessibilityRole="link"
+                  onPress={() => router.push("/admin")}
+                  style={{
+                    minHeight: 44,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: colors.blue }}>
+                    İçerik ve üye yönetimi →
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8 }}
+          >
             {[
               "Paylaşımlar",
               "Deneyimler",
@@ -97,35 +307,9 @@ export function ProfileScreen({
                 onPress={() => setTab(t)}
               />
             ))}
-          </View>
-          {own && (
-            <Button
-              secondary
-              label="Profil ve ayarlar"
-              onPress={() => router.push("/settings")}
-            />
-          )}
-          {own && ["moderator", "admin"].includes(profile.role) && (
-            <Button
-              label="Moderasyon kuyruğu"
-              onPress={() => router.push("/moderation")}
-            />
-          )}
-          {own && profile.role === "admin" && (
-            <Button
-              secondary
-              label="İçerik ve üye yönetimi"
-              onPress={() => router.push("/admin")}
-            />
-          )}
+          </ScrollView>
           {own && tab === "Belgelerim" && <SavedDocuments />}
           {tab === "Yorumlar" && <ProfileComments user={profile.id} />}
-          {own && session && (
-            <Text style={styles.muted}>
-              Gönderilerinin inceleme durumunu “İncelemede” bölümünden takip
-              edebilirsin.
-            </Text>
-          )}
         </View>
       }
     />

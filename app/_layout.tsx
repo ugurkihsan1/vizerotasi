@@ -1,3 +1,4 @@
+import { View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
@@ -15,7 +16,7 @@ const persister = createAsyncStoragePersister({
 });
 export default function Layout() {
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={{ backgroundColor: "#E9EDE8" }}>
       <PersistQueryClientProvider
         client={client}
         persistOptions={{
@@ -37,43 +38,59 @@ export default function Layout() {
         }}
       >
         <AuthProvider>
-          <Stack
-            screenOptions={{
-              headerTintColor: colors.navy,
-              headerStyle: { backgroundColor: "#FFF" },
-              contentStyle: { backgroundColor: colors.bg },
+          <View
+            style={{
+              flex: 1,
+              width: "100%",
+              maxWidth: 760,
+              alignSelf: "center",
+              backgroundColor: colors.bg,
             }}
           >
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="auth"
-              options={{ title: "Topluluğa katıl", presentation: "modal" }}
-            />
-            <Stack.Screen
-              name="create"
-              options={{
-                title: "Ne paylaşmak istiyorsun?",
-                presentation: "modal",
+            <Stack
+              screenOptions={{
+                headerTintColor: colors.navy,
+                headerStyle: { backgroundColor: "#FFF" },
+                contentStyle: { backgroundColor: colors.bg },
               }}
-            />
-            <Stack.Screen
-              name="country/[id]"
-              options={{ title: "Ülke topluluğu" }}
-            />
-            <Stack.Screen
-              name="experience/[id]"
-              options={{ title: "Deneyim" }}
-            />
-            <Stack.Screen name="question/[id]" options={{ title: "Soru" }} />
-            <Stack.Screen name="tip/[id]" options={{ title: "Kritik nokta" }} />
-            <Stack.Screen
-              name="profile/[username]"
-              options={{ title: "Topluluk profili" }}
-            />
-            <Stack.Screen name="moderation" options={{ title: "Moderasyon" }} />
-            <Stack.Screen name="admin" options={{ title: "Yönetim" }} />
-            <Stack.Screen name="settings" options={{ title: "Ayarlar" }} />
-          </Stack>
+            >
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="auth"
+                options={{ title: "Topluluğa katıl", presentation: "modal" }}
+              />
+              <Stack.Screen
+                name="create"
+                options={{
+                  title: "Ne paylaşmak istiyorsun?",
+                  presentation: "modal",
+                }}
+              />
+              <Stack.Screen
+                name="country/[id]"
+                options={{ title: "Ülke topluluğu" }}
+              />
+              <Stack.Screen
+                name="experience/[id]"
+                options={{ title: "Deneyim" }}
+              />
+              <Stack.Screen name="question/[id]" options={{ title: "Soru" }} />
+              <Stack.Screen
+                name="tip/[id]"
+                options={{ title: "Kritik nokta" }}
+              />
+              <Stack.Screen
+                name="profile/[username]"
+                options={{ title: "Topluluk profili" }}
+              />
+              <Stack.Screen
+                name="moderation"
+                options={{ title: "Moderasyon" }}
+              />
+              <Stack.Screen name="admin" options={{ title: "Yönetim" }} />
+              <Stack.Screen name="settings" options={{ title: "Ayarlar" }} />
+            </Stack>
+          </View>
         </AuthProvider>
       </PersistQueryClientProvider>
     </SafeAreaProvider>

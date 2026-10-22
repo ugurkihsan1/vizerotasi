@@ -62,7 +62,15 @@ export default function Notifications() {
       contentContainerStyle={styles.content}
       data={q.data ?? []}
       keyExtractor={(n) => n.id}
-      ListHeaderComponent={<Message text={error} />}
+      ListHeaderComponent={
+        <View style={{ gap: 7, paddingBottom: 10 }}>
+          <Text style={styles.title}>Topluluktan sana.</Text>
+          <Text style={styles.muted}>
+            Yanıtların, onayların ve yeni gelişmelerin tek yerde.
+          </Text>
+          <Message text={error} />
+        </View>
+      }
       renderItem={({ item: n }) => (
         <NotificationRow
           n={n}

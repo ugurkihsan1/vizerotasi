@@ -1,3 +1,4 @@
+import { DestinationArt } from "../../src/components/DestinationArt";
 import {
   SpainDocuments,
   SpainGuide,
@@ -117,8 +118,13 @@ function DocumentRow({ doc }: { doc: Document }) {
   );
 }
 export default function Country() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const [tab, setTab] = useState("Akış");
+  const { id, tab: initialTab } = useLocalSearchParams<{
+    id: string;
+    tab?: string;
+  }>();
+  const [tab, setTab] = useState(
+    initialTab === "Belgeler" ? "Belgeler" : "Akış",
+  );
   const { data: countries } = useCountries();
   const country = countries?.find((c) => c.id === id);
   const documents = useDocuments(id);
@@ -141,13 +147,29 @@ export default function Country() {
   });
   const header = (
     <View style={{ gap: 16 }}>
-      <Text style={{ fontSize: 48 }}>{country?.flag ?? "🌍"}</Text>
-      <Text style={styles.title}>{country?.name ?? "Ülke topluluğu"}</Text>
+      <View
+        style={{
+          borderRadius: 24,
+          overflow: "hidden",
+          backgroundColor: "#DFE9E2",
+        }}
+      >
+        <DestinationArt id={id} height={130} />
+      </View>
+      <Text style={styles.title}>
+        {country?.flag} {country?.name ?? "Ülke topluluğu"}
+      </Text>
       <Follow id={id} />
       <View style={styles.row}>
-        <Text style={styles.pill}>{stats.data?.experiences ?? 0} deneyim</Text>
-        <Text style={styles.pill}>{stats.data?.questions ?? 0} soru</Text>
-        <Text style={styles.pill}>{stats.data?.tips ?? 0} kritik bilgi</Text>
+        <Text style={styles.pillText}>
+          {stats.data?.experiences ?? "—"} deneyim
+        </Text>
+        <Text style={styles.pillText}>
+          · {stats.data?.questions ?? "—"} soru
+        </Text>
+        <Text style={styles.pillText}>
+          · {stats.data?.tips ?? "—"} kritik bilgi
+        </Text>
       </View>
       <View style={styles.row}>
         <Text style={styles.muted}>
