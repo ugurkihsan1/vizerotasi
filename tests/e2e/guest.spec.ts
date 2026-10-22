@@ -502,3 +502,48 @@ test("Norway highlights its actual translation rule and keeps document checkmark
     page.getByRole("checkbox", { name: "Pasaport: Hazırladım", exact: true }),
   ).toBeChecked();
 });
+
+test("all ten country cards load bundled landmark photographs and expose photo credits", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.goto("/discover");
+  const landmarks = [
+    "Brandenburg Kapısı, Berlin",
+    "Tallinn Eski Şehir",
+    "Ana Pazar Meydanı, Kraków",
+    "Eyfel Kulesi, Paris",
+    "Kolezyum, Roma",
+    "Partenon, Atina",
+    "Parlamento Binası, Budapeşte",
+    "Prinsengracht Kanalı, Amsterdam",
+    "Sagrada Família, Barselona",
+    "Geiranger Fiyordu",
+  ];
+  for (const landmark of landmarks) {
+    const photo = page
+      .getByRole("link", { name: /topluluğuna git$/ })
+      .getByRole("img", { name: landmark, exact: true });
+    await photo.scrollIntoViewIfNeeded();
+    await expect
+      .poll(() => photo.evaluate((img: HTMLImageElement) => img.naturalWidth))
+      .toBeGreaterThan(0);
+    expect(await photo.getAttribute("src")).not.toMatch(
+      /^https:\/\/(upload|thumb)\.wikimedia/,
+    );
+    expect(await photo.getAttribute("src")).not.toContain("data:image/svg");
+  }
+  await page
+    .getByRole("link", { name: "Fransa topluluğuna git", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Fotoğraf bilgisi ve kaynak", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/photo-credits\?country=france$/);
+  await expect(
+    page.getByText("Fotoğraf: Pointois", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Fotoğraf lisansı", exact: true }),
+  ).toBeVisible();
+});

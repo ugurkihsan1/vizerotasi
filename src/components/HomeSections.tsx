@@ -6,7 +6,7 @@ import { useAuth } from "../lib/auth";
 import { db } from "../lib/supabase";
 import { styles, colors } from "./ui";
 import { Avatar } from "./PostCard";
-import { DestinationArt } from "./DestinationArt";
+import { DestinationPhoto } from "./DestinationPhoto";
 export function HomeWelcome() {
   const { profile, session } = useAuth();
   return (
@@ -126,7 +126,7 @@ export function SpainFeature() {
       ]}
     >
       <View style={{ width: 112, backgroundColor: "#F5CEAB" }}>
-        <DestinationArt id="spain" height={128} />
+        <DestinationPhoto id="spain" height={128} />
       </View>
       <View style={{ flex: 1, padding: 15, gap: 6, justifyContent: "center" }}>
         <Text

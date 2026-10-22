@@ -1,5 +1,5 @@
 import { DocumentWarnings } from "../../src/components/DocumentWarnings";
-import { DestinationArt } from "../../src/components/DestinationArt";
+import { DestinationPhoto } from "../../src/components/DestinationPhoto";
 import { CountryGuide } from "../../src/components/CountryGuide";
 import { getCountryGuide } from "../../src/lib/country-guides";
 import {
@@ -158,7 +158,7 @@ export default function Country() {
           backgroundColor: "#DFE9E2",
         }}
       >
-        <DestinationArt id={id} height={130} />
+        <DestinationPhoto id={id} height={130} />
       </View>
       <Text style={styles.title}>
         {country?.flag} {country?.name ?? "Ülke topluluğu"}

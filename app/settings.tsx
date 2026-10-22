@@ -146,6 +146,11 @@ export default function Settings() {
         </>
       )}
       <Message text={message} />
+      <Button
+        secondary
+        label="Fotoğraf kaynakları"
+        onPress={() => router.push("/photo-credits")}
+      />
       <View style={styles.card}>
         <Text style={styles.heading}>Vize Rotası hakkında</Text>
         <Text style={styles.text}>

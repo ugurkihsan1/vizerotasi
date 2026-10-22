@@ -96,7 +96,7 @@ Yayımlanan web için Supabase Auth Site URL: `https://delicate-scone-eeabc7.net
 
 Proje sahibi, Supabase SQL Editor’da `docs/ADMIN_SETUP.sql` dosyasının tamamını çalıştırabilir. Bu açık bootstrap işlemi yalnız `uugurrk` hesabını admin yapar ve admin self-review fonksiyonunu aynı transaction’da kurar. Uygulamanın public anahtarı rol atayamaz. Migration kullanan kurulumlarda `202610220003_admin_review.sql` uygulanır; ilk admin ataması yine güvenilir SQL yönetim oturumunda yapılır. Moderatörlerin kendi gönderilerini onaylama yasağı, normal kullanıcı RLS’si, audit kayıtları ve tek seferlik puan korunur.
 
-Arayüz; yerel SVG ülke illüstrasyonları, sıcak nötr zemin, lacivert/yeşil vurgular, mobil sekmeler, masaüstü içerik çerçevesi, kişisel inceleme durumu ve mevcut BLS İspanya rehberiyle güncellendi. Ülke görselleri temsili illüstrasyonlardır; kullanıcı deneyimi veya istatistik değildir. Örnek gönderi ya da sahte aktivite sayısı eklenmez.
+Arayüz; yerel olarak paketlenen gerçek ülke fotoğrafları, sıcak nötr zemin, lacivert/yeşil vurgular, mobil sekmeler, masaüstü içerik çerçevesi, kişisel inceleme durumu ve mevcut BLS İspanya rehberiyle güncellendi. Ülke kartları tanınan turistik yerlerin gerçek fotoğraflarını ve ülke bayraklarını gösterir. Wikimedia Commons kaynakları, fotoğrafçılar ve lisanslar uygulamadaki Fotoğraf kaynakları ekranında ve `assets/destinations/README.md` dosyasında bulunur. Fotoğraflar kullanıcı deneyimi veya istatistik değildir. Örnek gönderi ya da sahte aktivite sayısı eklenmez.
 
 ## Topluluk seviyeleri ve kritik belge uyarıları
 

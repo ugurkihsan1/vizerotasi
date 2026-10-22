@@ -8,7 +8,7 @@ import { useCountries } from "../../src/lib/data";
 import { router, useLocalSearchParams } from "expo-router";
 import { Feed } from "../../src/components/Feed";
 import { Field, Chip, styles, colors } from "../../src/components/ui";
-import { DestinationArt } from "../../src/components/DestinationArt";
+import { DestinationPhoto } from "../../src/components/DestinationPhoto";
 import { SpainFeature } from "../../src/components/HomeSections";
 export default function Discover() {
   const params = useLocalSearchParams<{ q?: string }>();
@@ -140,7 +140,7 @@ export default function Discover() {
                       borderColor: "#E4E9E2",
                     }}
                   >
-                    <DestinationArt id={c.id} height={106} />
+                    <DestinationPhoto id={c.id} height={106} />
                     <View
                       style={{
                         padding: 12,

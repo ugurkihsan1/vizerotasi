@@ -55,6 +55,10 @@ export default function Layout() {
               }}
             >
               <Stack.Screen
+                name="photo-credits"
+                options={{ title: "Fotoğraf kaynakları" }}
+              />
+              <Stack.Screen
                 name="badges"
                 options={{ title: "Rozetler ve seviyeler" }}
               />

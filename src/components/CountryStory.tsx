@@ -2,7 +2,7 @@ import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import type { Country } from "../lib/types";
 import { colors } from "./ui";
-import { DestinationArt } from "./DestinationArt";
+import { DestinationPhoto } from "./DestinationPhoto";
 export function CountryStory({
   country,
   followed,
@@ -26,7 +26,7 @@ export function CountryStory({
           borderColor: colors.blue,
         }}
       >
-        <DestinationArt id={country.id} height={74} />
+        <DestinationPhoto id={country.id} height={74} />
       </View>
       <View
         style={{
