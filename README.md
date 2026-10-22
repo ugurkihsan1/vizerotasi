@@ -107,3 +107,11 @@ Mevcut Supabase projesinde [COMMUNITY_UPGRADE.sql](docs/COMMUNITY_UPGRADE.sql) d
 ### Kritik paylaşımdan rehberde topluluk notuna
 
 İspanya için normal üyenin onaylanan kritik paylaşımı seçilen konuya göre ilgili rehber adımında veya belge altında mor **Topluluk notu** olarak otomatik görünür. Randevu → Randevu; Davet Mektubu → Konaklama ve davet mektubu / Konaklama belgeleri. Form notun yerini gösterir; rehberden açılan form ülke ve konuyu önceden seçer. Mevcut onaylı paylaşımlar da dahildir. Bu bağlantı için yeni SQL çalıştırılmaz; mevcut gönderi onayı yeterlidir. Konu eşleştirmeleri [topluluk kurallarında](docs/COMMUNITY_RULES.md) açıklanır.
+
+## Tüm ülke rehberleri, Norveç ve anında yorumlar
+
+Mevcut İspanya rehberine ek olarak Almanya, Estonya, Polonya, Fransa, İtalya, Yunanistan, Macaristan, Hollanda ve Norveç için kaynaklı turistik vize rehberleri ve 117 belge maddesi eklidir. Ortak Schengen çerçevesi ile ülkeye özgü resmî koşullar ayrı gösterilir. [Kaynaklar ve kapsam](docs/COUNTRY_SOURCES.md).
+
+Supabase SQL Editor’da [COUNTRIES_AND_COMMENTS_UPGRADE.sql](docs/COUNTRIES_AND_COMMENTS_UPGRADE.sql) dosyasının tamamını uygulayın. Tekrarlanabilir dosya mevcut yönetici düzenlemelerini korur; 002 metadata, 005 anında yorum ve 006 ülke kayıtlarını kurar. Gönderiler inceleme akışında kalır; yorumlar ve yanıtlar doğrudan yayımlanır. Önceden kaldırılmış yorumlar yeniden yayımlanmaz. Veritabanı güncellenene kadar mevcut yorum durumu arayüzde doğru gösterilir; Norveç topluluğuna gönderim henüz açılmaz.
+
+[EAS / App Store gönderim kılavuzu](docs/APP_STORE_TR.md) bu proje için hazırlanmıştır. `eas.json`, üretim build sayacı ve Türkçe galeri izni açıklaması hazırdır. Gerçek Expo proje bağlantısı, Apple kimliği/sertifikaları, imzalı IPA ve mağaza başvurusu oluşturulmadı. Hesap silme, kullanıcı engelleme/filtreleme ve eksiksiz gizlilik/destek metinleri mağaza başvurusundan önce tamamlanmalıdır.

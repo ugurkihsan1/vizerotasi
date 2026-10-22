@@ -1,5 +1,7 @@
 import { DocumentWarnings } from "../../src/components/DocumentWarnings";
 import { DestinationArt } from "../../src/components/DestinationArt";
+import { CountryGuide } from "../../src/components/CountryGuide";
+import { getCountryGuide } from "../../src/lib/country-guides";
 import {
   SpainDocuments,
   SpainGuide,
@@ -196,7 +198,14 @@ export default function Country() {
               "Belgeler",
               "Rehber",
             ]
-          : ["Akış", "Deneyimler", "Sorular", "Kritik", "Belgeler"]
+          : [
+              "Akış",
+              "Deneyimler",
+              "Sorular",
+              "Kritik",
+              "Belgeler",
+              ...(getCountryGuide(id) ? ["Rehber"] : []),
+            ]
         ).map((t) => (
           <Chip
             key={t}
@@ -211,6 +220,15 @@ export default function Country() {
   if (id === "spain" && tab === "Belgeler")
     return <SpainDocuments header={header} />;
   if (id === "spain" && tab === "Rehber") return <SpainGuide header={header} />;
+  if (getCountryGuide(id) && (tab === "Belgeler" || tab === "Rehber"))
+    return (
+      <CountryGuide
+        key={`${id}:${tab}`}
+        country={id}
+        mode={tab === "Belgeler" ? "documents" : "guide"}
+        header={header}
+      />
+    );
   return tab === "Belgeler" ? (
     <FlatList
       style={styles.page}

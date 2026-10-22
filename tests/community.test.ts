@@ -498,3 +498,123 @@ it("lets a normal member submit categorized critical information and only expose
   await as(admin, "select moderate($1,'rejected')", [pending.id]);
   expect((await read()).rows).toHaveLength(0);
 });
+
+it("publishes ordinary comments and replies immediately, with notifications and server-only rewards", async () => {
+  const author = await user(),
+    reader = await user(),
+    admin = await user(40, "admin");
+  const source = await post(author, "norway", "question");
+  const r = await as(
+    reader,
+    "insert into comments(user_id,post_id,body) values($1,$2,'An ordinary comment without a moderation queue.') returning id,status,approved_by,approved_at",
+    [reader, source],
+  );
+  const c = r.rows[0] as { id: string; status: string; approved_at: string };
+  expect(c.status).toBe("approved");
+  expect(c.approved_at).toBeTruthy();
+  expect(
+    (await as(null, "select id from comments where id=$1", [c.id])).rows,
+  ).toHaveLength(1);
+  expect(
+    (
+      await as(
+        author,
+        "select message from notifications where post_id=$1 and message like '%yanıt%'",
+        [source],
+      )
+    ).rows,
+  ).toHaveLength(1);
+  const reward = await root(
+    "select * from reputation_events where reference=$1",
+    ["comment_approval:" + c.id],
+  );
+  expect(reward.rows).toHaveLength(1);
+  await expect(
+    as(reader, "select reward_published_comment($1)", [c.id]),
+  ).rejects.toThrow();
+  const reply = await as(
+    author,
+    "insert into comments(user_id,post_id,parent_comment_id,body) values($1,$2,$3,'An immediate useful reply.') returning status",
+    [author, source, c.id],
+  );
+  expect(reply.rows[0]).toMatchObject({ status: "approved" });
+  const pending = await as(
+    reader,
+    "insert into posts(user_id,country_id,kind,title,body) values($1,'norway','question','A pending question','This question must still wait for approval.') returning id,status",
+    [reader],
+  );
+  expect(pending.rows[0]).toMatchObject({ status: "pending" });
+  await expect(
+    as(
+      reader,
+      "insert into comments(user_id,post_id,body) values($1,$2,'Must not bypass parent visibility')",
+      [reader, (pending.rows[0] as { id: string }).id],
+    ),
+  ).rejects.toThrow();
+  await as(admin, "select moderate($1,'rejected',true,'Confirmed abuse')", [
+    c.id,
+  ]);
+  expect(
+    (await as(null, "select id from comments where id=$1", [c.id])).rows,
+  ).toHaveLength(0);
+});
+
+it("applies the repeatable comments/country upgrade without restoring removed comments or overwriting country documents", async () => {
+  const author = await user(),
+    source = await post(author, "norway", "question");
+  await root("set session_replication_role=replica");
+  let pending: string, rejected: string;
+  try {
+    const r = await root(
+      "insert into comments(user_id,post_id,body,status) values($1,$2,'An older waiting comment','pending'),($1,$2,'An older removed comment','rejected') returning id,status",
+      [author, source],
+    );
+    pending = (
+      r.rows.find((x) => (x as { status: string }).status === "pending") as {
+        id: string;
+      }
+    ).id;
+    rejected = (
+      r.rows.find((x) => (x as { status: string }).status === "rejected") as {
+        id: string;
+      }
+    ).id;
+  } finally {
+    await root("set session_replication_role=origin");
+  }
+  await root(
+    "update country_documents set body='A deliberate administrator edit that must be retained.' where country_id='norway' and sort_order=1",
+  );
+  await root("select 1");
+  await pg.exec(
+    readFileSync("docs/COUNTRIES_AND_COMMENTS_UPGRADE.sql", "utf8"),
+  );
+  expect(
+    (await root("select status from comments where id=$1", [pending!])).rows[0],
+  ).toMatchObject({ status: "approved" });
+  expect(
+    (await root("select status from comments where id=$1", [rejected!]))
+      .rows[0],
+  ).toMatchObject({ status: "rejected" });
+  expect(
+    (
+      await root(
+        "select body from country_documents where country_id='norway' and sort_order=1",
+      )
+    ).rows[0],
+  ).toMatchObject({
+    body: "A deliberate administrator edit that must be retained.",
+  });
+  expect(
+    (await as(null, "select code,is_schengen from countries where id='norway'"))
+      .rows[0],
+  ).toMatchObject({ code: "NO", is_schengen: true });
+  expect(
+    (
+      await as(
+        null,
+        "select id from country_documents where country_id='norway'",
+      )
+    ).rows,
+  ).toHaveLength(13);
+});

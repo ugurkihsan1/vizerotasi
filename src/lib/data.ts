@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-query";
 import { db, configured } from "./supabase";
 import { useAuth } from "./auth";
+import { mergeCountries } from "./country-guides";
 import type {
   Country,
   Profile,
@@ -24,7 +25,7 @@ export function useCountries() {
     queryFn: async () => {
       const r = await db().from("countries").select("*").order("name");
       if (r.error) throw r.error;
-      return r.data as Country[];
+      return mergeCountries(r.data as Country[]);
     },
   });
 }

@@ -426,3 +426,79 @@ test("a normal member can choose the guide topic and submit a critical note for 
   });
   expect(submitted).not.toHaveProperty("status");
 });
+
+test("all other countries including Norway have source-linked guides and document checklists", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  await fixtures(page);
+  for (const [id, name] of [
+    ["germany", "Almanya"],
+    ["estonia", "Estonya"],
+    ["poland", "Polonya"],
+    ["france", "Fransa"],
+    ["italy", "İtalya"],
+    ["greece", "Yunanistan"],
+    ["hungary", "Macaristan"],
+    ["netherlands", "Hollanda"],
+    ["norway", "Norveç"],
+  ]) {
+    await page.goto(`/country/${id}`);
+    await page.getByRole("button", { name: "Belgeler", exact: true }).click();
+    await expect(
+      page.getByText(`${name} · Turistik vize belgeleri`, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("0 / 13 belge işaretlendi", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("checkbox", { name: "Pasaport: Hazırladım", exact: true }),
+    ).toBeAttached();
+    await page.getByRole("button", { name: "Rehber", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "Randevu", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", {
+        name: "Başvuru zamanı ve işlem süresi",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", {
+        name: "Avrupa Komisyonu – Schengen vizesine başvuru",
+        exact: true,
+      }),
+    ).toBeAttached();
+  }
+});
+
+test("Norway highlights its actual translation rule and keeps document checkmarks", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.goto("/country/norway");
+  await page.getByRole("button", { name: "Belgeler", exact: true }).click();
+  await page
+    .getByRole("button", {
+      name: "Tercüme ve dosya biçimini kontrol et",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByText(
+      /Türkiye kontrol listesi bütün belgelerin İngilizce veya Norveççe olmasını/,
+    ),
+  ).toBeVisible();
+  await page
+    .getByRole("checkbox", { name: "Pasaport: Hazırladım", exact: true })
+    .click();
+  await expect(
+    page.getByText("1 / 13 belge işaretlendi", { exact: true }),
+  ).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Belgeler", exact: true }).click();
+  await expect(
+    page.getByRole("checkbox", { name: "Pasaport: Hazırladım", exact: true }),
+  ).toBeChecked();
+});

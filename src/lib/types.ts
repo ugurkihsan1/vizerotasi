@@ -2,6 +2,7 @@ import type { ProgressMetrics } from "./community";
 export type Kind = "experience" | "question" | "tip" | "update";
 export type Status = "pending" | "approved" | "rejected" | "needs_revision";
 export interface Country {
+  community_ready?: boolean;
   id: string;
   name: string;
   flag: string;

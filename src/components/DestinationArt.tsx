@@ -11,6 +11,7 @@ const palettes: Record<string, [string, string, string]> = {
   netherlands: ["#F4D6CD", "#CB9788", "#8B625D"],
   poland: ["#E4D3DE", "#B994AE", "#775A76"],
   hungary: ["#D9E5DE", "#92B1AC", "#4E7878"],
+  norway: ["#D9E8EF", "#88ADB7", "#355B70"],
 };
 export function destinationSvg(id: string) {
   const [sky, building, ink] = palettes[id] ?? palettes.france;
@@ -52,6 +53,14 @@ function flagSvg(code: string) {
     colors.map((c, i) => rect(i * 10, 0, 10, 20, c)).join("");
   let body = "";
   switch (code) {
+    case "NO":
+      body =
+        rect(0, 0, 30, 20, "#BA0C2F") +
+        rect(7, 0, 6, 20, "#FFFFFF") +
+        rect(0, 7, 30, 6, "#FFFFFF") +
+        rect(9, 0, 2, 20, "#00205B") +
+        rect(0, 9, 30, 2, "#00205B");
+      break;
     case "DE":
       body = horizontal(["#111111", "#DD2028", "#F4C844"]);
       break;

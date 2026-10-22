@@ -204,6 +204,15 @@ export default function Create() {
       return;
     }
     if (!session) return;
+    if (
+      countries.data?.find((c) => c.id === v.country_id)?.community_ready ===
+      false
+    ) {
+      setMessage(
+        "Bu ülke topluluğunda paylaşım henüz açılmadı. Şimdilik rehberini inceleyebilirsin.",
+      );
+      return;
+    }
     setBusy(true);
     try {
       const payload =

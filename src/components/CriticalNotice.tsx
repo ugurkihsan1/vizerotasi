@@ -7,6 +7,7 @@ export function CriticalNotice({
   source,
   count,
   topic,
+  referenceLabel = "Başvuru merkezi belgesi",
   children,
   initiallyOpen = false,
 }: {
@@ -14,6 +15,7 @@ export function CriticalNotice({
   source: "reference" | "experience" | "editorial" | "community";
   count?: number;
   topic?: string;
+  referenceLabel?: string;
   initiallyOpen?: boolean;
 } & PropsWithChildren) {
   const [open, setOpen] = useState(initiallyOpen);
@@ -50,7 +52,7 @@ export function CriticalNotice({
           </Text>
           <Text style={{ fontSize: 10, color: "#806A9D" }}>
             {source === "reference"
-              ? "Başvuru merkezi belgesi"
+              ? referenceLabel
               : source === "community"
                 ? `Topluluk notu${topic ? ` · ${topic}` : ""}`
                 : source === "editorial"

@@ -183,16 +183,27 @@ export default function DetailScreen() {
     }
     setBusy(true);
     try {
-      const r = await db().from("comments").insert({
-        post_id: id,
-        user_id: session!.user.id,
-        parent_comment_id: reply,
-        body: body.trim(),
-      });
+      const r = await db()
+        .from("comments")
+        .insert({
+          post_id: id,
+          user_id: session!.user.id,
+          parent_comment_id: reply,
+          body: body.trim(),
+        })
+        .select("status")
+        .single();
       if (r.error) throw r.error;
       setBody("");
       setReply(null);
-      setMessage("Yorumun incelemeye alındı.");
+      setMessage(
+        r.data?.status === "approved"
+          ? "Yorumun yayınlandı."
+          : "Yorumun kaydedildi; şu anda inceleme sırasında.",
+      );
+      void cache.invalidateQueries({ queryKey: ["feed"] });
+      void cache.invalidateQueries({ queryKey: ["post", id] });
+      void cache.invalidateQueries({ queryKey: ["profile"] });
       void cache.invalidateQueries({ queryKey: ["comments", id] });
     } catch (e) {
       setMessage(friendlyError(e));

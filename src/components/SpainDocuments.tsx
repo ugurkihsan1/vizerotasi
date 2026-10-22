@@ -399,7 +399,7 @@ export function SpainDocuments({ header }: { header: React.ReactElement }) {
     </>
   );
 }
-function GuideSection({
+export function GuideSection({
   title,
   children,
   notes,
