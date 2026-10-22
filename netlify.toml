@@ -1,0 +1,12 @@
+[build]
+  command = "npm run export -- --max-workers 2"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "24"
+  EXPO_NO_TELEMETRY = "1"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

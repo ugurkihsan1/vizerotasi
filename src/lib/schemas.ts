@@ -1,0 +1,45 @@
+import { z } from "zod";
+export const experienceSchema = z
+  .object({
+    country_id: z.string().min(1, "Ülke seç."),
+    title: z.string().min(5, "En az 5 karakter yaz.").max(180),
+    body: z.string().min(20, "En az 20 karakter yaz.").max(8000),
+    advice: z.string().max(4000),
+    city: z.string().min(2, "Başvuru şehrini yaz."),
+    center: z.string().min(2, "Başvuru merkezini yaz."),
+    visa_type: z.string().min(1),
+    purpose: z.string().min(1),
+    first_schengen: z.boolean(),
+    employment_status: z.string().min(1),
+    financing: z.string().min(1),
+    invitation: z.boolean(),
+    application_date: z.iso.date("Tarihi YYYY-AA-GG biçiminde yaz."),
+    appointment_date: z.union([z.iso.date(), z.literal("")]),
+    passport_date: z.union([z.iso.date(), z.literal("")]),
+    decision_date: z.union([z.iso.date(), z.literal("")]),
+    result: z.enum(["approved", "rejected", "waiting"]),
+    requested_days: z.number().int().min(1).max(730),
+    granted_days: z.number().int().min(0).max(1825),
+    entries: z.enum(["single", "double", "multi"]),
+  })
+  .refine((x) => !x.decision_date || x.decision_date >= x.application_date, {
+    path: ["decision_date"],
+    message: "Sonuç tarihi başvurudan önce olamaz.",
+  });
+export type ExperienceInput = z.infer<typeof experienceSchema>;
+export const shortPostSchema = z.object({
+  country_id: z.string().min(1, "Ülke seç."),
+  title: z.string().min(5, "Başlık en az 5 karakter olmalı.").max(180),
+  body: z.string().min(20, "En az 20 karakter yaz.").max(8000),
+  category_id: z.string().min(1),
+});
+export const signupSchema = z.object({
+  display_name: z.string().min(2).max(60),
+  username: z.string().regex(/^[a-z0-9_]{3,24}$/),
+  email: z.email(),
+  password: z.string().min(12),
+  terms: z.literal(true),
+  privacy: z.literal(true),
+});
+export const privacyWarning =
+  "Pasaport, T.C. kimlik, telefon, açık adres veya banka hesap bilgilerini paylaşma.";

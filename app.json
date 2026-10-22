@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Vize Rotası",
+    "slug": "vizerotasi",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vizerotasi.app"
+    },
+    "android": {
+      "package": "com.vizerotasi.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "scheme": "vizerotasi",
+    "plugins": ["expo-router", "expo-image"]
+  }
+}
