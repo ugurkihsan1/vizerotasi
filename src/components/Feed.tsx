@@ -1,3 +1,4 @@
+import { ApplicationOverview } from "./ApplicationOverview";
 import {
   HomeWelcome,
   OwnSubmissionNotice,
@@ -97,6 +98,7 @@ export function Feed({
       {primary && (
         <View style={{ gap: 18 }}>
           {!header && <HomeWelcome />}
+          {!header && <ApplicationOverview />}
           {!header && <OwnSubmissionNotice />}
           <View
             style={{

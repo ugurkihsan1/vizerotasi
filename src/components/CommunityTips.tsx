@@ -1,3 +1,4 @@
+import { VerificationLabel } from "./VerificationLabel";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { View, Text, Pressable } from "react-native";
 import { router } from "expo-router";
@@ -56,6 +57,7 @@ export function CommunityTips({
           source="community"
           topic={guideTopicLabels[tip.category_id] ?? tip.category_id}
         >
+          <VerificationLabel postId={tip.id} />
           <Text style={styles.text}>{tip.body}</Text>
           <Pressable
             accessibilityRole="link"

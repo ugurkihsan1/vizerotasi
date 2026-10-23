@@ -1,3 +1,5 @@
+import countryGuideFixtures from "../../src/content/country-guides.json";
+import spainFixture from "../../src/content/spain-tourism.json";
 import { test, expect, type Page } from "@playwright/test";
 import levels from "../../src/content/community-levels.json";
 // Deterministic UI tests use transport fixtures only; the shipped app uses real Supabase.
@@ -1019,4 +1021,433 @@ test("visitors can skip planning or explore without a plan and are not asked aga
       JSON.parse(localStorage.getItem("travel-plan:v1")!),
     ),
   ).toEqual({ status: "none", country_id: null });
+});
+
+test("sharing scales to 35 countries with a searchable picker and placeholders never become content", async ({
+  page,
+}) => {
+  await member(page);
+  const guides = countryGuideFixtures;
+  const countries = [
+    { id: "spain", name: "İspanya", code: "ES", flag: "🇪🇸" },
+    ...guides.map((c) => ({
+      id: c.id,
+      name: c.name,
+      code: c.code,
+      flag: c.flag,
+    })),
+    ...Array.from({ length: 25 }, (_, i) => ({
+      id: `future-${i}`,
+      name: i === 24 ? "Lüksemburg" : `Test ülkesi ${i}`,
+      code: "LU",
+      flag: "🇱🇺",
+    })),
+  ];
+  expect(countries).toHaveLength(35);
+  await page.route("https://*.supabase.co/rest/v1/countries?**", (route) =>
+    route.fulfill({ json: countries }),
+  );
+  let submitted: Record<string, unknown> | undefined;
+  await page.route("https://*.supabase.co/rest/v1/posts", (route) => {
+    submitted = route.request().postDataJSON();
+    return route.fulfill({ status: 201, body: "" });
+  });
+  await page.goto("/create?kind=question");
+  await expect(
+    page.getByRole("radio", { name: "Lüksemburg", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Başvuru ülkesi: Ülke seç", exact: true })
+    .click();
+  await page.getByLabel("Ülke ara", { exact: true }).fill("lüksem");
+  await expect(page.getByRole("radio")).toHaveCount(1);
+  await page.getByRole("radio", { name: "Lüksemburg", exact: true }).click();
+  await expect(
+    page.getByRole("button", {
+      name: "Başvuru ülkesi: Lüksemburg",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Sorunun başlığı", { exact: true })).toHaveValue(
+    "",
+  );
+  await expect(
+    page.getByLabel("Sorunun başlığı", { exact: true }),
+  ).toHaveAttribute("placeholder", /Örn\./);
+  await page
+    .getByLabel("Sorunun başlığı", { exact: true })
+    .fill("Güncel randevu sürecini soruyorum");
+  await page
+    .getByLabel("Detaylar", { exact: true })
+    .fill(
+      "Randevu hazırlığında hangi adımları izlediğinizi öğrenmek istiyorum.",
+    );
+  await page
+    .getByRole("button", { name: "İncelemeye gönder", exact: true })
+    .click();
+  await expect(
+    page.getByText("Gönderin incelemeye alındı 🎉", { exact: true }),
+  ).toBeVisible();
+  expect(submitted).toMatchObject({
+    country_id: "future-24",
+    title: "Güncel randevu sürecini soruyorum",
+  });
+  expect(JSON.stringify(submitted)).not.toContain("Örn.");
+});
+
+test("multiple private evidence files accompany one post and show the exact insurance destination", async ({
+  page,
+}) => {
+  await member(page);
+  const id = "00000000-0000-0000-0000-000000000880";
+  const writes: string[] = [];
+  let posts = 0;
+  await page.route("https://*.supabase.co/rest/v1/posts?**", (route) => {
+    posts++;
+    return route.fulfill({ status: 201, json: { id } });
+  });
+  await page.route(
+    "https://*.supabase.co/storage/v1/object/post-evidence/**",
+    (route) => {
+      writes.push(new URL(route.request().url()).pathname);
+      return route.fulfill({ json: { Key: "private-fixture" } });
+    },
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/register_post_evidence",
+    (route) => {
+      const body = route.request().postDataJSON();
+      expect(body.target).toBe(id);
+      expect(body.path).toContain(`/` + id + `/`);
+      return route.fulfill({ json: "00000000-0000-0000-0000-000000000881" });
+    },
+  );
+  await page.goto("/create?kind=tip&country=spain&category=doc-insurance");
+  await expect(
+    page.getByText(
+      "İspanya → Turistik Vize → Belgeler → Yurtdışı seyahat sağlık sigortası",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/yalnız sen ve yetkili yönetim erişebilir/),
+  ).toBeVisible();
+  await page
+    .getByLabel("Kısa bir başlık", { exact: true })
+    .fill("Sigortada ıslak imza istendi");
+  await page
+    .getByLabel("Detaylar", { exact: true })
+    .fill(
+      "Başvurumda sigorta poliçemin ıslak imzalı nüshasını istediler. Tarihler belgemde görünüyor.",
+    );
+  const chooser = page.waitForEvent("filechooser");
+  await page
+    .getByRole("button", { name: "Destekleyici belgeleri seç", exact: true })
+    .click();
+  const pdf = Buffer.from(
+    "%PDF-1.4\n% Sanitized, fictional UI test document, not a real policy\n%%EOF",
+  );
+  await (
+    await chooser
+  ).setFiles([
+    { name: "redacted-policy.pdf", mimeType: "application/pdf", buffer: pdf },
+    { name: "redacted-ticket.pdf", mimeType: "application/pdf", buffer: pdf },
+  ]);
+  await expect(
+    page.getByRole("button", {
+      name: "redacted-policy.pdf dosyasını kaldır",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: "/tmp/critical-private-evidence-mobile.png",
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "İncelemeye gönder", exact: true })
+    .click();
+  await expect(
+    page.getByText("Gönderin incelemeye alındı 🎉", { exact: true }),
+  ).toBeVisible();
+  expect(posts).toBe(1);
+  expect(writes).toHaveLength(2);
+  expect(writes[0]).not.toBe(writes[1]);
+});
+
+test("staff reviews private evidence separately from publication and sees the verified experience label", async ({
+  page,
+}) => {
+  await member(page);
+  const id = "00000000-0000-0000-0000-000000000882";
+  const post = {
+    id,
+    user_id: "00000000-0000-0000-0000-000000000300",
+    country_id: "germany",
+    kind: "tip",
+    category_id: "doc-insurance",
+    title: "Poliçemde ıslak imza istendi",
+    body: "Başvurumda ıslak imzalı sigorta poliçesi istendi; ilgili alanları kapattım.",
+    status: "approved",
+    created_at: "2026-10-22T10:00:00Z",
+    is_sample: false,
+    helpful_count: 0,
+    comment_count: 0,
+    source_type: "submission",
+  };
+  await page.route("https://*.supabase.co/rest/v1/profiles?**", (route) =>
+    route.fulfill({
+      json: {
+        id: "00000000-0000-0000-0000-000000000200",
+        username: "reviewer",
+        display_name: "Reviewer",
+        role: "moderator",
+        membership_level: "Öncü Üye",
+        reputation: 0,
+      },
+    }),
+  );
+  await page.route("https://*.supabase.co/rest/v1/feed?**", (route) =>
+    route.fulfill({
+      json: new URL(route.request().url()).searchParams.has("id") ? post : [],
+    }),
+  );
+  let verified = false,
+    decisions = 0;
+  await page.route(
+    "https://*.supabase.co/rest/v1/post_verifications?**",
+    (route) =>
+      route.fulfill({
+        json: new URL(route.request().url()).searchParams.has("post_id")
+          ? {
+              post_id: id,
+              status: verified ? "verified" : "pending",
+              verified_at: null,
+            }
+          : verified
+            ? []
+            : [{ post_id: id }],
+      }),
+  );
+  await page.route("https://*.supabase.co/rest/v1/post_evidence?**", (route) =>
+    route.fulfill({
+      json: [
+        {
+          id: "00000000-0000-0000-0000-000000000883",
+          post_id: id,
+          file_name: "redacted-policy.pdf",
+          mime_type: "application/pdf",
+          size_bytes: 1000,
+          storage_path: `private-owner/${id}/file.pdf`,
+        },
+      ],
+    }),
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/review_post_evidence",
+    (route) => {
+      decisions++;
+      expect(route.request().postDataJSON()).toMatchObject({
+        target: id,
+        decision: "verified",
+        internal_note: "Tarih ve ilgili belge alanı kontrol edildi.",
+      });
+      verified = true;
+      return route.fulfill({ status: 204, body: "" });
+    },
+  );
+  await page.goto("/moderation");
+  await expect(
+    page.getByRole("button", {
+      name: "redacted-policy.pdf belgesini indir",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", {
+      name: "Belgeleri yeterli buldum · Doğrula",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByLabel("Özel belge inceleme notu", { exact: true })
+    .fill("Tarih ve ilgili belge alanı kontrol edildi.");
+  await page
+    .getByRole("button", { name: "Belge kararını kaydet", exact: true })
+    .click();
+  await expect.poll(() => decisions).toBe(1);
+  await expect(
+    page.getByText("İnceleme bekleyen belge yok.", { exact: true }),
+  ).toBeVisible();
+});
+
+test("insurance community notes stay under insurance and publication never implies an official rule", async ({
+  page,
+}) => {
+  await fixtures(page);
+  const id = "00000000-0000-0000-0000-000000000884";
+  await page.route("https://*.supabase.co/rest/v1/posts?**", (route) =>
+    route.fulfill({
+      json: (
+        new URL(route.request().url()).searchParams.get("category_id") ?? ""
+      ).includes("doc-insurance")
+        ? [
+            {
+              id,
+              title: "Islak imzalı sigorta poliçesi istendi",
+              body: "Bu yalnız benim başvurumda yaşadığım bir deneyimdir.",
+              category_id: "doc-insurance",
+            },
+          ]
+        : [],
+    }),
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/post_verifications?**",
+    (route) =>
+      route.fulfill({
+        json: {
+          post_id: id,
+          status: "verified",
+          verified_at: "2026-10-23T12:00:00Z",
+        },
+      }),
+  );
+  await page.goto("/country/germany?tab=Belgeler");
+  const insurance = page
+    .getByRole("checkbox", { name: /Seyahat sağlık sigortası: Hazırladım/i })
+    .locator("../..");
+  await insurance
+    .getByRole("button", {
+      name: "Islak imzalı sigorta poliçesi istendi",
+      exact: true,
+    })
+    .click();
+  await expect(
+    insurance.getByText("✓ Belgeyle doğrulanmış deneyim", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    insurance.getByText(/Yayın onayı doğruluk veya resmî kural onayı değildir/),
+  ).toBeVisible();
+  const finance = page
+    .getByRole("checkbox", { name: /Maddi durum.*Hazırladım/i })
+    .locator("../..");
+  await expect(
+    finance.getByRole("button", {
+      name: "Islak imzalı sigorta poliçesi istendi",
+      exact: true,
+    }),
+  ).toHaveCount(0);
+});
+
+test("home keeps the community feed and adds the visitor's plan and real checklist progress", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.addInitScript(
+    ({ id }) => {
+      localStorage.setItem(
+        "travel-plan:v1",
+        JSON.stringify({ status: "booked", country_id: "spain" }),
+      );
+      localStorage.setItem(
+        "spain-tourism-checklist:v1:guest",
+        JSON.stringify([id]),
+      );
+      localStorage.setItem(
+        "guest-country-interests",
+        JSON.stringify(["spain", "france"]),
+      );
+    },
+    { id: spainFixture.documents[0].id },
+  );
+  await page.goto("/");
+  await expect(
+    page.getByText("Senin başvuru rotan", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("Randevu alındı", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(
+      "1 / 13 belge hazır işaretlendi · 12 belge kontrol bekliyor",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Topluluğun akışı", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Belgelerime devam et", exact: true })
+    .click();
+  await expect(
+    page.getByRole("checkbox", { name: "Pasaport: Hazırladım", exact: true }),
+  ).toBeChecked();
+});
+
+test("a failed private upload can be retried without duplicating the public contribution", async ({
+  page,
+}) => {
+  await member(page);
+  const id = "00000000-0000-0000-0000-000000000889";
+  let posts = 0,
+    uploads = 0;
+  await page.route("https://*.supabase.co/rest/v1/posts?**", (route) => {
+    posts++;
+    return route.fulfill({ status: 201, json: { id } });
+  });
+  await page.route(
+    "https://*.supabase.co/storage/v1/object/post-evidence/**",
+    (route) => {
+      uploads++;
+      return uploads === 1
+        ? route.fulfill({
+            status: 503,
+            json: { message: "Fixture temporary upload error" },
+          })
+        : route.fulfill({ json: { Key: "private-fixture" } });
+    },
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/register_post_evidence",
+    (route) => route.fulfill({ json: "00000000-0000-0000-0000-000000000890" }),
+  );
+  await page.goto("/create?kind=tip&country=spain&category=doc-insurance");
+  await page
+    .getByText("Bilginin bağlanacağı yer", { exact: true })
+    .scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "/tmp/critical-destination-mobile.png" });
+  await page
+    .getByLabel("Kısa bir başlık", { exact: true })
+    .fill("Poliçemde tarih kontrolü");
+  await page
+    .getByLabel("Detaylar", { exact: true })
+    .fill("Başvurumda seyahat tarihlerimin poliçede görünmesini istediler.");
+  const chooser = page.waitForEvent("filechooser");
+  await page
+    .getByRole("button", { name: "Destekleyici belgeleri seç", exact: true })
+    .click();
+  await (
+    await chooser
+  ).setFiles([
+    {
+      name: "redacted.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.4\n%fictional fixture\n%%EOF"),
+    },
+  ]);
+  await page
+    .getByRole("button", { name: "İncelemeye gönder", exact: true })
+    .click();
+  await expect(
+    page.getByText("Paylaşımın kaydedildi", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Kalan belgeleri yükle", exact: true }),
+  ).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Kalan belgeleri yükle", exact: true })
+    .click();
+  await expect(
+    page.getByText("Gönderin incelemeye alındı 🎉", { exact: true }),
+  ).toBeVisible();
+  expect(posts).toBe(1);
+  expect(uploads).toBe(2);
 });

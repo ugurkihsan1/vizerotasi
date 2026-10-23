@@ -25,6 +25,7 @@ export interface Profile {
   created_at: string;
 }
 export interface Post {
+  category_id?: string | null;
   previous_visas?: PreviousVisa[];
   invitation_notes?: string;
   invitation?: boolean | null;

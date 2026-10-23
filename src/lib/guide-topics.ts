@@ -133,12 +133,11 @@ export function documentOptions(country: string) {
   ];
 }
 export function documentTopics(key: string, legacy: string[] = []) {
-  return [
-    ...new Set([
-      ...legacy,
-      ...(documentCategoryByKey[key] ? [documentCategoryByKey[key]] : []),
-    ]),
-  ];
+  // A known checklist item owns exactly one category; legacy broad finance/sponsor
+  // aliases must not route a note beneath multiple unrelated documents.
+  return documentCategoryByKey[key]
+    ? [documentCategoryByKey[key]]
+    : [...new Set(legacy)];
 }
 export function selectedDocumentPlacement(country: string, category: string) {
   const option = documentOptions(country).find((o) => o.id === category);
@@ -146,7 +145,7 @@ export function selectedDocumentPlacement(country: string, category: string) {
     return country === "spain"
       ? "İspanya rehberindeki Başvuru Süreci bölümünde mor topluluk notu olarak görünür."
       : `${getCountryGuide(country)?.name ?? "Seçtiğin ülke"} rehberindeki Başvuru Süreci bölümünde mor topluluk notu olarak görünür.`;
-  if (category === "doc-form")
+  if (category === "doc-form" && country === "spain")
     return `${getCountryGuide(country)?.name ?? "İspanya"} rehberindeki Başvuru Süreci bölümünde mor topluluk notu olarak görünür.`;
   const label =
     getCountryGuide(country)?.name ??

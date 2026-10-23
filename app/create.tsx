@@ -1,5 +1,8 @@
+import { CountryPicker } from "../src/components/CountryPicker";
+import { EvidenceUpload } from "../src/components/EvidenceUpload";
+import { uploadEvidence, type EvidenceDraft } from "../src/lib/evidence";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   ScrollView,
   View,
@@ -62,6 +65,10 @@ export default function Create() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
+  const [evidence, setEvidence] = useState<EvidenceDraft[]>([]);
+  const [createdPost, setCreatedPost] = useState<string | null>(null);
+  const uploadedEvidence = useRef(new Set<string>());
+  const [uploadedUris, setUploadedUris] = useState<string[]>([]);
   const [category, setCategory] = useState(
     params.category && guideTopicLabels[params.category]
       ? params.category
@@ -167,6 +174,29 @@ export default function Create() {
           value={String(value ?? "")}
           onChangeText={(x) => onChange(numeric ? Number(x) : x)}
           multiline={multiline}
+          placeholder={
+            name === "title"
+              ? kind === "question"
+                ? "Örn. Sigorta poliçesi için ıslak imza gerekiyor mu?"
+                : kind === "tip"
+                  ? "Örn. Sigorta poliçemde ıslak imza istendi"
+                  : "Örn. İspanya turistik vize başvurum 20 günde sonuçlandı"
+              : name === "body"
+                ? kind === "tip"
+                  ? "Örn. İstanbul’daki başvurumda sigorta poliçesinin ıslak imzalı nüshası istendi. Başvuru tarihim…"
+                  : kind === "question"
+                    ? "Örn. İlk kez başvuracağım. Seyahat tarihlerim… Merak ettiğim konu…"
+                    : "Örn. Randevumu… tarihinde aldım. Evrak tesliminde… Sonucu… öğrendim."
+                : name === "advice"
+                  ? "Örn. Başvurmadan önce mutlaka… kontrol edin."
+                  : name === "city"
+                    ? "Örn. İstanbul"
+                    : name === "center"
+                      ? "Örn. BLS / iDATA / VFS"
+                      : name === "invitation_notes"
+                        ? "Örn. Davetiyem arkadaşım tarafından hazırlanıyor; henüz elime ulaşmadı."
+                        : undefined
+          }
           keyboardType={numeric ? "number-pad" : "default"}
           maxLength={
             name === "invitation_notes"
@@ -239,28 +269,20 @@ export default function Create() {
     />
   );
   const countryPicker = (
-    <View style={{ gap: 10 }}>
-      <Text style={styles.muted}>Başvuru ülkesi</Text>
-      <Controller
-        control={control}
-        name="country_id"
-        render={({ field: { value, onChange } }) => (
-          <View style={styles.row}>
-            {countries.data?.map((c) => (
-              <Chip
-                key={c.id}
-                active={value === c.id}
-                label={`${c.flag} ${c.name}`}
-                onPress={() => {
-                  onChange(c.id);
-                  if (categoryRoot === "documents") setCategory("documents");
-                }}
-              />
-            ))}
-          </View>
-        )}
-      />
-    </View>
+    <Controller
+      control={control}
+      name="country_id"
+      render={({ field: { value, onChange } }) => (
+        <CountryPicker
+          value={value}
+          disabled={!!createdPost}
+          onChange={(id) => {
+            onChange(id);
+            if (categoryRoot === "documents") setCategory("documents");
+          }}
+        />
+      )}
+    />
   );
   async function submit() {
     setMessage("");
@@ -302,10 +324,31 @@ export default function Create() {
               body: v.body,
               category_id: category,
             };
-      const r = await db()
-        .from("posts")
-        .insert({ ...payload, kind, user_id: session.user.id });
-      if (r.error) throw r.error;
+      let id = createdPost;
+      if (!id) {
+        if (evidence.length) {
+          const r = await db()
+            .from("posts")
+            .insert({ ...payload, kind, user_id: session.user.id })
+            .select("id")
+            .single();
+          if (r.error) throw r.error;
+          id = r.data.id as string;
+          setCreatedPost(id);
+        } else {
+          const r = await db()
+            .from("posts")
+            .insert({ ...payload, kind, user_id: session.user.id });
+          if (r.error) throw r.error;
+        }
+      }
+      if (id)
+        for (const file of evidence) {
+          if (uploadedEvidence.current.has(file.uri)) continue;
+          await uploadEvidence(file, session.user.id, id);
+          uploadedEvidence.current.add(file.uri);
+          setUploadedUris((current) => [...current, file.uri]);
+        }
       setSuccess(true);
       void Haptics.notificationAsync(
         Haptics.NotificationFeedbackType.Success,
@@ -313,7 +356,12 @@ export default function Create() {
       void cache.invalidateQueries({ queryKey: ["feed"] });
       void cache.invalidateQueries({ queryKey: ["guide-community-tips"] });
     } catch (e) {
-      setMessage(friendlyError(e));
+      setMessage(
+        createdPost || uploadedEvidence.current.size
+          ? "Paylaşımın kaydedildi. Bazı belgeler yüklenemedi; tekrar göndererek yüklemeyi tamamlayabilir veya belgeleri kaldırarak devam edebilirsin. " +
+              friendlyError(e)
+          : friendlyError(e),
+      );
     } finally {
       setBusy(false);
     }
@@ -345,6 +393,39 @@ export default function Create() {
           onPress={() => router.replace("/profile")}
         />
       </View>
+    );
+  if (createdPost)
+    return (
+      <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+        <Text style={styles.title}>Paylaşımın kaydedildi</Text>
+        <Text style={styles.text}>
+          Kalan belgelerin yüklemesini tamamlayabilirsin. Tekrar denemek yeni
+          bir paylaşım oluşturmaz.
+        </Text>
+        <EvidenceUpload
+          files={evidence.filter((f) => !uploadedUris.includes(f.uri))}
+          existing={uploadedUris.length}
+          onChange={(remaining) =>
+            setEvidence([
+              ...evidence.filter((f) => uploadedUris.includes(f.uri)),
+              ...remaining,
+            ])
+          }
+          disabled={busy}
+        />
+        <Message text={message} />
+        <Button
+          label="Kalan belgeleri yükle"
+          disabled={busy}
+          onPress={() => void submit()}
+        />
+        <Button
+          secondary
+          label="Belgeleri sonra ekle"
+          disabled={busy}
+          onPress={() => setSuccess(true)}
+        />
+      </ScrollView>
     );
   if (!kind)
     return (
@@ -645,7 +726,7 @@ export default function Create() {
                       borderLeftColor: "#DCD2ED",
                     }}
                   >
-                    <Text style={styles.pillText}>Belge türü</Text>
+                    <Text style={styles.pillText}>Hangi belgeyle ilgili?</Text>
                     <Button
                       secondary
                       disabled={!selectedCountry}
@@ -660,6 +741,14 @@ export default function Create() {
                     {!selectedCountry && (
                       <Text style={styles.muted}>
                         Belge türlerini görmek için ülke seç.
+                      </Text>
+                    )}
+                    {!!selectedCountry && (
+                      <Text style={styles.muted}>
+                        Bu liste{" "}
+                        {countries.data?.find((c) => c.id === selectedCountry)
+                          ?.name ?? "seçtiğin ülke"}{" "}
+                        için mevcut belge kontrol listesinden gelir.
                       </Text>
                     )}
                     <Sheet
@@ -710,8 +799,13 @@ export default function Create() {
                             color: "#644A94",
                           }}
                         >
-                          Onaylandıktan sonra nerede görünecek?
+                          Bilginin bağlanacağı yer
                         </Text>
+                        {!!value && (
+                          <Text
+                            style={[styles.pillText, { color: "#644A94" }]}
+                          >{`${countries.data?.find((c) => c.id === value)?.name ?? "Ülke"} → Turistik Vize → ${categoryRoot === "documents" && category !== "documents" ? "Belgeler → " + (documentChoices.find((d) => d.id === category)?.name ?? "Belge seç") : (guideTopicLabels[category] ?? "Başvuru Süreci")}`}</Text>
+                        )}
                         <Text style={[styles.muted, { color: "#71579D" }]}>
                           {value
                             ? placement
@@ -744,6 +838,19 @@ export default function Create() {
             {kind === "experience" &&
               text("advice", "Başvuracak birine özellikle ne söylersin?", true)}
           </>
+        )}
+        {(kind === "tip" || (kind === "experience" && step === 3)) && (
+          <EvidenceUpload
+            files={evidence}
+            onChange={setEvidence}
+            disabled={busy}
+          />
+        )}
+        {createdPost && !success && (
+          <Text style={styles.muted}>
+            Paylaşımın kaydedildi. Bu ekrandaki yeniden gönderme yalnız kalan
+            belgeleri yükler; yeni bir paylaşım oluşturmaz.
+          </Text>
         )}
         <Message text={message} />
         <View style={styles.row}>

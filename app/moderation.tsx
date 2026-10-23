@@ -1,3 +1,4 @@
+import { EvidencePanel, EvidenceQueue } from "../src/components/EvidencePanel";
 import { router } from "expo-router";
 import { ModerationReport } from "../src/components/ModerationReport";
 import { useState } from "react";
@@ -113,6 +114,7 @@ export default function Moderation() {
             label="Belge notlarını incele"
             onPress={() => router.push("/document-notes")}
           />
+          <EvidenceQueue />
           <Message text={error} />
         </View>
       }
@@ -145,7 +147,10 @@ export default function Moderation() {
                 <Text style={styles.text}>{(item as Comment).body}</Text>
               </View>
             ) : (
-              <PostCard post={item as Post} detail />
+              <View style={{ gap: 10 }}>
+                <PostCard post={item as Post} detail />
+                <EvidencePanel post={item as Post} />
+              </View>
             )}
             <View style={styles.row}>
               {(["approved", "needs_revision", "rejected"] as const).map(
@@ -154,7 +159,7 @@ export default function Moderation() {
                     key={d}
                     label={
                       {
-                        approved: "Onayla",
+                        approved: "Yayına al",
                         needs_revision: "Revizyon",
                         rejected: "Reddet",
                       }[d]
@@ -185,7 +190,7 @@ export default function Moderation() {
       }
       ListFooterComponent={
         <Sheet
-          title="Moderasyon kararını onayla"
+          title="Yayın kararını onayla"
           visible={!!target}
           onClose={() => setTarget(null)}
         >

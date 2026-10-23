@@ -95,17 +95,25 @@ beforeAll(async () => {
  grant usage on schema auth,public to anon,authenticated;
  grant execute on function auth.uid() to anon,authenticated;
  create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
- create table storage.objects(id uuid primary key,bucket_id text,name text);
+ create table storage.objects(id uuid primary key,bucket_id text,name text,metadata jsonb);
+ grant usage on schema storage to anon,authenticated;
+ grant select,insert,delete on storage.objects to anon,authenticated;
  alter table storage.objects enable row level security;
  create function storage.foldername(text) returns text[] language sql as $$select string_to_array($1,'/')$$;
  alter default privileges in schema public grant select,insert,update,delete on tables to anon,authenticated;
  alter default privileges in schema public grant usage,select on sequences to anon,authenticated;
  `);
   for (const file of readdirSync("supabase/migrations")
-    .filter((f) => f.endsWith(".sql") && !f.includes("004"))
+    .filter((f) => f.endsWith(".sql"))
     .sort())
-    await pg.exec(readFileSync(`supabase/migrations/${file}`, "utf8"));
-  await pg.exec(readFileSync("docs/COMMUNITY_UPGRADE.sql", "utf8"));
+    await pg.exec(
+      readFileSync(
+        file.includes("004")
+          ? "docs/COMMUNITY_UPGRADE.sql"
+          : `supabase/migrations/${file}`,
+        "utf8",
+      ),
+    );
 });
 afterAll(async () => {
   await pg.close();
@@ -688,4 +696,284 @@ it("stores optional experience history and invitation notes in RLS-protected fee
     (await as(null, "select id from forum_categories where id='doc-insurance'"))
       .rows,
   ).toHaveLength(1);
+});
+
+it("keeps supporting files private and separates publication from staff evidence verification", async () => {
+  const author = await user(30),
+    other = await user(30),
+    staff = await user(50, "moderator");
+  const id = await post(author, "germany", "tip", "doc-insurance");
+  const path = `${author}/${id}/${randomUUID()}.pdf`;
+  await as(
+    author,
+    "insert into storage.objects(id,bucket_id,name,metadata) values($1,'post-evidence',$2,$3)",
+    [
+      randomUUID(),
+      path,
+      JSON.stringify({ size: 1000, mimetype: "application/pdf" }),
+    ],
+  );
+  expect(
+    (await as(other, "select * from storage.objects where name=$1", [path]))
+      .rows,
+  ).toHaveLength(0);
+  await as(
+    author,
+    "select register_post_evidence($1,$2,'redacted-policy.pdf')",
+    [id, path],
+  );
+  const read = () => "select * from post_evidence where post_id=$1";
+  expect((await as(other, read(), [id])).rows).toHaveLength(0);
+  expect((await as(author, read(), [id])).rows).toHaveLength(1);
+  expect((await as(staff, read(), [id])).rows).toHaveLength(1);
+  await expect(as(null, read(), [id])).rejects.toThrow();
+  expect(
+    (await as(other, "select * from storage.objects where name=$1", [path]))
+      .rows,
+  ).toHaveLength(0);
+  expect(
+    (await as(staff, "select * from storage.objects where name=$1", [path]))
+      .rows,
+  ).toHaveLength(1);
+  await expect(
+    as(other, "select register_post_evidence($1,$2,'stolen.pdf')", [id, path]),
+  ).rejects.toThrow();
+  await expect(
+    as(
+      author,
+      "insert into post_verifications(post_id,status) values($1,'verified')",
+      [id],
+    ),
+  ).rejects.toThrow();
+  await expect(
+    as(author, "select review_post_evidence($1,'verified')", [id]),
+  ).rejects.toThrow();
+  const initial = (await metrics(author)).badge_score;
+  await as(
+    staff,
+    "select review_post_evidence($1,'verified','Dates and the relevant policy section checked')",
+    [id],
+  );
+  expect((await metrics(author)).badge_score).toBe(initial + 10);
+  expect(
+    (
+      await as(null, "select status from post_verifications where post_id=$1", [
+        id,
+      ])
+    ).rows[0],
+  ).toMatchObject({ status: "verified" });
+  expect(
+    (await as(null, "select source_type from posts where id=$1", [id])).rows[0],
+  ).toMatchObject({ source_type: "submission" });
+  await as(staff, "select review_post_evidence($1,'verified')", [id]);
+  expect((await metrics(author)).badge_score).toBe(initial + 10);
+  await expect(
+    as(author, "update storage.objects set name='changed' where name=$1", [
+      path,
+    ]),
+  ).rejects.toThrow();
+  expect(
+    (
+      await as(
+        author,
+        "delete from storage.objects where name=$1 returning id",
+        [path],
+      )
+    ).rows,
+  ).toHaveLength(0);
+  const eid = ((await as(author, read(), [id])).rows[0] as { id: string }).id;
+  await expect(
+    as(author, "select remove_post_evidence($1)", [eid]),
+  ).rejects.toThrow();
+  await as(
+    staff,
+    "select review_post_evidence($1,'declined','Evidence does not support the actual claim')",
+    [id],
+  );
+  expect((await metrics(author)).badge_score).toBe(initial);
+  expect(
+    (await as(null, "select status from posts where id=$1", [id])).rows[0],
+  ).toMatchObject({ status: "approved" });
+  await as(staff, "select review_post_evidence($1,'verified')", [id]);
+  expect((await metrics(author)).badge_score).toBe(initial + 10);
+  await as(staff, "select moderate($1,'rejected')", [id]);
+  expect((await metrics(author)).badge_score).toBe(0);
+  expect(
+    (await as(null, "select * from post_verifications where post_id=$1", [id]))
+      .rows,
+  ).toHaveLength(0);
+  await expect(
+    as(staff, "select review_post_evidence($1,'verified')", [id]),
+  ).rejects.toThrow();
+  await as(author, "select remove_post_evidence($1)", [eid]);
+  expect(
+    (
+      await as(
+        author,
+        "delete from storage.objects where name=$1 returning id",
+        [path],
+      )
+    ).rows,
+  ).toHaveLength(1);
+});
+
+it("enforces evidence count, actual storage metadata and independent review, and audits topic corrections", async () => {
+  const author = await user(30, "admin"),
+    staff = await user(30, "moderator"),
+    stranger = await user(30);
+  const id = await post(author, "germany", "tip", "finance");
+  await expect(
+    as(author, "select register_post_evidence($1,$2,'fake.pdf')", [
+      id,
+      `${author}/${id}/missing.pdf`,
+    ]),
+  ).rejects.toThrow();
+  for (let n = 0; n < 5; n++) {
+    const path = `${author}/${id}/${n}.pdf`;
+    await as(
+      author,
+      "insert into storage.objects(id,bucket_id,name,metadata) values($1,'post-evidence',$2,$3)",
+      [
+        randomUUID(),
+        path,
+        JSON.stringify({ size: 100, mimetype: "application/pdf" }),
+      ],
+    );
+    await as(author, "select register_post_evidence($1,$2,'redacted.pdf')", [
+      id,
+      path,
+    ]);
+  }
+  await expect(
+    as(
+      author,
+      "insert into storage.objects(id,bucket_id,name,metadata) values($1,'post-evidence',$2,$3)",
+      [
+        randomUUID(),
+        `${author}/${id}/sixth.pdf`,
+        JSON.stringify({ size: 100, mimetype: "application/pdf" }),
+      ],
+    ),
+  ).rejects.toThrow();
+  await expect(
+    as(author, "select review_post_evidence($1,'verified')", [id]),
+  ).rejects.toThrow();
+  await expect(
+    as(stranger, "select relocate_critical_tip($1,'doc-insurance')", [id]),
+  ).rejects.toThrow();
+  await as(staff, "select relocate_critical_tip($1,'doc-insurance')", [id]);
+  expect(
+    (await as(null, "select category_id from posts where id=$1", [id])).rows[0],
+  ).toMatchObject({ category_id: "doc-insurance" });
+  expect(
+    (
+      await as(
+        staff,
+        "select * from moderation_actions where post_id=$1 and note like 'Konu bağlantısı:%'",
+        [id],
+      )
+    ).rows,
+  ).toHaveLength(1);
+  await root("select 1");
+  await pg.exec(readFileSync("docs/EVIDENCE_UPGRADE.sql", "utf8"));
+  expect(
+    (await root("select public from storage.buckets where id='post-evidence'"))
+      .rows[0],
+  ).toMatchObject({ public: false });
+  expect(
+    (await as(author, "select * from post_evidence where post_id=$1", [id]))
+      .rows,
+  ).toHaveLength(5);
+});
+
+it("rejects unsupported stored evidence and corrects only the explicitly reported insurance notes", async () => {
+  const author = await user(30);
+  const id = await post(author, "germany", "tip", "doc-insurance");
+  for (const metadata of [
+    { size: 8388609, mimetype: "application/pdf" },
+    { size: 50, mimetype: "text/html" },
+    { mimetype: "application/pdf" },
+  ]) {
+    const path = `${author}/${id}/${randomUUID()}.pdf`;
+    await root(
+      "insert into storage.objects(id,bucket_id,name,metadata) values($1,'post-evidence',$2,$3)",
+      [randomUUID(), path, JSON.stringify(metadata)],
+    );
+    await expect(
+      as(author, "select register_post_evidence($1,$2,'bad.pdf')", [id, path]),
+    ).rejects.toThrow();
+  }
+  const reported = "a5997c85-bcbe-48a6-9642-b60e4a5bfec1";
+  await root(
+    "insert into posts(id,user_id,country_id,kind,category_id,title,body,status) values($1,$2,'germany','tip','sponsor','sağlık sigortası','sağlık sigortası ıslak imza istiyor','approved')",
+    [reported, author],
+  );
+  await root("select 1");
+  await pg.exec(readFileSync("docs/EVIDENCE_UPGRADE.sql", "utf8"));
+  expect(
+    (await root("select category_id from posts where id=$1", [reported]))
+      .rows[0],
+  ).toMatchObject({ category_id: "doc-insurance" });
+  await root("update posts set category_id='other' where id=$1", [reported]);
+  await pg.exec(readFileSync("docs/EVIDENCE_UPGRADE.sql", "utf8"));
+  expect(
+    (await root("select category_id from posts where id=$1", [reported]))
+      .rows[0],
+  ).toMatchObject({ category_id: "other" });
+});
+
+it("withdraws verification and its bonus when verified content changes or is deleted", async () => {
+  const author = await user(30),
+    staff = await user(30, "moderator");
+  const id = await post(author, "germany", "tip", "doc-insurance");
+  const path = `${author}/${id}/policy.pdf`;
+  await as(
+    author,
+    "insert into storage.objects(id,bucket_id,name,metadata) values($1,'post-evidence',$2,$3)",
+    [
+      randomUUID(),
+      path,
+      JSON.stringify({ size: 100, mimetype: "application/pdf" }),
+    ],
+  );
+  await as(author, "select register_post_evidence($1,$2,'policy.pdf')", [
+    id,
+    path,
+  ]);
+  await as(
+    staff,
+    "select review_post_evidence($1,'verified','private audit note')",
+    [id],
+  );
+  expect((await metrics(author)).badge_score).toBe(10);
+  expect(
+    (
+      await as(author, "select * from moderation_actions where post_id=$1", [
+        id,
+      ])
+    ).rows,
+  ).toHaveLength(0);
+  await root(
+    "update posts set body='Edited claim requiring another review.' where id=$1",
+    [id],
+  );
+  expect((await metrics(author)).badge_score).toBe(0);
+  expect(
+    (
+      await as(null, "select status from post_verifications where post_id=$1", [
+        id,
+      ])
+    ).rows[0],
+  ).toMatchObject({ status: "pending" });
+  await as(staff, "select review_post_evidence($1,'verified')", [id]);
+  expect((await metrics(author)).badge_score).toBe(10);
+  await root("delete from posts where id=$1", [id]);
+  expect((await metrics(author)).badge_score).toBe(0);
+  expect(
+    (
+      await root("select * from reputation_events where reference=$1", [
+        `admin:evidence:${id}`,
+      ])
+    ).rows,
+  ).toHaveLength(0);
 });

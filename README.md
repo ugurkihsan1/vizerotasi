@@ -53,7 +53,7 @@ Tek `posts` tablosu paylaşım kimliğini sabit tutar. `visa_experiences`, `thre
 
 İstemci rol, puan, üyelik seviyesi, kaynak doğrulaması veya onay sütunlarına yazamaz. `moderate` RPC’si satırı kilitleyerek kararı, audit kaydını, bildirimi, rozetleri ve benzersiz reputation event’ini tek transaction’da işler. Tekrar onay puanı çoğaltmaz. Kaydetme, takip ve faydalı oylar unique constraint’lerle korunur; kendi içeriğine oy vermek RLS ile engellenir. Moderasyon notları yalnız personele, bildirimler yalnız sahibine görünür. Temel saatlik gönderim limitleri sunucuda uygulanır.
 
-Avatarlar 2 MB JPEG/PNG/WebP ile sınırlı public storage bucket’ında tutulur; yükleme yolu oturum sahibine aittir. Finansal belge/kimlik yükleme özelliği yoktur. Yalnız public akış/ülke sorguları cihazda cache edilir; özel bekleyen içerikler ve bildirimler diske cache edilmez. Oturum değişiminde bellek sorguları temizlenir. Akış sayfalıdır; “Sana Özel” sıralaması yakınlık, takip, faydalı/yorum sayısı ve içerik/ülke çeşitliliği kullanır. Bu ilk sürüm sıralaması yüklenmiş pencere üzerinde çalışır.
+Avatarlar 2 MB JPEG/PNG/WebP ile sınırlı public storage bucket’ında tutulur; yükleme yolu oturum sahibine aittir. Kimlik yükleme akışı yoktur. İsteğe bağlı sigorta/bilet gibi destekleyici belgeler ayrı private `post-evidence` bucket’ında, yalnız sahibi ve personel erişimiyle tutulur; ayrıntılar [belge doğrulama kılavuzunda](docs/EVIDENCE_UPGRADE_TR.md). Yalnız public akış/ülke sorguları cihazda cache edilir; özel bekleyen içerikler ve bildirimler diske cache edilmez. Oturum değişiminde bellek sorguları temizlenir. Akış sayfalıdır; “Sana Özel” sıralaması yakınlık, takip, faydalı/yorum sayısı ve içerik/ülke çeşitliliği kullanır. Bu ilk sürüm sıralaması yüklenmiş pencere üzerinde çalışır.
 
 ## Kontroller
 
@@ -125,3 +125,9 @@ Mevcut Supabase projesinde [FORMS_UPGRADE.sql](docs/FORMS_UPGRADE.sql) uygulanma
 ## İlk girişte randevu ve seyahat planı
 
 Ana sayfadaki ilk karşılama; alınmış randevu, planlanan randevu, seyahat planı veya plansız keşif seçeneklerini sorar. Ülke seçildikten sonra randevusu olan ziyaretçi isterse doğrudan o ülkenin Belgeler sekmesindeki mevcut checklisti açar; diğer planlar Rehber sekmesine gider. Atlamak ve toplulukta kalmak mümkündür. Yeni planlama karşılama ekranı daha önce eski tanıtımı görmüş ziyaretçilere de bir kez gösterilir; tamamlandıktan veya atlandıktan sonra aynı cihazda tekrarlanmaz. Yanıtlar yalnız bu tarayıcı/cihazda saklanır; otomatik takip veya sunucuya yeni kişisel kayıt oluşturulmaz. Checklistin mevcut cihaz/kullanıcı bazlı işaretleme davranışı korunur. Bu akış yeni bir Supabase migration’ı gerektirmez.
+
+## Sade paylaşım ve özel belge doğrulaması
+
+Paylaşım ülkesini seçmek için aramalı tek alan kullanılır; 35 ülke de olsa formda tüm bayraklar sıralanmaz. Metin alanlarında gerçek içerik olarak gönderilmeyen örnek placeholder’lar vardır. Kritik notta bağlanacak belge ve ülke yolu önceden mor kutuda gösterilir. Belge kartları kapalıyken daha kompakttır. Ana sayfa; topluluk akışını koruyarak seçilen başvuru aşaması, takip edilen ülkeler ve gerçek checklist ilerlemesini öne çıkarır.
+
+Yayın onayı ile belge doğrulaması ayrı durumlardır; onaylanan kullanıcı aktarımı resmî kural olarak etiketlenmez. Çoklu özel belge ekleme, ayrı personel inceleme kuyruğu ve tekil +10 doğrulama puanı için [EVIDENCE_UPGRADE.sql](docs/EVIDENCE_UPGRADE.sql) dosyasını uygulayın. Bu dosya mevcut topluluk/rozet kurulumu üzerine 007 ve 008 güncellemelerini birlikte kurar; mevcut iki yanlış bağlanan Almanya sigorta notunu da düzeltir. [Erişim, inceleme, saklama ve test kapsamı](docs/EVIDENCE_UPGRADE_TR.md). Uzak SQL bu çalışma sırasında uygulanmadı.

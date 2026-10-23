@@ -1,3 +1,4 @@
+import { VerificationLabel } from "./VerificationLabel";
 import { useState } from "react";
 import { View, Text, Pressable } from "react-native";
 import { router } from "expo-router";
@@ -44,6 +45,9 @@ function ExperienceWarning({ note }: { note: DocumentNote }) {
       source={note.source_type}
       count={note.post_id ? 1 : undefined}
     >
+      {note.post_id && note.source_type === "experience" && (
+        <VerificationLabel postId={note.post_id} />
+      )}
       <Text style={styles.text}>{note.body}</Text>
       {note.scope && <Text style={styles.muted}>Kapsam: {note.scope}</Text>}
       {note.similar_count > 0 && (

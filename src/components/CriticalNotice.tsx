@@ -60,6 +60,11 @@ export function CriticalNotice({
                   : `${count ?? 1} başvuru deneyimi · Kullanıcı aktarımı`}
           </Text>
         </View>
+        {source === "community" && (
+          <Text style={{ fontSize: 9, color: "#71579D", maxWidth: 74 }}>
+            Resmî kural değil
+          </Text>
+        )}
         <Ionicons
           name={open ? "chevron-up" : "chevron-down"}
           size={16}

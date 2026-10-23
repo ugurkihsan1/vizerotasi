@@ -1,3 +1,4 @@
+import { VerificationLabel } from "./VerificationLabel";
 import { Ionicons } from "@expo/vector-icons";
 import { CountryFlag } from "./CountryFlag";
 import { processingDays, formatDate } from "../lib/dates";
@@ -317,21 +318,15 @@ export function PostCard({
               {post.body}
             </Text>
           )}
-          {post.kind === "tip" && (
-            <Text style={styles.muted}>
-              {
-                {
-                  submission: "Topluluk paylaşımı",
-                  official: "🏛 Resmî Kaynak",
-                  editorial: "✍ Editör Notu",
-                  community_verified: "✓ Topluluk Tarafından Doğrulandı",
-                }[post.source_type]
-              }
-              {post.last_verified_at
-                ? ` · ${formatDate(post.last_verified_at)}`
-                : ""}
-            </Text>
-          )}
+          {(post.kind === "tip" || post.kind === "experience") &&
+            (post.source_type === "official" ? (
+              <Text style={styles.muted}>
+                Resmî kaynağa dayalı paylaşım · Kaynak ve kapsamı detayda
+                kontrol et.
+              </Text>
+            ) : (
+              <VerificationLabel postId={post.id} />
+            ))}
         </Pressable>
         {post.status === "approved" && <Actions post={post} />}
       </View>

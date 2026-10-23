@@ -50,7 +50,9 @@ function DocumentCard({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <View style={styles.card}>
+    <View
+      style={[styles.card, { padding: open ? 16 : 10, gap: open ? 12 : 4 }]}
+    >
       <View style={styles.row}>
         <Pressable
           accessibilityRole="button"
@@ -230,7 +232,7 @@ export function CountryGuide({
                 notes={
                   <CommunityTips
                     country={country}
-                    categories={["documents", "doc-form", "other"]}
+                    categories={["documents", "other"]}
                   />
                 }
               >

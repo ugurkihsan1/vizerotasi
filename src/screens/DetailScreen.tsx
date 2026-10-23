@@ -1,3 +1,4 @@
+import { EvidencePanel } from "../components/EvidencePanel";
 import { formatDate, formatDateTime } from "../lib/dates";
 import { useState } from "react";
 import { View, Text, FlatList, Linking } from "react-native";
@@ -302,6 +303,7 @@ export default function DetailScreen() {
               ))}
             </View>
           )}
+          <EvidencePanel post={p} />
           {p.source_url && (
             <Button
               label="Kaynağı aç"

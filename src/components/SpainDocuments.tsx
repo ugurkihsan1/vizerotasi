@@ -81,7 +81,9 @@ function DocumentAccordion({
   const [community, setCommunity] = useState(false);
   const sections = sectionsFor(doc, employment);
   return (
-    <View style={[styles.card, { padding: 16, gap: open ? 14 : 0 }]}>
+    <View
+      style={[styles.card, { padding: open ? 16 : 10, gap: open ? 14 : 4 }]}
+    >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <Pressable
           accessibilityRole="button"
@@ -91,7 +93,7 @@ function DocumentAccordion({
           onPress={() => setOpen(!open)}
           style={{
             flex: 1,
-            minHeight: 54,
+            minHeight: 44,
             flexDirection: "row",
             alignItems: "center",
             gap: 10,
@@ -120,7 +122,7 @@ function DocumentAccordion({
           onPress={onCheck}
           style={{
             width: 44,
-            minHeight: 54,
+            minHeight: 44,
             alignItems: "center",
             justifyContent: "center",
           }}

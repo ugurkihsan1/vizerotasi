@@ -94,6 +94,8 @@ export function Onboarding() {
         }
       }
       await AsyncStorage.setItem("onboarding-planner-v1", "done");
+      void cache.invalidateQueries({ queryKey: ["local-travel-plan"] });
+      void cache.invalidateQueries({ queryKey: ["home-checklist"] });
     } catch {
       // Storage may be unavailable in private browsing; never block access to the guide.
     } finally {
