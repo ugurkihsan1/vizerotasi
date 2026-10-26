@@ -1451,3 +1451,170 @@ test("a failed private upload can be retried without duplicating the public cont
   expect(posts).toBe(1);
   expect(uploads).toBe(2);
 });
+
+test("search finds experiences, critical tips and questions with country-aware filters", async ({
+  page,
+}) => {
+  await fixtures(page);
+  const base = {
+    user_id: "00000000-0000-0000-0000-000000000200",
+    status: "approved",
+    created_at: "2026-10-22T10:00:00Z",
+    body: "Seyahat sağlık sigortası ile ilgili gerçek bir topluluk test paylaşımı.",
+    helpful_count: 0,
+    comment_count: 0,
+    is_sample: false,
+    source_type: "submission",
+  };
+  const posts = [
+    {
+      ...base,
+      id: "search-exp",
+      kind: "experience",
+      country_id: "germany",
+      title: "Sigorta deneyimim",
+      result: "approved",
+    },
+    {
+      ...base,
+      id: "search-tip",
+      kind: "tip",
+      country_id: "france",
+      title: "Poliçede ıslak imza notum",
+    },
+    {
+      ...base,
+      id: "search-question",
+      kind: "question",
+      country_id: "germany",
+      title: "Sigortayla ilgili sorum",
+    },
+  ];
+  const requests: URL[] = [];
+  await page.route("https://*.supabase.co/rest/v1/feed?**", (route) => {
+    const u = new URL(route.request().url());
+    requests.push(u);
+    expect(u.searchParams.get("status")).toBe("eq.approved");
+    const kind = u.searchParams.get("kind"),
+      country = u.searchParams.get("country_id");
+    return route.fulfill({
+      json: posts.filter(
+        (p) =>
+          (!kind || kind === `eq.${p.kind}`) &&
+          (!country || country.includes(p.country_id)),
+      ),
+    });
+  });
+  await page.goto("/discover?q=sigorta");
+  await expect(
+    page.getByText("Sigorta deneyimim", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Poliçede ıslak imza notum", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Sigortayla ilgili sorum", { exact: true }),
+  ).toBeVisible();
+  expect(requests.at(-1)?.searchParams.get("or")).toContain(
+    "title.ilike.%sigorta%",
+  );
+  await page
+    .getByRole("button", { name: "Kritik noktalar", exact: true })
+    .click();
+  await expect(
+    page.getByText("Poliçede ıslak imza notum", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Sigorta deneyimim", { exact: true }),
+  ).toHaveCount(0);
+  expect(requests.at(-1)?.searchParams.get("kind")).toBe("eq.tip");
+  await page.getByRole("button", { name: "Sorular", exact: true }).click();
+  await expect(
+    page.getByText("Sigortayla ilgili sorum", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Tümü", exact: true }).click();
+  await page
+    .getByLabel("Ülke, belge, deneyim veya soru ara", { exact: true })
+    .fill("Almanya sigorta");
+  await expect(
+    page.getByText("Ülke: Almanya · Konu: sigorta", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Poliçede ıslak imza notum", { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText("Sigorta deneyimim", { exact: true }),
+  ).toBeVisible();
+  expect(requests.at(-1)?.searchParams.get("country_id")).toBe("in.(germany)");
+  await page.screenshot({ path: "/tmp/search-community-mobile.png" });
+  await page
+    .getByLabel("Ülke, belge, deneyim veya soru ara", { exact: true })
+    .fill("Almanya");
+  await expect.poll(() => requests.at(-1)?.searchParams.get("or")).toBeNull();
+  await expect(
+    page.getByText("Sigorta deneyimim", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Ülkeler", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Almanya topluluğuna git", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/country\/germany$/);
+});
+
+test("document search names every country and opens its own checklist", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.route(
+    "https://*.supabase.co/rest/v1/country_documents?**",
+    (route) =>
+      route.fulfill({
+        json: [
+          {
+            id: "search-insurance-de",
+            country_id: "germany",
+            title: "Seyahat sağlık sigortası",
+            body: "Almanya sigorta başvuru belgesi.",
+          },
+          {
+            id: "search-insurance-fr",
+            country_id: "france",
+            title: "Seyahat sağlık sigortası",
+            body: "Fransa sigorta başvuru belgesi.",
+          },
+        ],
+      }),
+  );
+  await page.goto("/discover?q=sigorta");
+  await expect(
+    page.getByRole("button", {
+      name: "Almanya · Seyahat sağlık sigortası",
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Belgeler", exact: true }).click();
+  await expect(
+    page.getByRole("button", {
+      name: "Almanya · Seyahat sağlık sigortası",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: "Fransa · Seyahat sağlık sigortası",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.screenshot({ path: "/tmp/search-documents-mobile.png" });
+  await page
+    .getByRole("button", {
+      name: "Fransa · Seyahat sağlık sigortası",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", { name: "Fransa belge checklistine git", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/country\/france\?/);
+  expect(new URL(page.url()).searchParams.get("tab")).toBe("Belgeler");
+});

@@ -1,3 +1,5 @@
+import { guideTopicLabels } from "./guide-topics";
+import { containsAllWords } from "./search";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   useInfiniteQuery,
@@ -41,6 +43,7 @@ export function useProfile(id?: string) {
   });
 }
 export interface FeedFilter {
+  countryIds?: string[];
   country?: string;
   kind?: Kind;
   result?: string;
@@ -78,6 +81,7 @@ export function useFeed(filter: FeedFilter = {}, enabled = true) {
         .range(pageParam, pageParam + PAGE_SIZE - 1);
       if (ids) q = q.in("id", ids);
       if (filter.country) q = q.eq("country_id", filter.country);
+      if (filter.countryIds?.length) q = q.in("country_id", filter.countryIds);
       if (filter.kind) q = q.eq("kind", filter.kind);
       if (filter.result) q = q.eq("result", filter.result);
       if (filter.author) q = q.eq("user_id", filter.author);
@@ -86,11 +90,14 @@ export function useFeed(filter: FeedFilter = {}, enabled = true) {
       if (filter.first) q = q.eq("first_schengen", true);
       if (filter.employment) q = q.eq("employment_status", filter.employment);
       if (filter.city) q = q.eq("city", filter.city);
-      if (filter.search)
-        q = q.textSearch("title_body", filter.search, {
-          type: "websearch",
-          config: "simple",
-        });
+      const textFilter = filter.search
+        ? containsAllWords(
+            filter.search,
+            ["title", "body", "city", "purpose", "employment_status"],
+            guideTopicLabels,
+          )
+        : null;
+      if (textFilter) q = q.or(textFilter);
       const r = await q;
       if (r.error) throw r.error;
       return r.data as Post[];

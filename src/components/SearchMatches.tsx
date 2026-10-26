@@ -1,75 +1,153 @@
-import { useQuery } from "@tanstack/react-query";
-import { View, Text } from "react-native";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { View, Text, Pressable } from "react-native";
 import { router } from "expo-router";
 import { db, configured } from "../lib/supabase";
-import { Button, styles, Empty, Sheet } from "./ui";
+import { containsAllWords } from "../lib/search";
+import { useCountries } from "../lib/data";
+import { Button, styles, Empty, Sheet, Busy, colors } from "./ui";
+import { CountryFlag } from "./CountryFlag";
 import { useState } from "react";
 import type { Document, Profile } from "../lib/types";
-export function SearchMatches({ search }: { search: string }) {
+const PAGE_SIZE = 12;
+export function SearchMatches({
+  search,
+  countryIds = [],
+  mode,
+}: {
+  search: string;
+  countryIds?: string[];
+  mode: "documents" | "people";
+}) {
   const [selected, setSelected] = useState<Document | null>(null);
-  const q = useQuery({
-    queryKey: ["global-search", search],
-    enabled: configured && search.length > 1,
-    queryFn: async () => {
-      const pattern = `%${search.replace(/[\\%_]/g, "\\$&")}%`;
-      const [users, docs] = await Promise.all([
-        db().from("profiles").select("*").ilike("username", pattern).limit(8),
-        db()
-          .from("country_documents")
+  const { data: countries } = useCountries();
+  const q = useInfiniteQuery({
+    queryKey: ["global-search", mode, search, countryIds],
+    enabled: configured,
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      if (mode === "people") {
+        let query = db()
+          .from("profiles")
           .select("*")
-          .ilike("title", pattern)
-          .limit(8),
-      ]);
-      if (users.error) throw users.error;
-      if (docs.error) throw docs.error;
-      return {
-        users: users.data as Profile[],
-        documents: docs.data as Document[],
-      };
+          .order("username")
+          .order("id")
+          .range(pageParam, pageParam + PAGE_SIZE - 1);
+        const filter = containsAllWords(search, ["username", "display_name"]);
+        if (filter) query = query.or(filter);
+        const r = await query;
+        if (r.error) throw r.error;
+        return r.data as Profile[];
+      }
+      let query = db()
+        .from("country_documents")
+        .select("*")
+        .order("country_id")
+        .order("id")
+        .range(pageParam, pageParam + PAGE_SIZE - 1);
+      if (countryIds.length) query = query.in("country_id", countryIds);
+      const filter = containsAllWords(search);
+      if (filter) query = query.or(filter);
+      const r = await query;
+      if (r.error) throw r.error;
+      return r.data as Document[];
     },
+    getNextPageParam: (last, pages) =>
+      last.length === PAGE_SIZE ? pages.length * PAGE_SIZE : undefined,
   });
-  if (search.length < 2) return null;
+  const results = q.data?.pages.flat() ?? [];
+  const selectedCountry = countries?.find((c) => c.id === selected?.country_id);
   return (
     <View style={{ gap: 12 }}>
-      {q.data?.users.length ? (
-        <>
-          <Text style={styles.heading}>Topluluktan kişiler</Text>
-          {q.data.users.map((p) => (
+      <Text style={styles.heading}>
+        {mode === "documents"
+          ? "Ülkelere göre belgeler"
+          : "Topluluktan kişiler"}
+      </Text>
+      {q.isPending ? (
+        <Busy />
+      ) : q.isError ? (
+        <Empty
+          title="Arama tamamlanamadı"
+          action="Yeniden dene"
+          onPress={() => void q.refetch()}
+        />
+      ) : !results.length ? (
+        <Empty
+          title={
+            mode === "documents"
+              ? "Bu aramada belge bulunamadı"
+              : "Bu aramada kişi bulunamadı"
+          }
+        />
+      ) : null}
+      {mode === "people"
+        ? (results as Profile[]).map((p) => (
             <Button
               key={p.id}
               secondary
-              label={`@${p.username} · ${p.membership_level}`}
+              label={`@${p.username} · ${p.display_name}`}
               onPress={() => router.push(`/profile/${p.username}`)}
             />
-          ))}
-        </>
-      ) : null}
-      {q.data?.documents.length ? (
-        <>
-          <Text style={styles.heading}>Belgeler</Text>
-          {q.data.documents.map((d) => (
-            <Button
-              key={d.id}
-              secondary
-              label={d.title}
-              onPress={() => setSelected(d)}
-            />
-          ))}
-        </>
-      ) : null}
-      {q.isError && <Empty title="Arama tamamlanamadı" />}
+          ))
+        : (results as Document[]).map((d) => {
+            const country = countries?.find((c) => c.id === d.country_id);
+            return (
+              <Pressable
+                key={d.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${country?.name ?? "Ülke"} · ${d.title}`}
+                onPress={() => setSelected(d)}
+                style={[styles.card, { padding: 15, gap: 7 }]}
+              >
+                <View style={styles.row}>
+                  {country && (
+                    <CountryFlag
+                      code={country.code}
+                      emoji={country.flag}
+                      name={country.name}
+                    />
+                  )}
+                  <Text
+                    style={{
+                      color: colors.blue,
+                      fontWeight: "700",
+                      fontSize: 12,
+                    }}
+                  >
+                    {country?.name ?? "Ülke bilgisi bulunamadı"} · Belge
+                  </Text>
+                </View>
+                <Text style={styles.pillText}>{d.title}</Text>
+                <Text style={styles.muted} numberOfLines={2}>
+                  {d.body}
+                </Text>
+              </Pressable>
+            );
+          })}
+      {q.hasNextPage && (
+        <Button
+          secondary
+          label={q.isFetchingNextPage ? "Yükleniyor…" : "Daha fazla sonuç"}
+          disabled={q.isFetchingNextPage}
+          onPress={() => void q.fetchNextPage()}
+        />
+      )}
       <Sheet
         visible={!!selected}
-        title={selected?.title ?? "Belge"}
+        title={`${selectedCountry?.name ?? "Ülke"} · ${selected?.title ?? "Belge"}`}
         onClose={() => setSelected(null)}
       >
         <Text style={styles.text}>{selected?.body}</Text>
         <Button
-          label="Ülke topluluğuna git"
+          label={`${selectedCountry?.name ?? "Ülke"} belge checklistine git`}
           onPress={() => {
             const id = selected?.country_id;
             setSelected(null);
-            if (id) router.push(`/country/${id}`);
+            if (id)
+              router.push({
+                pathname: "/country/[id]",
+                params: { id, tab: "Belgeler" },
+              });
           }}
         />
       </Sheet>
