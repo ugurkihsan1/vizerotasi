@@ -182,8 +182,8 @@ export function PostCard({
         styles.card,
         { padding: 0, gap: 0, overflow: "hidden" },
         post.kind === "tip" && {
-          backgroundColor: "#FFF9ED",
-          borderColor: "#EEE1C5",
+          backgroundColor: "#FFFFFF",
+          borderColor: "#E6DFF1",
         },
         post.kind === "question" && { borderColor: "#DDE6E9" },
       ]}
@@ -229,7 +229,7 @@ export function PostCard({
           )}
         </View>
       )}
-      <View style={{ padding: 20, gap: 14 }}>
+      <View style={{ padding: detail ? 20 : 18, gap: detail ? 14 : 12 }}>
         <View style={[styles.row, { justifyContent: "space-between" }]}>
           <Pressable
             accessibilityRole="link"
@@ -251,30 +251,39 @@ export function PostCard({
           <Text
             style={[
               styles.muted,
-              { color: post.kind === "tip" ? colors.amber : colors.blue },
+              {
+                color: post.kind === "tip" ? "#71579D" : colors.blue,
+                fontSize: 11,
+                backgroundColor: post.kind === "tip" ? "#F0EBFA" : "#EDF3F0",
+                paddingHorizontal: 9,
+                paddingVertical: 3,
+                borderRadius: 7,
+              },
             ]}
           >
             {kindLabels[post.kind]}
           </Text>
         </View>
-        <Pressable
-          style={styles.row}
-          accessibilityRole="link"
-          onPress={() => author && router.push(`/profile/${author.username}`)}
-        >
-          <Avatar
-            name={author?.display_name ?? "Üye"}
-            url={author?.avatar_url}
-          />
-          <View>
-            <Text style={styles.pillText}>
-              {author?.username ?? "Topluluk üyesi"}
-            </Text>
-            <Text style={styles.muted}>
-              {author?.membership_level} · {formatDate(post.created_at)}
-            </Text>
-          </View>
-        </Pressable>
+        {detail && (
+          <Pressable
+            style={styles.row}
+            accessibilityRole="link"
+            onPress={() => author && router.push(`/profile/${author.username}`)}
+          >
+            <Avatar
+              name={author?.display_name ?? "Üye"}
+              url={author?.avatar_url}
+            />
+            <View>
+              <Text style={styles.pillText}>
+                {author?.username ?? "Topluluk üyesi"}
+              </Text>
+              <Text style={styles.muted}>
+                {author?.membership_level} · {formatDate(post.created_at)}
+              </Text>
+            </View>
+          </Pressable>
+        )}
         {post.status !== "approved" && (
           <Text style={{ color: colors.amber }}>
             {statusLabels[post.status]}
@@ -285,11 +294,24 @@ export function PostCard({
         )}
         <Pressable
           accessibilityRole="link"
+          accessibilityLabel={post.title}
           onPress={() => !detail && router.push(postPath(post))}
           style={{ gap: 12 }}
         >
-          <Text style={styles.heading}>{post.title}</Text>
-          {post.kind === "experience" && (
+          <Text
+            numberOfLines={detail ? undefined : 2}
+            style={[
+              styles.heading,
+              {
+                fontSize: detail ? 22 : 20,
+                lineHeight: 27,
+                letterSpacing: -0.35,
+              },
+            ]}
+          >
+            {post.title}
+          </Text>
+          {detail && post.kind === "experience" && (
             <View style={styles.row}>
               {[
                 post.first_schengen ? "İlk Schengen" : null,
@@ -305,7 +327,7 @@ export function PostCard({
                 ))}
             </View>
           )}
-          {post.kind === "experience" && (
+          {detail && post.kind === "experience" && (
             <Text style={styles.muted}>
               İstenen: {post.requested_days ?? "—"} gün · Verilen:{" "}
               {post.granted_days ?? "—"} gün{" "}
@@ -313,22 +335,110 @@ export function PostCard({
                 `· ${{ single: "Tek giriş", double: "Çift giriş", multi: "Çok giriş" }[post.entries] ?? ""}`}
             </Text>
           )}
+          {!detail && post.kind === "experience" && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 8,
+              }}
+            >
+              {post.result === "approved" &&
+                post.granted_days != null &&
+                post.granted_days > 0 && (
+                  <View
+                    style={{
+                      backgroundColor: "#EAF3ED",
+                      paddingHorizontal: 11,
+                      paddingVertical: 6,
+                      borderRadius: 9,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "700",
+                        color: "#24766C",
+                      }}
+                    >
+                      {post.granted_days} gün vize
+                      {post.entries
+                        ? ` · ${{ single: "Tek giriş", double: "Çift giriş", multi: "Çok giriş" }[post.entries] ?? ""}`
+                        : ""}
+                    </Text>
+                  </View>
+                )}
+              {[post.city, post.employment_status]
+                .filter(Boolean)
+                .map((label, i) => (
+                  <Text key={i} style={{ fontSize: 12, color: colors.muted }}>
+                    {i > 0 ? "· " : ""}
+                    {label}
+                  </Text>
+                ))}
+            </View>
+          )}
           {!!post.body && (
-            <Text style={styles.text} numberOfLines={detail ? undefined : 4}>
+            <Text style={styles.text} numberOfLines={detail ? undefined : 2}>
               {post.body}
             </Text>
           )}
           {(post.kind === "tip" || post.kind === "experience") &&
             (post.source_type === "official" ? (
               <Text style={styles.muted}>
-                Resmî kaynağa dayalı paylaşım · Kaynak ve kapsamı detayda
-                kontrol et.
+                {detail
+                  ? "Resmî kaynağa dayalı paylaşım · Kaynak ve kapsamı detayda kontrol et."
+                  : "Resmî kaynak referansı"}
               </Text>
             ) : (
-              <VerificationLabel postId={post.id} />
+              <VerificationLabel postId={post.id} compact={!detail} />
             ))}
         </Pressable>
-        {post.status === "approved" && <Actions post={post} />}
+        {!detail && (
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={`${author?.username ?? "Üye"} profilini aç`}
+            onPress={() => author && router.push(`/profile/${author.username}`)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              paddingTop: 3,
+            }}
+          >
+            <Avatar
+              name={author?.display_name ?? "Üye"}
+              url={author?.avatar_url}
+              size={26}
+            />
+            <Text
+              style={{
+                flex: 1,
+                fontSize: 12,
+                fontWeight: "600",
+                color: colors.navy,
+              }}
+              numberOfLines={1}
+            >
+              {author?.username ?? "Topluluk üyesi"}
+            </Text>
+            <Text style={{ fontSize: 11, color: colors.muted }}>
+              {formatDate(post.created_at)}
+            </Text>
+          </Pressable>
+        )}
+        {post.status === "approved" && (
+          <View
+            style={{
+              borderTopWidth: 1,
+              borderTopColor: "#EDF0EC",
+              paddingTop: 8,
+            }}
+          >
+            <Actions post={post} />
+          </View>
+        )}
       </View>
     </View>
   );

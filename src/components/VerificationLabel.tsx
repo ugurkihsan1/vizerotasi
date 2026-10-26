@@ -1,9 +1,28 @@
 import { Text, View } from "react-native";
 import { useVerification } from "../lib/evidence";
 import { styles } from "./ui";
-export function VerificationLabel({ postId }: { postId: string }) {
+export function VerificationLabel({
+  postId,
+  compact = false,
+}: {
+  postId: string;
+  compact?: boolean;
+}) {
   const q = useVerification(postId);
   const verified = q.data?.status === "verified";
+  if (compact)
+    return (
+      <Text
+        style={{
+          color: verified ? "#24766C" : "#806A9D",
+          fontSize: 10,
+          lineHeight: 16,
+        }}
+      >
+        {verified ? "✓ Belgeyle doğrulandı" : "Kullanıcı deneyimi"} · Resmî
+        kural değil
+      </Text>
+    );
   return (
     <View style={{ gap: 4 }}>
       <Text
