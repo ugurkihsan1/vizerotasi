@@ -350,12 +350,45 @@
     }
   ],
   "process": [
-    "Gerçekten yaşadığın şehre göre yetkili başvuru merkezini belirle.",
-    "Her başvuru sahibi için ayrı randevu ve ayrı dosya hazırla.",
-    "Schengen başvuru formunu eksiksiz doldur.",
-    "Belgeleri kaynak PDF’deki 1–13 sırasıyla hazırla.",
-    "Tercüme, apostil ve durumuna bağlı özel koşulları kontrol et.",
-    "Başvuru merkezinin ek evrak isteyebileceğini göz önünde bulundur."
+    "İkamet ettiğin ile göre yetkili BLS başvuru merkezini belirle.",
+    "BLS’nin resmî randevu sisteminde vize amacına uygun kategoriyi seçerek randevu al; açılış takvimini ve seyahate kalan asgari iş günü süresini kontrol et.",
+    "18 yaş altı çocuklarıyla başvuran aileler “Aile Randevusu” kategorisini seçmeli; 18 yaş ve üzeri kişiler ayrı bireysel randevu almalı. Herkes için ayrı dosya hazırla.",
+    "Schengen başvuru formunu eksiksiz doldur; belgeleri kaynak PDF’deki 1–13 sırasıyla hazırla.",
+    "Randevu onayındaki fotoğraf, kimlik ve başvuru kategorisini kontrol et. Ankara’nın güncel duyurusu merkezde yüz canlılık doğrulaması da öngörüyor.",
+    "Randevu günü dosyanla başvuru merkezine git; tercüme, apostil ve durumuna bağlı ek evrak koşullarını kontrol et."
   ],
-  "appointment": "Her başvuru sahibi için ayrı dosya ve ayrı randevu hazırlanmalıdır. Kaynak, 12 yaşından küçük başvuru sahiplerinin merkeze gelmesine gerek olmadığını belirtir. PDF randevu platformu, ücret, güncel müsaitlik veya vize sonuçlanma süresi bildirmez."
+  "appointment": "Randevunu BLS’nin resmî çevrimiçi sisteminden al. Kontenjanlar her ayın 1’i ve 16’sında saat 09.00’da (Türkiye saati) açılıyor. İstanbul ve Ankara için seyahatten en az 15 iş günü; İzmir, Antalya ve Gaziantep için en az 20 iş günü önce başvur.",
+  "appointment_update": {
+    "title": "İspanya randevu sistemi güncellendi",
+    "checked_at": "2026-10-28",
+    "booking_url": "https://turkey.blsspainglobal.com/Global/account/login",
+    "sources": [
+      {
+        "name": "BLS İstanbul duyurusu",
+        "url": "https://turkey.blsspainvisa.com/istanbul/"
+      },
+      {
+        "name": "BLS Ankara duyurusu",
+        "url": "https://turkey.blsspainvisa.com/ankara/"
+      }
+    ],
+    "notes": [
+      {
+        "title": "Randevu açılışı",
+        "body": "Kontenjanlar her ayın 1’i ve 16’sında, saat 09.00’da Türkiye saatiyle açılır. Bu takvim boş randevu bulunacağını garanti etmez."
+      },
+      {
+        "title": "Seyahate kalan süre",
+        "body": "Randevu ile seyahat arasında İstanbul ve Ankara’da en az 15 iş günü; İzmir, Antalya ve Gaziantep’te en az 20 iş günü olmalı. Bunlar başvuru için asgari sürelerdir; vizenin bu sürede sonuçlanacağı garantisi değildir."
+      },
+      {
+        "title": "Aile veya bireysel randevu",
+        "body": "18 yaşından küçük çocuklarıyla başvuran aileler “Aile Randevusu” kategorisini seçmeli. 18 yaş ve üzerindeki başvuru sahipleri ayrı bireysel randevu almalı; herkes için ayrı dosya hazırlanmalı."
+      },
+      {
+        "title": "Ankara: kimlik doğrulaması",
+        "body": "BLS Ankara duyurusuna göre randevu başvuru sahibinin kendisi tarafından veya huzurunda alınmalı; randevu kâğıdında ve canlı kamera görüntüsünde başvuru sahibi bulunmalı. Merkezde yüz canlılık doğrulaması yapılır. Fotoğraf veya başvuru kategorisi sistem kaydıyla uyuşmazsa başvuru kabul edilmez ve yeni randevu gerekir."
+      }
+    ]
+  }
 }

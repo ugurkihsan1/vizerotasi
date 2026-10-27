@@ -1,6 +1,7 @@
 import { it, expect } from "vitest";
 import {
   spainDocuments,
+  spainGuide,
   spainSource,
   sectionsFor,
   mergeSpainDocuments,
@@ -48,4 +49,28 @@ it("uses CMS edits without changing other source records", () => {
   const result = mergeSpainDocuments([modified]);
   expect(result[0].body).toBe(modified.body);
   expect(result[1]).toEqual(spainDocuments[1]);
+});
+
+it("separates the current BLS appointment announcement from the undated document PDF", () => {
+  const update = spainGuide.appointment_update;
+  expect(update.booking_url).toBe(
+    "https://turkey.blsspainglobal.com/Global/account/login",
+  );
+  expect(update.sources.map((s) => s.url)).toEqual([
+    "https://turkey.blsspainvisa.com/istanbul/",
+    "https://turkey.blsspainvisa.com/ankara/",
+  ]);
+  const content = update.notes.map((n) => n.body).join(" ");
+  expect(content).toContain("1’i ve 16’sında");
+  expect(content).toContain("09.00");
+  expect(content).toContain("15 iş günü");
+  expect(content).toContain("20 iş günü");
+  expect(content).toContain("18 yaş ve üzerindeki");
+  expect(update.notes.find((n) => n.title.includes("Ankara"))?.body).toContain(
+    "yüz canlılık",
+  );
+  expect(spainGuide.process.join(" ")).not.toContain(
+    "Her başvuru sahibi için ayrı randevu",
+  );
+  expect(spainSource.verified_at).toBeNull();
 });

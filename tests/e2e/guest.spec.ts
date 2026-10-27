@@ -2815,3 +2815,38 @@ test("the plane reaction becomes filled and respects reduced motion", async ({
   await page.getByRole("button", { name: "0 Faydalı", exact: true }).click();
   await expect(page.getByTestId("reaction-plane-filled")).toBeVisible();
 });
+
+test("Spain shows the current sourced BLS appointment notice in the guide and checklist", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.goto("/country/spain?tab=Rehber");
+  const notice = page.getByRole("button", {
+    name: "İspanya randevu sistemi güncellendi",
+    exact: true,
+  });
+  await expect(notice).toHaveAttribute("aria-expanded", "false");
+  await notice.click();
+  await expect(
+    page.getByText("Randevu açılışı", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/Kontenjanlar her ayın 1’i ve 16’sında/),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Ankara: kimlik doğrulaması", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "BLS Ankara duyurusu", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "BLS’den randevu al", exact: true }),
+  ).toBeVisible();
+  await page.goto("/country/spain?tab=Belgeler");
+  await expect(
+    page.getByRole("button", {
+      name: "İspanya randevu sistemi güncellendi",
+      exact: true,
+    }),
+  ).toBeVisible();
+});

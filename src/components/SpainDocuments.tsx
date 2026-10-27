@@ -1,3 +1,5 @@
+import { CriticalNotice } from "./CriticalNotice";
+import { formatDate } from "../lib/dates";
 import { useAppearance, themeColor, textSize } from "../lib/appearance";
 import { ChecklistSummary } from "./ChecklistSummary";
 import { SourceDocumentWarning, DocumentWarnings } from "./DocumentWarnings";
@@ -73,6 +75,45 @@ export function SpainSource() {
       </Pressable>
       <Message text={error} />
     </View>
+  );
+}
+function SpainAppointmentNotice() {
+  useAppearance();
+  const update = spainGuide.appointment_update;
+  const [error, setError] = useState("");
+  const open = (url: string) => {
+    setError("");
+    void Linking.openURL(url).catch(() => setError("Bağlantı açılamadı."));
+  };
+  return (
+    <CriticalNotice
+      title={update.title}
+      source="reference"
+      referenceLabel={`BLS duyurusu · ${formatDate(update.checked_at)}`}
+    >
+      {update.notes.map((note) => (
+        <View key={note.title} style={{ gap: 4 }}>
+          <Text style={styles.pillText}>{note.title}</Text>
+          <Text style={styles.text}>{note.body}</Text>
+        </View>
+      ))}
+      <Button
+        label="BLS’den randevu al"
+        onPress={() => open(update.booking_url)}
+      />
+      {update.sources.map((source) => (
+        <Pressable
+          key={source.url}
+          accessibilityRole="link"
+          accessibilityLabel={source.name}
+          onPress={() => open(source.url)}
+          style={{ minHeight: 44, justifyContent: "center" }}
+        >
+          <Text style={{ color: colors.blue }}>{source.name} ↗</Text>
+        </Pressable>
+      ))}
+      <Message text={error} />
+    </CriticalNotice>
   );
 }
 function DocumentAccordion({
@@ -319,6 +360,7 @@ export function SpainDocuments({ header }: { header: React.ReactElement }) {
                 employmentOptions.find(([v]) => v === employment)?.[1]
               }
             />
+            <SpainAppointmentNotice />
             <Message text={error} />
           </View>
         }
@@ -464,6 +506,7 @@ function ScrollGuide({ header }: { header: React.ReactElement }) {
       ListHeaderComponent={
         <View style={{ gap: 16, paddingBottom: 16 }}>
           {header}
+          <SpainAppointmentNotice />
           <GuideSection title="Resmî kaynaklar">
             <SpainSource />
           </GuideSection>
@@ -490,6 +533,14 @@ function ScrollGuide({ header }: { header: React.ReactElement }) {
             }
           >
             <Text style={styles.text}>{spainGuide.appointment}</Text>
+            <Button
+              label="BLS’den randevu al"
+              onPress={() => {
+                void Linking.openURL(
+                  spainGuide.appointment_update.booking_url,
+                ).catch(() => {});
+              }}
+            />
             <Button
               secondary
               label="Randevu hakkında önemli bilgi paylaş"
