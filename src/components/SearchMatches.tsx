@@ -1,3 +1,4 @@
+import { useAppearance, textSize } from "../lib/appearance";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { View, Text, Pressable } from "react-native";
 import { router } from "expo-router";
@@ -18,6 +19,8 @@ export function SearchMatches({
   countryIds?: string[];
   mode: "documents" | "people";
 }) {
+  useAppearance();
+
   const [selected, setSelected] = useState<Document | null>(null);
   const { data: countries } = useCountries();
   const q = useInfiniteQuery({
@@ -111,7 +114,7 @@ export function SearchMatches({
                     style={{
                       color: colors.blue,
                       fontWeight: "700",
-                      fontSize: 12,
+                      fontSize: textSize(12),
                     }}
                   >
                     {country?.name ?? "Ülke bilgisi bulunamadı"} · Belge

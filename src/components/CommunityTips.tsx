@@ -1,3 +1,4 @@
+import { useAppearance, textSize } from "../lib/appearance";
 import { VerificationLabel } from "./VerificationLabel";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { View, Text, Pressable } from "react-native";
@@ -21,6 +22,8 @@ export function CommunityTips({
   country: string;
   categories: string[];
 }) {
+  useAppearance();
+
   const topics = [...categories].sort();
   const query = useInfiniteQuery({
     queryKey: ["guide-community-tips", country, topics],
@@ -65,7 +68,7 @@ export function CommunityTips({
             onPress={() => router.push(`/experience/${tip.id}`)}
             style={{ minHeight: 44, justifyContent: "center" }}
           >
-            <Text style={{ color: colors.blue, fontSize: 12 }}>
+            <Text style={{ color: colors.blue, fontSize: textSize(12) }}>
               Paylaşımı ve yorumları gör →
             </Text>
           </Pressable>

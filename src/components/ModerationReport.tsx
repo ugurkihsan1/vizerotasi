@@ -1,3 +1,4 @@
+import { useAppearance, themeColor, textSize } from "../lib/appearance";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { View, Text } from "react-native";
 import { router } from "expo-router";
@@ -18,6 +19,8 @@ export function ModerationReport({
   report: ReportItem;
   resolve: () => void;
 }) {
+  useAppearance();
+
   const { profile } = useAuth();
   const cache = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -102,9 +105,18 @@ export function ModerationReport({
       <Text style={styles.heading}>{report.reason}</Text>
       {alert && (
         <View
-          style={{ padding: 12, backgroundColor: "#FFF0D4", borderRadius: 12 }}
+          style={{
+            padding: 12,
+            backgroundColor: themeColor("#FFF0D4", "surface"),
+            borderRadius: 12,
+          }}
         >
-          <Text style={{ fontSize: 12, color: "#966D28" }}>
+          <Text
+            style={{
+              fontSize: textSize(12),
+              color: themeColor("#966D28", "text"),
+            }}
+          >
             {alert.reporters} farklı üyeden bildirim var. İnceleme gerekiyor;
             otomatik puan kesilmedi.
           </Text>

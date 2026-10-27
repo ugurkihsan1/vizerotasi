@@ -1,3 +1,4 @@
+import { useAppearance, themeColor, textSize } from "../lib/appearance";
 import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import type { Country } from "../lib/types";
@@ -10,6 +11,8 @@ export function CountryStory({
   country: Country;
   followed?: boolean;
 }) {
+  useAppearance();
+
   return (
     <Pressable
       accessibilityRole="link"
@@ -21,7 +24,7 @@ export function CountryStory({
         style={{
           borderRadius: 24,
           overflow: "hidden",
-          backgroundColor: "#EAF0ED",
+          backgroundColor: themeColor("#EAF0ED", "surface"),
           borderWidth: followed ? 2 : 0,
           borderColor: colors.blue,
         }}
@@ -38,7 +41,11 @@ export function CountryStory({
       >
         <Text
           numberOfLines={1}
-          style={{ fontSize: 12, fontWeight: "600", color: colors.navy }}
+          style={{
+            fontSize: textSize(12),
+            fontWeight: "600",
+            color: colors.navy,
+          }}
         >
           {country.name}
         </Text>
@@ -48,7 +55,7 @@ export function CountryStory({
               width: 5,
               height: 5,
               borderRadius: 3,
-              backgroundColor: colors.blue,
+              backgroundColor: themeColor("#24766C", "surface"),
             }}
           />
         )}

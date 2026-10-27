@@ -1,3 +1,5 @@
+import { isDark, textSize, themeColor, useAppearance } from "../lib/appearance";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useState, type PropsWithChildren } from "react";
 import {
@@ -16,68 +18,98 @@ import {
 import { router } from "expo-router";
 import { useAuth } from "../lib/auth";
 export const colors = {
-  navy: "#182E43",
-  blue: "#24766C",
-  bg: "#F5F5F0",
-  text: "#263E4F",
-  muted: "#6D7D87",
-  green: "#13835A",
-  amber: "#B16B12",
-  red: "#BC4653",
+  get navy() {
+    return isDark() ? "#E1EBF2" : "#182E43";
+  },
+  get blue() {
+    return isDark() ? "#61C6A7" : "#24766C";
+  },
+  get bg() {
+    return isDark() ? "#0F1720" : "#F5F5F0";
+  },
+  get text() {
+    return isDark() ? "#DAE4EC" : "#263E4F";
+  },
+  get muted() {
+    return isDark() ? "#98A7B5" : "#6D7D87";
+  },
+  get green() {
+    return isDark() ? "#58CC98" : "#13835A";
+  },
+  get amber() {
+    return isDark() ? "#E6B666" : "#B16B12";
+  },
+  get red() {
+    return isDark() ? "#F1848E" : "#BC4653";
+  },
 };
-export const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 16, gap: 12 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "wrap",
+const createStyles = () =>
+  StyleSheet.create({
+    page: { flex: 1, backgroundColor: colors.bg },
+    content: { padding: 16, gap: 12 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap",
+    },
+    title: {
+      fontSize: textSize(27),
+      lineHeight: 34,
+      letterSpacing: -0.8,
+      fontWeight: "800",
+      color: colors.navy,
+    },
+    heading: {
+      fontSize: textSize(18),
+      letterSpacing: -0.3,
+      fontWeight: "700",
+      color: colors.navy,
+    },
+    text: { fontSize: textSize(15), lineHeight: 23, color: colors.text },
+    muted: { fontSize: textSize(13), lineHeight: 20, color: colors.muted },
+    card: {
+      backgroundColor: themeColor("#FFF", "surface"),
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: themeColor("#E9EDE8", "border"),
+      padding: 20,
+      gap: 14,
+      shadowColor: colors.navy,
+      shadowOpacity: 0.035,
+      shadowRadius: 12,
+      elevation: 1,
+    },
+    input: {
+      backgroundColor: themeColor("#FFF", "surface"),
+      borderRadius: 14,
+      padding: 14,
+      fontSize: textSize(16),
+      color: colors.text,
+      minHeight: 50,
+      borderWidth: 1,
+      borderColor: themeColor("#DDE5F0", "border"),
+    },
+    pill: {
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      borderRadius: 22,
+      backgroundColor: themeColor("#EAF0ED", "surface"),
+    },
+    pillText: { fontSize: textSize(13), fontWeight: "600", color: colors.navy },
+  });
+type UIStyles = ReturnType<typeof createStyles>;
+let cachedStyles = createStyles(),
+  cachedTheme = "";
+export const styles = new Proxy({} as UIStyles, {
+  get(_target, key: keyof UIStyles) {
+    const theme = String(isDark()) + ":" + String(textSize(10));
+    if (cachedTheme !== theme) {
+      cachedStyles = createStyles();
+      cachedTheme = theme;
+    }
+    return cachedStyles[key];
   },
-  title: {
-    fontSize: 27,
-    lineHeight: 34,
-    letterSpacing: -0.8,
-    fontWeight: "800",
-    color: colors.navy,
-  },
-  heading: {
-    fontSize: 18,
-    letterSpacing: -0.3,
-    fontWeight: "700",
-    color: colors.navy,
-  },
-  text: { fontSize: 15, lineHeight: 23, color: colors.text },
-  muted: { fontSize: 13, lineHeight: 20, color: colors.muted },
-  card: {
-    backgroundColor: "#FFF",
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: "#E9EDE8",
-    padding: 20,
-    gap: 14,
-    shadowColor: colors.navy,
-    shadowOpacity: 0.035,
-    shadowRadius: 12,
-    elevation: 1,
-  },
-  input: {
-    backgroundColor: "#FFF",
-    borderRadius: 14,
-    padding: 14,
-    fontSize: 16,
-    color: colors.text,
-    minHeight: 50,
-    borderWidth: 1,
-    borderColor: "#DDE5F0",
-  },
-  pill: {
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 22,
-    backgroundColor: "#EAF0ED",
-  },
-  pillText: { fontSize: 13, fontWeight: "600", color: colors.navy },
 });
 export function Button({
   label,
@@ -90,6 +122,8 @@ export function Button({
   secondary?: boolean;
   disabled?: boolean;
 }) {
+  useAppearance();
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -103,15 +137,17 @@ export function Button({
         paddingHorizontal: 18,
         paddingVertical: 12,
         borderRadius: 14,
-        backgroundColor: secondary ? "#EAF0ED" : colors.blue,
+        backgroundColor: secondary
+          ? themeColor("#EAF0ED", "surface")
+          : themeColor("#24766C", "surface"),
         opacity: disabled ? 0.45 : pressed ? 0.75 : 1,
       })}
     >
       <Text
         style={{
           fontWeight: "700",
-          color: secondary ? colors.navy : "#FFF",
-          fontSize: 14,
+          color: secondary ? colors.navy : themeColor("#FFF", "text"),
+          fontSize: textSize(14),
         }}
       >
         {label}
@@ -128,6 +164,8 @@ export function Chip({
   active?: boolean;
   onPress: () => void;
 }) {
+  useAppearance();
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -139,11 +177,18 @@ export function Chip({
         {
           minHeight: 44,
           justifyContent: "center",
-          backgroundColor: active ? colors.navy : "#E8EEF7",
+          backgroundColor: active
+            ? themeColor("#182E43", "surface")
+            : themeColor("#E8EEF7", "surface"),
         },
       ]}
     >
-      <Text style={[styles.pillText, { color: active ? "#FFF" : colors.navy }]}>
+      <Text
+        style={[
+          styles.pillText,
+          { color: active ? themeColor("#FFF", "text") : colors.navy },
+        ]}
+      >
         {label}
       </Text>
     </Pressable>
@@ -154,12 +199,14 @@ export function Field({
   error,
   ...props
 }: TextInputProps & { label: string; error?: string }) {
+  useAppearance();
+
   return (
     <View style={{ gap: 7 }}>
       <Text style={styles.muted}>{label}</Text>
       <TextInput
         accessibilityLabel={label}
-        placeholderTextColor="#8190A5"
+        placeholderTextColor={themeColor("#8190A5", "text")}
         style={[
           styles.input,
           props.multiline && { minHeight: 110, textAlignVertical: "top" },
@@ -180,11 +227,13 @@ export function Sheet({
   onClose: () => void;
   title: string;
 }>) {
+  const { motionReduced } = useAppearance();
+
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType={motionReduced ? "none" : "slide"}
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
@@ -192,7 +241,7 @@ export function Sheet({
         style={{
           flex: 1,
           justifyContent: "flex-end",
-          backgroundColor: "#071B4380",
+          backgroundColor: themeColor("#071B4380", "surface"),
         }}
       >
         <Pressable
@@ -216,7 +265,7 @@ export function Sheet({
               width: 36,
               height: 4,
               borderRadius: 2,
-              backgroundColor: "#CED8D2",
+              backgroundColor: themeColor("#CED8D2", "surface"),
               alignSelf: "center",
             }}
           />
@@ -232,7 +281,7 @@ export function Sheet({
                 alignItems: "center",
                 justifyContent: "center",
                 borderRadius: 22,
-                backgroundColor: "#EAF0ED",
+                backgroundColor: themeColor("#EAF0ED", "surface"),
               }}
             >
               <Ionicons name="close" size={22} color={colors.navy} />
@@ -260,6 +309,8 @@ export function Empty({
   action?: string;
   onPress?: () => void;
 }) {
+  useAppearance();
+
   return (
     <View style={[styles.card, { alignItems: "center", paddingVertical: 28 }]}>
       <View
@@ -267,7 +318,7 @@ export function Empty({
           width: 64,
           height: 64,
           borderRadius: 23,
-          backgroundColor: "#E7EFEB",
+          backgroundColor: themeColor("#E7EFEB", "surface"),
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -283,6 +334,8 @@ export function Empty({
   );
 }
 export function ErrorState({ retry }: { retry: () => void }) {
+  useAppearance();
+
   return (
     <Empty
       title="Bağlantı kurulamadı"
@@ -293,6 +346,8 @@ export function ErrorState({ retry }: { retry: () => void }) {
   );
 }
 export function Skeleton() {
+  useAppearance();
+
   return (
     <View
       accessibilityLabel="Paylaşımlar yükleniyor"
@@ -304,12 +359,16 @@ export function Skeleton() {
             style={{
               height: 30,
               width: "45%",
-              backgroundColor: "#EAF0ED",
+              backgroundColor: themeColor("#EAF0ED", "surface"),
               borderRadius: 12,
             }}
           />
           <View
-            style={{ height: 80, backgroundColor: "#F1F4F9", borderRadius: 12 }}
+            style={{
+              height: 80,
+              backgroundColor: themeColor("#F1F4F9", "surface"),
+              borderRadius: 12,
+            }}
           />
         </View>
       ))}
@@ -317,6 +376,8 @@ export function Skeleton() {
   );
 }
 export function Busy() {
+  useAppearance();
+
   return (
     <ActivityIndicator color={colors.blue} accessibilityLabel="Yükleniyor" />
   );
@@ -347,6 +408,8 @@ export function useGate() {
   };
 }
 export function Message({ text }: { text: string }) {
+  useAppearance();
+
   return text ? (
     <Text
       accessibilityLiveRegion="polite"

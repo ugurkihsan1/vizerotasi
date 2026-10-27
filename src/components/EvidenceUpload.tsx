@@ -1,3 +1,4 @@
+import { useAppearance, themeColor } from "../lib/appearance";
 import { useState } from "react";
 import { View, Text } from "react-native";
 import {
@@ -5,7 +6,7 @@ import {
   type EvidenceDraft,
   EVIDENCE_LIMIT,
 } from "../lib/evidence";
-import { Button, styles, Message } from "./ui";
+import { Button, styles, Message, Sheet } from "./ui";
 export function EvidenceUpload({
   files,
   onChange,
@@ -17,28 +18,41 @@ export function EvidenceUpload({
   disabled?: boolean;
   existing?: number;
 }) {
+  useAppearance();
+
   const [error, setError] = useState("");
+  const [info, setInfo] = useState(false);
   return (
-    <View style={[styles.card, { backgroundColor: "#F7F4FC", padding: 16 }]}>
-      <Text style={styles.heading}>Belgeyle destekle · isteğe bağlı</Text>
-      <Text style={styles.text}>
-        Paylaşımın belgesiz de incelenip yayımlanabilir. Seyahat tarihleri ve
-        ilgili alanları görünen sigorta poliçesi, bilet veya benzer bir belge
-        eklersen yönetim doğrulama için ayrıca inceler.
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: themeColor("#F7F4FC", "surface"), padding: 16 },
+      ]}
+    >
+      <Text style={styles.pillText}>Belge ekle · isteğe bağlı</Text>
+      <Text style={styles.muted}>
+        Belgelere yalnız sen ve yetkili yönetim erişebilir.
       </Text>
       <Text style={styles.muted}>
-        Yönetim doğrularsa “Belgeyle doğrulanmış deneyim” etiketi ve +10 ek puan
-        kazanırsın. Belge yüklemek otomatik doğrulama veya resmî kural onayı
-        değildir.
+        Kimlik ve hesap bilgilerini gizle. Tarihler görünsün.
       </Text>
-      <Text style={styles.pillText}>
-        Belgeler toplulukta görünmez; yalnız sen ve yetkili yönetim erişebilir.
-      </Text>
-      <Text style={styles.muted}>
-        Kimlik/pasaport numarası, adres, poliçe numarası, bilet kodu ve
-        barkodları yüklemeden önce gizle. İncelenecek tarih ve ilgili belge
-        alanları görünsün. En fazla 5 belge · PDF/JPG/PNG · her biri 8 MB.
-      </Text>
+      <Text style={styles.muted}>5 belge · PDF/JPG/PNG · 8 MB</Text>
+      <Button
+        secondary
+        label="Doğrulama bilgisi"
+        onPress={() => setInfo(true)}
+      />
+      <Sheet
+        visible={info}
+        title="Belgeyle doğrulama"
+        onClose={() => setInfo(false)}
+      >
+        <Text style={styles.text}>
+          Yönetim belgeni inceler. Doğrulanırsa deneyimin etiket ve +10 puan
+          kazanır. Belge yüklemek resmî kural onayı değildir; belgesiz de
+          paylaşabilirsin.
+        </Text>
+      </Sheet>
       {files.map((f, i) => (
         <View key={`${f.uri}:${i}`} style={{ gap: 4 }}>
           <Text style={styles.text}>

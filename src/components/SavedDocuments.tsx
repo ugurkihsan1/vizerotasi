@@ -1,3 +1,4 @@
+import { useAppearance } from "../lib/appearance";
 import { useState } from "react";
 import { View, Text } from "react-native";
 import { useQuery } from "@tanstack/react-query";
@@ -6,6 +7,8 @@ import { db } from "../lib/supabase";
 import { styles, Button, Empty, Message } from "./ui";
 import type { Document } from "../lib/types";
 export function SavedDocuments() {
+  useAppearance();
+
   const { session } = useAuth();
   const [message, setMessage] = useState("");
   const q = useQuery({

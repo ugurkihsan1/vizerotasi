@@ -1,3 +1,4 @@
+import { useAppearance, textSize } from "../lib/appearance";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { levelDefinitions } from "../lib/community";
@@ -9,6 +10,8 @@ export function MemberBadge({
   label: string;
   pioneer?: boolean;
 }) {
+  useAppearance();
+
   const level = levelDefinitions.find((l) => l.name === label);
   const color = level?.color ?? colors.blue;
   return (
@@ -33,7 +36,9 @@ export function MemberBadge({
         size={13}
         color={color}
       />
-      <Text style={{ fontSize: 11, fontWeight: "700", color }}>{label}</Text>
+      <Text style={{ fontSize: textSize(11), fontWeight: "700", color }}>
+        {label}
+      </Text>
     </View>
   );
 }

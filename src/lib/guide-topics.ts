@@ -32,7 +32,7 @@ export const guideTopicLabels: Record<string, string> = {
 export function criticalTipPlacement(country: string, category: string) {
   if (country !== "spain") {
     const guide = getCountryGuide(country);
-    if (!guide) return "Seçtiğin ülkenin Kritik bölümünde yayınlanır.";
+    if (!guide) return "Seçtiğin ülkenin Önemli bilgi bölümünde yayınlanır.";
     if (category === "appointment")
       return `${guide.name} rehberindeki Randevu adımında topluluk notu olarak görünür.`;
     if (category === "invitation")

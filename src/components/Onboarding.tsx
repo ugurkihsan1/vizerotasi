@@ -1,3 +1,4 @@
+import { useAppearance, themeColor, textSize } from "../lib/appearance";
 import { useEffect, useState } from "react";
 import { View, Text, Pressable } from "react-native";
 import { router } from "expo-router";
@@ -30,6 +31,8 @@ const plans = [
 ] as const;
 type Plan = (typeof plans)[number]["id"];
 export function Onboarding() {
+  useAppearance();
+
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [plan, setPlan] = useState<Plan>();
@@ -133,8 +136,14 @@ export function Onboarding() {
                   {
                     padding: 15,
                     gap: 4,
-                    borderColor: plan === option.id ? colors.blue : "#E9EDE8",
-                    backgroundColor: plan === option.id ? "#EAF3ED" : "#FFF",
+                    borderColor:
+                      plan === option.id
+                        ? colors.blue
+                        : themeColor("#E9EDE8", "border"),
+                    backgroundColor:
+                      plan === option.id
+                        ? themeColor("#EAF3ED", "surface")
+                        : themeColor("#FFF", "surface"),
                   },
                 ]}
               >
@@ -180,7 +189,10 @@ export function Onboarding() {
                       borderWidth: 1,
                       borderColor:
                         countryId === c.id ? colors.blue : "transparent",
-                      backgroundColor: countryId === c.id ? "#DDEDE3" : "#FFF",
+                      backgroundColor:
+                        countryId === c.id
+                          ? themeColor("#DDEDE3", "surface")
+                          : themeColor("#FFF", "surface"),
                     },
                   ]}
                 >
@@ -207,7 +219,7 @@ export function Onboarding() {
         )}
         {step === 2 && country && (
           <>
-            <Text style={{ fontSize: 36 }}>
+            <Text style={{ fontSize: textSize(36) }}>
               {plan === "booked" ? "✓" : "↗"}
             </Text>
             <Text style={styles.title}>

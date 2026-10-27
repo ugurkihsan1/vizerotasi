@@ -1,3 +1,4 @@
+import { useAppearance, themeColor, textSize } from "../lib/appearance";
 import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { styles, colors } from "./ui";
@@ -12,10 +13,12 @@ export function ChecklistSummary({
   onOptions: () => void;
   filterLabel?: string;
 }) {
+  useAppearance();
+
   return (
     <View
       style={{
-        backgroundColor: "#EDF3ED",
+        backgroundColor: themeColor("#EDF3ED", "surface"),
         borderRadius: 18,
         padding: 14,
         gap: 10,
@@ -27,7 +30,9 @@ export function ChecklistSummary({
             {complete} / {total} belge işaretlendi
           </Text>
           {filterLabel && (
-            <Text style={[styles.muted, { fontSize: 12 }]}>{filterLabel}</Text>
+            <Text style={[styles.muted, { fontSize: textSize(12) }]}>
+              {filterLabel}
+            </Text>
           )}
         </View>
         <Pressable
@@ -38,7 +43,7 @@ export function ChecklistSummary({
             width: 44,
             height: 44,
             borderRadius: 15,
-            backgroundColor: "#FFF",
+            backgroundColor: themeColor("#FFF", "surface"),
             alignItems: "center",
             justifyContent: "center",
           }}
@@ -56,7 +61,7 @@ export function ChecklistSummary({
         style={{
           height: 5,
           borderRadius: 3,
-          backgroundColor: "#D7E3DB",
+          backgroundColor: themeColor("#D7E3DB", "surface"),
           overflow: "hidden",
         }}
       >

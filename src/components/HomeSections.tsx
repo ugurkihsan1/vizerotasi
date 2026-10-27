@@ -1,3 +1,4 @@
+import { useAppearance, textSize, themeColor } from "../lib/appearance";
 import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -7,6 +8,8 @@ import { db } from "../lib/supabase";
 import { styles, colors } from "./ui";
 import { Avatar } from "./PostCard";
 export function HomeWelcome() {
+  useAppearance();
+
   const { profile, session } = useAuth();
   return (
     <View
@@ -18,7 +21,7 @@ export function HomeWelcome() {
       }}
     >
       <View style={{ flex: 1, gap: 5 }}>
-        <Text style={[styles.title, { fontSize: 25 }]}>
+        <Text style={[styles.title, { fontSize: textSize(25) }]}>
           {profile
             ? `Merhaba, ${profile.display_name.split(" ")[0]} 👋`
             : "Bir sonraki rotan burada."}
@@ -40,6 +43,8 @@ export function HomeWelcome() {
   );
 }
 export function OwnSubmissionNotice() {
+  useAppearance();
+
   const { session, profile } = useAuth();
   const q = useQuery({
     queryKey: ["own-submission-notice", session?.user.id],
@@ -53,7 +58,7 @@ export function OwnSubmissionNotice() {
         .order("created_at", { ascending: false })
         .limit(1);
       if (r.error) throw r.error;
-      return r.data[0] as
+      return (r.data[0] ?? null) as
         { id: string; title: string; status: string } | undefined;
     },
     refetchInterval: 30000,
@@ -73,7 +78,7 @@ export function OwnSubmissionNotice() {
         gap: 12,
         padding: 15,
         borderRadius: 18,
-        backgroundColor: "#FFF2DA",
+        backgroundColor: themeColor("#FFF2DA", "surface"),
       }}
     >
       <View
@@ -81,28 +86,50 @@ export function OwnSubmissionNotice() {
           width: 36,
           height: 36,
           borderRadius: 12,
-          backgroundColor: "#F7E4BF",
+          backgroundColor: themeColor("#F7E4BF", "surface"),
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Ionicons name="time-outline" size={21} color="#986D29" />
+        <Ionicons
+          name="time-outline"
+          size={21}
+          color={themeColor("#986D29", "text")}
+        />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ fontSize: 13, fontWeight: "700", color: "#805C24" }}>
+        <Text
+          style={{
+            fontSize: textSize(13),
+            fontWeight: "700",
+            color: themeColor("#805C24", "text"),
+          }}
+        >
           {q.data.status === "needs_revision"
             ? "Gönderin için düzenleme istendi"
             : "Paylaşımın incelemede"}
         </Text>
-        <Text numberOfLines={1} style={{ fontSize: 12, color: "#947741" }}>
+        <Text
+          numberOfLines={1}
+          style={{
+            fontSize: textSize(12),
+            color: themeColor("#947741", "text"),
+          }}
+        >
           {q.data.title}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color="#986D29" />
+      <Ionicons
+        name="chevron-forward"
+        size={18}
+        color={themeColor("#986D29", "text")}
+      />
     </Pressable>
   );
 }
 export function CommunityNote() {
+  useAppearance();
+
   return (
     <View
       style={{
@@ -114,13 +141,20 @@ export function CommunityNote() {
       }}
     >
       <Ionicons name="shield-checkmark-outline" size={19} color={colors.blue} />
-      <Text style={[styles.muted, { flex: 1, fontSize: 12, lineHeight: 19 }]}>
+      <Text
+        style={[
+          styles.muted,
+          { flex: 1, fontSize: textSize(12), lineHeight: 19 },
+        ]}
+      >
         Topluluk deneyimleri resmî bilgi değildir.
       </Text>
     </View>
   );
 }
 export function CommunityEmpty() {
+  useAppearance();
+
   const { session } = useAuth();
   return (
     <View style={[styles.card, { padding: 18, gap: 12 }]}>
@@ -130,18 +164,18 @@ export function CommunityEmpty() {
             width: 36,
             height: 36,
             borderRadius: 12,
-            backgroundColor: "#E7EFEB",
+            backgroundColor: themeColor("#E7EFEB", "surface"),
             alignItems: "center",
             justifyContent: "center",
           }}
         >
           <Ionicons name="chatbubbles-outline" size={20} color={colors.blue} />
         </View>
-        <Text style={[styles.heading, { fontSize: 16, flex: 1 }]}>
+        <Text style={[styles.heading, { fontSize: textSize(16), flex: 1 }]}>
           İlk deneyim senden olsun
         </Text>
       </View>
-      <Text style={[styles.muted, { fontSize: 12 }]}>
+      <Text style={[styles.muted, { fontSize: textSize(12) }]}>
         Deneyimin başka birinin yolunu kolaylaştırabilir.
       </Text>
       <Pressable
@@ -154,11 +188,17 @@ export function CommunityEmpty() {
           alignItems: "center",
           justifyContent: "space-between",
           borderTopWidth: 1,
-          borderTopColor: "#EDF0EB",
+          borderTopColor: themeColor("#EDF0EB", "border"),
           paddingTop: 8,
         }}
       >
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.blue }}>
+        <Text
+          style={{
+            fontSize: textSize(13),
+            fontWeight: "700",
+            color: colors.blue,
+          }}
+        >
           {session ? "Deneyimini paylaş" : "Topluluğa katıl"}
         </Text>
         <Ionicons name="arrow-forward" size={19} color={colors.blue} />

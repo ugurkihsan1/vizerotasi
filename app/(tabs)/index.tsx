@@ -1,3 +1,4 @@
+import { useAppearance, textSize } from "../../src/lib/appearance";
 import { useAuth } from "../../src/lib/auth";
 import { useState } from "react";
 import { ScrollView, View, Pressable, Text } from "react-native";
@@ -8,6 +9,8 @@ import { useGroups, ERASMUS_GROUP } from "../../src/lib/groups";
 import { GroupScreen } from "../group/[id]";
 import { colors } from "../../src/components/ui";
 export default function Home() {
+  useAppearance();
+
   const { session } = useAuth();
   const [scope, setScope] = useState("Tümü"),
     groups = useGroups();
@@ -50,7 +53,7 @@ export default function Home() {
         >
           <Text
             style={{
-              fontSize: 14,
+              fontSize: textSize(14),
               fontWeight: scope === item.id ? "700" : "500",
               color: scope === item.id ? colors.blue : colors.muted,
             }}
@@ -70,7 +73,7 @@ export default function Home() {
           justifyContent: "center",
         }}
       >
-        <Text style={{ fontSize: 24, color: colors.blue }}>＋</Text>
+        <Text style={{ fontSize: textSize(24), color: colors.blue }}>＋</Text>
       </Pressable>
     </ScrollView>
   );

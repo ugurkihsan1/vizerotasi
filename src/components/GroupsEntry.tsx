@@ -1,8 +1,11 @@
+import { useAppearance, themeColor, textSize } from "../lib/appearance";
 import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { styles } from "./ui";
 export function GroupsEntry() {
+  useAppearance();
+
   return (
     <Pressable
       accessibilityRole="link"
@@ -14,7 +17,7 @@ export function GroupsEntry() {
         gap: 12,
         padding: 14,
         borderRadius: 18,
-        backgroundColor: "#EDE8F8",
+        backgroundColor: themeColor("#EDE8F8", "surface"),
         opacity: pressed ? 0.8 : 1,
       })}
     >
@@ -23,20 +26,28 @@ export function GroupsEntry() {
           width: 40,
           height: 40,
           borderRadius: 14,
-          backgroundColor: "#FFF",
+          backgroundColor: themeColor("#FFF", "surface"),
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Ionicons name="people-outline" size={22} color="#71579D" />
+        <Ionicons
+          name="people-outline"
+          size={22}
+          color={themeColor("#71579D", "text")}
+        />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={styles.pillText}>Gruplar</Text>
-        <Text style={[styles.muted, { fontSize: 12 }]}>
+        <Text style={[styles.muted, { fontSize: textSize(12) }]}>
           Erasmus ve ortak yolculuklar
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={19} color="#71579D" />
+      <Ionicons
+        name="chevron-forward"
+        size={19}
+        color={themeColor("#71579D", "text")}
+      />
     </Pressable>
   );
 }

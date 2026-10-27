@@ -152,16 +152,16 @@
   {
     "id": "denmark",
     "country": "Danimarka",
-    "landmark": "Nyhavn, Kopenhag",
+    "landmark": "Rosenborg Kalesi, Kopenhag",
     "file": "denmark.jpg",
-    "originalTitle": "File:Kopenhagen (DK), Nyhavn -- 2017 -- 1711.jpg",
-    "author": "Dietmar Rabich",
+    "originalTitle": "File:Rosenborg Palace, Copenhagen, Denmark, 20220617 0913 6707.jpg",
+    "author": "Jakub Hałun",
     "license": "CC BY-SA 4.0",
     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Kopenhagen_(DK),_Nyhavn_--_2017_--_1711.jpg",
-    "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Kopenhagen_%28DK%29%2C_Nyhavn_--_2017_--_1711.jpg/960px-Kopenhagen_%28DK%29%2C_Nyhavn_--_2017_--_1711.jpg",
-    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/ce/Kopenhagen_%28DK%29%2C_Nyhavn_--_2017_--_1711.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Rosenborg_Palace,_Copenhagen,_Denmark,_20220617_0913_6707.jpg",
+    "downloadUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Rosenborg_Palace%2C_Copenhagen%2C_Denmark%2C_20220617_0913_6707.jpg/960px-Rosenborg_Palace%2C_Copenhagen%2C_Denmark%2C_20220617_0913_6707.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2a/Rosenborg_Palace%2C_Copenhagen%2C_Denmark%2C_20220617_0913_6707.jpg",
     "changes": "Kart gösteriminde kadraj kırpılabilir.",
-    "sha256": "79226747024c6ed137e51a905d2ff45435f442dae1d24ef3b9362a00d460c31a"
+    "sha256": "84e94eed1d43f5dc27e91824f5d41b413e09d2f70fe38b232cca1a2161858350"
   }
 ]

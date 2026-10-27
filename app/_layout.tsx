@@ -1,3 +1,12 @@
+import { StatusBar } from "expo-status-bar";
+import {
+  useAppearance,
+  themeColor,
+  loadAppearance,
+} from "../src/lib/appearance";
+
+import { useEffect } from "react";
+
 import { ChatSync } from "../src/components/ChatEntry";
 import { View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -16,8 +25,15 @@ const persister = createAsyncStoragePersister({
   key: "vizerotasi-public-cache",
 });
 export default function Layout() {
+  const appearance = useAppearance();
+
+  useEffect(() => {
+    void loadAppearance();
+  }, []);
   return (
-    <SafeAreaProvider style={{ backgroundColor: "#E9EDE8" }}>
+    <SafeAreaProvider
+      style={{ backgroundColor: themeColor("#E9EDE8", "surface") }}
+    >
       <PersistQueryClientProvider
         client={client}
         persistOptions={{
@@ -39,8 +55,10 @@ export default function Layout() {
         }}
       >
         <AuthProvider>
+          <StatusBar style={appearance.dark ? "light" : "dark"} />
           <ChatSync />
           <View
+            testID="app-surface"
             style={{
               flex: 1,
               width: "100%",
@@ -52,7 +70,7 @@ export default function Layout() {
             <Stack
               screenOptions={{
                 headerTintColor: colors.navy,
-                headerStyle: { backgroundColor: "#FFF" },
+                headerStyle: { backgroundColor: themeColor("#FFF", "surface") },
                 contentStyle: { backgroundColor: colors.bg },
               }}
             >
@@ -95,7 +113,7 @@ export default function Layout() {
               <Stack.Screen name="question/[id]" options={{ title: "Soru" }} />
               <Stack.Screen
                 name="tip/[id]"
-                options={{ title: "Kritik nokta" }}
+                options={{ title: "Önemli bilgi" }}
               />
               <Stack.Screen
                 name="profile/[username]"
@@ -104,6 +122,10 @@ export default function Layout() {
               <Stack.Screen
                 name="moderation"
                 options={{ title: "Moderasyon" }}
+              />
+              <Stack.Screen
+                name="admin-countries"
+                options={{ title: "Ülkeleri yönet" }}
               />
               <Stack.Screen name="admin" options={{ title: "Yönetim" }} />
               <Stack.Screen name="settings" options={{ title: "Ayarlar" }} />

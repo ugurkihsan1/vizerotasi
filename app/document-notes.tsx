@@ -1,3 +1,4 @@
+import { useAppearance } from "../src/lib/appearance";
 import { useState } from "react";
 import { View, Text, ScrollView } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +19,8 @@ import {
 import { privacyWarning } from "../src/lib/schemas";
 import type { DocumentNote } from "../src/lib/document-notes";
 export default function NotesManager() {
+  useAppearance();
+
   const { profile, session } = useAuth();
   const { data: countries } = useCountries();
   const [country, setCountry] = useState("spain");

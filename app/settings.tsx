@@ -1,17 +1,34 @@
+import { pendingCleanup, cleanupEvidence } from "../src/lib/content-cleanup";
 import { useState } from "react";
 import { ScrollView, Text, View, Switch } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { pickAvatar, uploadAvatar } from "../src/lib/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useAuth } from "../src/lib/auth";
 import { db } from "../src/lib/supabase";
-import { styles, Button, Field, Message } from "../src/components/ui";
+import { useAppearance, setPreferences } from "../src/lib/appearance";
+import {
+  styles,
+  Button,
+  Field,
+  Message,
+  Chip,
+  Sheet,
+} from "../src/components/ui";
 export default function Settings() {
-  const { profile, session, avatarNotice } = useAuth();
-  const [name, setName] = useState(profile?.display_name ?? "");
-  const [bio, setBio] = useState(profile?.bio ?? "");
-  const [message, setMessage] = useState("");
-  const cache = useQueryClient();
+  useAppearance();
+  const { profile } = useAuth();
+  return <SettingsBody key={profile?.id ?? "guest"} />;
+}
+function SettingsBody() {
+  const { profile, session, avatarNotice } = useAuth(),
+    appearance = useAppearance(),
+    cache = useQueryClient();
+  const [name, setName] = useState(profile?.display_name ?? ""),
+    [bio, setBio] = useState(profile?.bio ?? ""),
+    [message, setMessage] = useState(""),
+    [privacy, setPrivacy] = useState(false);
   const prefs = useQuery({
     queryKey: ["preferences", session?.user.id],
     enabled: !!session,
@@ -25,6 +42,15 @@ export default function Settings() {
       return r.data;
     },
   });
+  const cleanup = useQuery({
+    queryKey: ["pending-cleanup", session?.user.id],
+    enabled: !!session,
+    queryFn: () => pendingCleanup(session!.user.id),
+  });
+  const preference = (value: Parameters<typeof setPreferences>[0]) =>
+    void setPreferences(value).catch(() =>
+      setMessage("Ayar cihazına kaydedilemedi."),
+    );
   async function avatar() {
     try {
       const selected = await pickAvatar();
@@ -38,9 +64,47 @@ export default function Settings() {
   }
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+      <Text style={styles.heading}>Görünüm</Text>
+      <View style={styles.row}>
+        {(
+          [
+            ["system", "Sistem"],
+            ["light", "Açık"],
+            ["dark", "Karanlık"],
+          ] as const
+        ).map(([value, label]) => (
+          <Chip
+            key={value}
+            label={label}
+            active={appearance.theme === value}
+            onPress={() => preference({ theme: value })}
+          />
+        ))}
+      </View>
+      <View style={styles.card}>
+        {(
+          [
+            ["largeText", "Büyük yazı"],
+            ["reducedMotion", "Hareketi azalt"],
+            ["haptics", "Dokunsal geri bildirim"],
+          ] as const
+        ).map(([key, label]) => (
+          <View
+            key={key}
+            style={[styles.row, { justifyContent: "space-between" }]}
+          >
+            <Text style={styles.text}>{label}</Text>
+            <Switch
+              accessibilityLabel={label}
+              value={appearance[key]}
+              onValueChange={(v) => preference({ [key]: v })}
+            />
+          </View>
+        ))}
+      </View>
       {profile && (
         <>
-          <Text style={styles.title}>Kendi rotanı düzenle</Text>
+          <Text style={styles.heading}>Profil</Text>
           <Button
             secondary
             label="Profil fotoğrafını değiştir"
@@ -53,11 +117,11 @@ export default function Settings() {
             maxLength={60}
           />
           <Field
-            label="Kendinden bahset"
+            label="Biyografi"
             value={bio}
             onChangeText={setBio}
-            multiline
             maxLength={300}
+            multiline
           />
           <Button
             label="Profili kaydet"
@@ -78,73 +142,136 @@ export default function Settings() {
                 });
             }}
           />
-          <Text style={styles.heading}>Bildirim tercihleri</Text>
-          {Object.entries({
-            replies: "Yanıtlar",
-            approvals: "İçerik onayları",
-            country_updates: "Ülke güncellemeleri",
-            badges: "Rozetler",
-          }).map(([k, l]) => (
-            <View key={k} style={styles.row}>
-              <Switch
-                accessibilityLabel={l}
-                value={prefs.data?.[k] ?? true}
-                onValueChange={(v) => {
-                  void db()
-                    .from("notification_preferences")
-                    .update({ [k]: v })
-                    .eq("user_id", profile.id)
-                    .then((r) => {
-                      if (r.error) setMessage("Tercihler güncellenemedi.");
-                      else void prefs.refetch();
-                    });
-                }}
-              />
-              <Text style={styles.text}>{l}</Text>
-            </View>
-          ))}
+          <Text style={styles.heading}>Bildirimler</Text>
+          <View style={styles.card}>
+            {Object.entries({
+              replies: "Yanıtlar",
+              approvals: "İçerik onayları",
+              country_updates: "Ülke güncellemeleri",
+              badges: "Rozetler",
+            }).map(([key, label]) => (
+              <View
+                key={key}
+                style={[styles.row, { justifyContent: "space-between" }]}
+              >
+                <Text style={styles.text}>{label}</Text>
+                <Switch
+                  accessibilityLabel={label}
+                  value={prefs.data?.[key] ?? true}
+                  onValueChange={(value) =>
+                    void db()
+                      .from("notification_preferences")
+                      .update({ [key]: value })
+                      .eq("user_id", profile.id)
+                      .then((r) =>
+                        r.error
+                          ? setMessage("Tercih kaydedilemedi.")
+                          : void prefs.refetch(),
+                      )
+                  }
+                />
+              </View>
+            ))}
+          </View>
           <Button
             secondary
-            label="Çıkış yap"
+            label="Engellenen kişiler"
+            onPress={() =>
+              router.push({ pathname: "/messages", params: { blocks: "1" } })
+            }
+          />
+          <Button
+            secondary
+            label="Şifre sıfırlama bağlantısı gönder"
             onPress={() => {
+              if (!session?.user.email) return;
               void db()
-                .auth.signOut()
-                .then(({ error }) => {
-                  if (error) setMessage("Çıkış yapılamadı.");
-                  else router.replace("/");
-                });
+                .auth.resetPasswordForEmail(session.user.email)
+                .then((r) =>
+                  setMessage(
+                    r.error
+                      ? "Bağlantı gönderilemedi."
+                      : "Şifre sıfırlama bağlantısı e-posta adresine gönderildi.",
+                  ),
+                );
             }}
           />
         </>
       )}
-      <Message text={message || avatarNotice || ""} />
+      <Text style={styles.heading}>Veri ve gizlilik</Text>
+      {session && !!cleanup.data?.length && (
+        <Button
+          secondary
+          label="Bekleyen ek dosyaları temizle"
+          onPress={() =>
+            void cleanupEvidence(session.user.id)
+              .then(() => {
+                void cleanup.refetch();
+                setMessage("Dosyalar temizlendi.");
+              })
+              .catch(() => setMessage("Dosya temizliği tamamlanamadı."))
+          }
+        />
+      )}
+      <Button
+        secondary
+        label="Arama geçmişini temizle"
+        onPress={() => {
+          void AsyncStorage.removeItem(
+            `recent-searches:${session?.user.id ?? "guest"}`,
+          )
+            .then(() => setMessage("Arama geçmişi temizlendi."))
+            .catch(() => setMessage("Geçmiş temizlenemedi."));
+        }}
+      />
+      <Button
+        secondary
+        label="İçerikleri yenile"
+        onPress={() => {
+          void cache
+            .invalidateQueries()
+            .then(() => setMessage("İçerikler güncellendi."));
+        }}
+      />
+      <Button
+        secondary
+        label="Gizlilik ve topluluk kuralları"
+        onPress={() => setPrivacy(true)}
+      />
       <Button
         secondary
         label="Fotoğraf kaynakları"
         onPress={() => router.push("/photo-credits")}
       />
-      <View style={styles.card}>
-        <Text style={styles.heading}>Vize Rotası hakkında</Text>
+      <Message text={message || avatarNotice || ""} />
+      {session && (
+        <Button
+          secondary
+          label="Çıkış yap"
+          onPress={() =>
+            void db()
+              .auth.signOut()
+              .then((r) =>
+                r.error ? setMessage("Çıkış yapılamadı.") : router.replace("/"),
+              )
+          }
+        />
+      )}
+      <Sheet
+        visible={privacy}
+        onClose={() => setPrivacy(false)}
+        title="Gizlilik ve topluluk"
+      >
         <Text style={styles.text}>
-          Bu uygulama resmî bir konsolosluk, büyükelçilik veya vize başvuru
-          merkezi değildir. Kullanıcı deneyimleri kişisel tecrübelere dayanır.
-          Başvuru koşulları değişebileceğinden resmî kaynakları kontrol etmeni
-          öneririz.
-        </Text>
-      </View>
-      <View style={styles.card}>
-        <Text style={styles.heading}>Gizlilik ve topluluk kuralları</Text>
-        <Text style={styles.text}>
-          Paylaşımların ve yorumların onaylandıktan sonra herkese görünür.
-          E-posta adresin profilinde gösterilmez. Pasaport, kimlik, banka
-          belgesi ve üçüncü kişilerin özel bilgilerini paylaşma. Spam, taciz ve
-          yanıltıcı bilgiler yasaktır. İçerikler yayın öncesinde incelenir.
+          E-posta adresin profilinde gösterilmez. Paylaşımlarında kimlik ve
+          banka bilgisi paylaşma. Topluluk deneyimleri resmî vize bilgisi
+          değildir.
         </Text>
         <Text style={styles.muted}>
-          Yayın öncesinde veri sorumlusu, saklama süreleri, hesap silme ve
-          iletişim bilgilerini içeren hukuki metinlerin tamamlanması gerekir.
+          Özel belgeler yalnız sen ve yetkili yönetim tarafından görülebilir.
+          Spam, taciz ve yanıltıcı içerik yasaktır.
         </Text>
-      </View>
+      </Sheet>
     </ScrollView>
   );
 }

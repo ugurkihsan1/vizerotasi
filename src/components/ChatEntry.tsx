@@ -1,3 +1,4 @@
+import { useAppearance, textSize, themeColor } from "../lib/appearance";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,6 +15,8 @@ export function ChatSync() {
   return null;
 }
 export function MessagesEntry() {
+  useAppearance();
+
   const q = useChatUnread();
   return (
     <Pressable
@@ -36,13 +39,19 @@ export function MessagesEntry() {
             right: 0,
             top: 2,
             borderRadius: 10,
-            backgroundColor: colors.blue,
+            backgroundColor: themeColor("#24766C", "surface"),
             minWidth: 18,
             paddingHorizontal: 4,
             alignItems: "center",
           }}
         >
-          <Text style={{ fontSize: 10, color: "#FFF", fontWeight: "700" }}>
+          <Text
+            style={{
+              fontSize: textSize(10),
+              color: themeColor("#FFF", "text"),
+              fontWeight: "700",
+            }}
+          >
             {q.data > 99 ? "99+" : q.data}
           </Text>
         </View>
@@ -59,6 +68,8 @@ export function CommunityChatEntry({
   name: string;
   label?: string;
 }) {
+  useAppearance();
+
   const { session } = useAuth(),
     follows = useFollows(),
     gate = useGate(),

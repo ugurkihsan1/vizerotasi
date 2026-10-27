@@ -1,8 +1,9 @@
+import { useAppearance, themeColor, textSize } from "../src/lib/appearance";
 import { Ionicons } from "@expo/vector-icons";
 import { Avatar } from "../src/components/PostCard";
 import { useCallback, useState } from "react";
 import { ScrollView, View, Text, Pressable } from "react-native";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../src/lib/auth";
 import { db } from "../src/lib/supabase";
@@ -24,10 +25,24 @@ import {
   colors,
 } from "../src/components/ui";
 export default function Messages() {
+  useAppearance();
+
   const { session } = useAuth();
-  return <MessagesScreen key={session?.user.id ?? "guest"} />;
+  const params = useLocalSearchParams<{ blocks?: string }>();
+  return (
+    <MessagesScreen
+      key={`${session?.user.id ?? "guest"}:${params.blocks ?? ""}`}
+      initialBlocks={params.blocks === "1"}
+    />
+  );
 }
-function MessagesScreen() {
+function MessagesScreen({
+  initialBlocks = false,
+}: {
+  initialBlocks?: boolean;
+}) {
+  useAppearance();
+
   const { session, loading } = useAuth(),
     cache = useQueryClient();
   const [focused, setFocused] = useState(false);
@@ -46,7 +61,7 @@ function MessagesScreen() {
     [title, setTitle] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [showBlocks, setShowBlocks] = useState(false);
+    [showBlocks, setShowBlocks] = useState(initialBlocks);
   const blocks = useQuery({
     queryKey: ["chat", "blocks", session?.user.id],
     enabled: !!session && showBlocks,
@@ -136,12 +151,16 @@ function MessagesScreen() {
               width: 44,
               height: 44,
               borderRadius: 15,
-              backgroundColor: colors.blue,
+              backgroundColor: themeColor("#24766C", "surface"),
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Ionicons name="create-outline" size={24} color="#FFF" />
+            <Ionicons
+              name="create-outline"
+              size={24}
+              color={themeColor("#FFF", "text")}
+            />
           </Pressable>
         </View>
       </View>
@@ -166,7 +185,7 @@ function MessagesScreen() {
                 padding: 10,
                 gap: 6,
                 borderRadius: 18,
-                backgroundColor: "#E8F1EC",
+                backgroundColor: themeColor("#E8F1EC", "surface"),
               }}
             >
               <View style={styles.row}>
@@ -203,7 +222,7 @@ function MessagesScreen() {
             accessibilityLabel={`${room.title}${room.status === "invited" ? " · Sohbet isteği" : ""}`}
             onPress={() => router.push(`/chat/${room.id}`)}
             style={{
-              backgroundColor: "#FFF",
+              backgroundColor: themeColor("#FFF", "surface"),
               borderRadius: 18,
               padding: 14,
               gap: 6,
@@ -232,12 +251,17 @@ function MessagesScreen() {
                 <View
                   style={{
                     borderRadius: 10,
-                    backgroundColor: colors.blue,
+                    backgroundColor: themeColor("#24766C", "surface"),
                     paddingHorizontal: 7,
                     paddingVertical: 2,
                   }}
                 >
-                  <Text style={{ color: "#FFF", fontSize: 11 }}>
+                  <Text
+                    style={{
+                      color: themeColor("#FFF", "text"),
+                      fontSize: textSize(11),
+                    }}
+                  >
                     {room.unread_count}
                   </Text>
                 </View>
@@ -254,7 +278,7 @@ function MessagesScreen() {
                       ? "Mesaj kaldırıldı"
                       : room.last_body}
             </Text>
-            <Text style={{ fontSize: 10, color: colors.muted }}>
+            <Text style={{ fontSize: textSize(10), color: colors.muted }}>
               {room.kind === "community"
                 ? "Topluluk"
                 : room.kind === "group"
@@ -317,7 +341,7 @@ function MessagesScreen() {
           Engellenen kişiler birebir mesaj veya yeni davet gönderemez. Ortak
           grup ve topluluk mesajları görünmeye devam edebilir.
         </Text>
-        {blocks.isError && <Message text={chatError(blocks.error)} />}{" "}
+        {blocks.isError && <Message text={chatError(blocks.error)} />}
         {blocks.data?.map((p) => (
           <View key={p.blocked_id} style={{ gap: 8 }}>
             <Text style={styles.text}>@{p.profiles?.username ?? "Üye"}</Text>

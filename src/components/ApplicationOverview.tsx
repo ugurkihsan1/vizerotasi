@@ -1,3 +1,4 @@
+import { useAppearance, themeColor, textSize } from "../lib/appearance";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback } from "react";
 import { Text, View, Pressable } from "react-native";
@@ -11,6 +12,8 @@ import { mergeSpainDocuments } from "../lib/spain";
 import { CountryFlag } from "./CountryFlag";
 import { styles, colors } from "./ui";
 export function ApplicationOverview() {
+  useAppearance();
+
   const { session } = useAuth();
   const countries = useCountries(),
     follows = useFollows();
@@ -97,7 +100,7 @@ export function ApplicationOverview() {
         {
           padding: 16,
           gap: 12,
-          backgroundColor: "#EDF3ED",
+          backgroundColor: themeColor("#EDF3ED", "surface"),
           opacity: pressed ? 0.8 : 1,
         },
       ]}
@@ -108,7 +111,7 @@ export function ApplicationOverview() {
             width: 48,
             height: 48,
             borderRadius: 16,
-            backgroundColor: "#FFF",
+            backgroundColor: themeColor("#FFF", "surface"),
             alignItems: "center",
             justifyContent: "center",
           }}
@@ -131,7 +134,7 @@ export function ApplicationOverview() {
             style={{
               height: 5,
               borderRadius: 3,
-              backgroundColor: "#D8E4DD",
+              backgroundColor: themeColor("#D8E4DD", "surface"),
               overflow: "hidden",
             }}
             accessibilityRole="progressbar"
@@ -145,7 +148,7 @@ export function ApplicationOverview() {
               style={{
                 height: 5,
                 width: `${(complete / all.length) * 100}%`,
-                backgroundColor: colors.blue,
+                backgroundColor: themeColor("#24766C", "surface"),
                 borderRadius: 3,
               }}
             />
@@ -161,7 +164,11 @@ export function ApplicationOverview() {
               {complete}/{all.length} belge hazır
             </Text>
             <Text
-              style={{ fontSize: 13, fontWeight: "700", color: colors.blue }}
+              style={{
+                fontSize: textSize(13),
+                fontWeight: "700",
+                color: colors.blue,
+              }}
             >
               Belgelerim
             </Text>

@@ -1,3 +1,4 @@
+import { useAppearance, textSize } from "../../src/lib/appearance";
 import { SearchMatches } from "../../src/components/SearchMatches";
 import { useEffect, useMemo, useState } from "react";
 import { View, Text, ScrollView, Pressable, FlatList } from "react-native";
@@ -21,7 +22,7 @@ import type { Kind } from "../../src/lib/types";
 const scopes = [
   "Tümü",
   "Deneyimler",
-  "Kritik noktalar",
+  "Önemli bilgiler",
   "Sorular",
   "Ülkeler",
   "Belgeler",
@@ -29,10 +30,14 @@ const scopes = [
 ] as const;
 type Scope = (typeof scopes)[number];
 export default function Discover() {
+  useAppearance();
+
   const params = useLocalSearchParams<{ q?: string }>();
   return <DiscoverSearch key={params.q ?? ""} initialQuery={params.q ?? ""} />;
 }
 function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
+  useAppearance();
+
   const [text, setText] = useState(initialQuery),
     [search, setSearch] = useState(initialQuery.trim()),
     [searchFocused, setSearchFocused] = useState(false);
@@ -77,7 +82,7 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
   const kind = (
     {
       Deneyimler: "experience",
-      "Kritik noktalar": "tip",
+      "Önemli bilgiler": "tip",
       Sorular: "question",
     } as Partial<Record<Scope, Kind>>
   )[scope];
@@ -171,7 +176,9 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
               }}
               style={{ minHeight: 44, justifyContent: "center" }}
             >
-              <Text style={{ fontSize: 12, color: colors.blue }}>Temizle</Text>
+              <Text style={{ fontSize: textSize(12), color: colors.blue }}>
+                Temizle
+              </Text>
             </Pressable>
           </View>
           <View style={{ gap: 4 }}>
@@ -193,7 +200,9 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
                   gap: 12,
                 }}
               >
-                <Text style={{ fontSize: 20, color: colors.muted }}>↺</Text>
+                <Text style={{ fontSize: textSize(20), color: colors.muted }}>
+                  ↺
+                </Text>
                 <Text style={[styles.text, { flex: 1 }]}>{x}</Text>
                 <Text style={styles.muted}>↗</Text>
               </Pressable>

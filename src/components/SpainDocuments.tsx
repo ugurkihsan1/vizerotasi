@@ -1,3 +1,4 @@
+import { useAppearance, themeColor, textSize } from "../lib/appearance";
 import { ChecklistSummary } from "./ChecklistSummary";
 import { SourceDocumentWarning, DocumentWarnings } from "./DocumentWarnings";
 import { CommunityTips } from "./CommunityTips";
@@ -34,9 +35,16 @@ const employmentOptions = [
   ["student", "Öğrenci"],
 ];
 export function SpainSource() {
+  useAppearance();
+
   const [error, setError] = useState("");
   return (
-    <View style={[styles.card, { backgroundColor: "#EDF3FC", gap: 8 }]}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: themeColor("#EDF3FC", "surface"), gap: 8 },
+      ]}
+    >
       <Text style={[styles.pillText, { color: colors.blue }]}>
         Başvuru merkezinin yayımladığı belge
       </Text>
@@ -78,6 +86,8 @@ function DocumentAccordion({
   checked: boolean;
   onCheck: () => void;
 }) {
+  useAppearance();
+
   const [open, setOpen] = useState(false);
   const [community, setCommunity] = useState(false);
   const sections = sectionsFor(doc, employment);
@@ -89,7 +99,9 @@ function DocumentAccordion({
           borderRadius: 16,
           padding: open ? 14 : 10,
           gap: open ? 12 : 4,
-          borderColor: checked ? "#C7DFD2" : "#E9EDE8",
+          borderColor: checked
+            ? themeColor("#C7DFD2", "border")
+            : themeColor("#E9EDE8", "border"),
         },
       ]}
     >
@@ -111,7 +123,9 @@ function DocumentAccordion({
           <View style={{ flex: 1, gap: 3 }}>
             <Text style={styles.pillText}>{doc.title}</Text>
             {doc.requirement === "conditional" && (
-              <Text style={[styles.muted, { fontSize: 11 }]}>Duruma bağlı</Text>
+              <Text style={[styles.muted, { fontSize: textSize(11) }]}>
+                Duruma bağlı
+              </Text>
             )}
           </View>
           <Ionicons
@@ -169,7 +183,7 @@ function DocumentAccordion({
           {doc.editor_note && (
             <View
               style={{
-                backgroundColor: "#FFF7E8",
+                backgroundColor: themeColor("#FFF7E8", "surface"),
                 padding: 12,
                 borderRadius: 12,
               }}
@@ -187,7 +201,7 @@ function DocumentAccordion({
               Bu belgeyi toplulukta konuş →
             </Text>
           </Pressable>
-          <Text style={[styles.muted, { fontSize: 11 }]}>
+          <Text style={[styles.muted, { fontSize: textSize(11) }]}>
             Kaynak: {doc.source_name}. Topluluk deneyimleri bu belgenin resmî
             koşullarından ayrıdır.
           </Text>
@@ -211,7 +225,7 @@ function DocumentAccordion({
         />
         <Button
           secondary
-          label="Bu belge hakkında kritik bilgi paylaş"
+          label="Bu belge hakkında önemli bilgi paylaş"
           onPress={() => {
             setCommunity(false);
             router.push({
@@ -241,6 +255,8 @@ function DocumentAccordion({
   );
 }
 export function SpainDocuments({ header }: { header: React.ReactElement }) {
+  useAppearance();
+
   const q = useDocuments("spain");
   const documents = mergeSpainDocuments(q.data ?? []);
   const { session } = useAuth();
@@ -401,6 +417,8 @@ export function GuideSection({
   children: React.ReactNode;
   notes?: React.ReactNode;
 }) {
+  useAppearance();
+
   const [open, setOpen] = useState(false);
   return (
     <View style={styles.card}>
@@ -430,9 +448,13 @@ export function GuideSection({
   );
 }
 export function SpainGuide({ header }: { header: React.ReactElement }) {
+  useAppearance();
+
   return <ScrollGuide header={header} />;
 }
 function ScrollGuide({ header }: { header: React.ReactElement }) {
+  useAppearance();
+
   return (
     <FlatList
       style={styles.page}
@@ -470,7 +492,7 @@ function ScrollGuide({ header }: { header: React.ReactElement }) {
             <Text style={styles.text}>{spainGuide.appointment}</Text>
             <Button
               secondary
-              label="Randevu hakkında kritik bilgi paylaş"
+              label="Randevu hakkında önemli bilgi paylaş"
               onPress={() =>
                 router.push({
                   pathname: "/create",
@@ -494,7 +516,7 @@ function ScrollGuide({ header }: { header: React.ReactElement }) {
             </Text>
             <Button
               secondary
-              label="Davet mektubu hakkında kritik bilgi paylaş"
+              label="Davet mektubu hakkında önemli bilgi paylaş"
               onPress={() =>
                 router.push({
                   pathname: "/create",

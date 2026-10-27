@@ -1,3 +1,4 @@
+import { useAppearance, themeColor, textSize } from "../lib/appearance";
 import { useState, type PropsWithChildren } from "react";
 import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,9 +19,11 @@ export function CriticalNotice({
   referenceLabel?: string;
   initiallyOpen?: boolean;
 } & PropsWithChildren) {
+  useAppearance();
+
   const [open, setOpen] = useState(initiallyOpen);
   const official = source === "reference";
-  const accent = official ? "#71579D" : "#24766C";
+  const accent = themeColor(official ? "#71579D" : "#24766C", "text");
   return (
     <View
       style={{
@@ -29,14 +32,16 @@ export function CriticalNotice({
         borderRadius: 10,
         backgroundColor: official
           ? open
-            ? "#FCFAFF"
-            : "#F0EBFA"
+            ? themeColor("#FCFAFF", "surface")
+            : themeColor("#F0EBFA", "surface")
           : open
-            ? "#F8FCFA"
-            : "#E7F2ED",
+            ? themeColor("#F8FCFA", "surface")
+            : themeColor("#E7F2ED", "surface"),
         overflow: "hidden",
         borderWidth: 1,
-        borderColor: official ? "#E9E0F5" : "#D2E7DD",
+        borderColor: official
+          ? themeColor("#E9E0F5", "border")
+          : themeColor("#D2E7DD", "border"),
       }}
     >
       <Pressable
@@ -55,10 +60,12 @@ export function CriticalNotice({
       >
         <Ionicons name="alert-circle-outline" color={accent} size={18} />
         <View style={{ flex: 1, gap: 3 }}>
-          <Text style={{ fontSize: 13, fontWeight: "700", color: accent }}>
+          <Text
+            style={{ fontSize: textSize(13), fontWeight: "700", color: accent }}
+          >
             {title}
           </Text>
-          <Text style={{ fontSize: 10, color: accent }}>
+          <Text style={{ fontSize: textSize(10), color: accent }}>
             {source === "reference"
               ? referenceLabel
               : source === "community"
@@ -78,7 +85,7 @@ export function CriticalNotice({
         <View style={{ padding: 13, paddingTop: 2, gap: 10 }}>
           {children}
           {!official && (
-            <Text style={[styles.muted, { fontSize: 11 }]}>
+            <Text style={[styles.muted, { fontSize: textSize(11) }]}>
               Kişisel deneyim · Resmî kural değil
             </Text>
           )}

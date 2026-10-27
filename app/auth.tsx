@@ -1,3 +1,4 @@
+import { useAppearance, themeColor, textSize } from "../src/lib/appearance";
 import { Image } from "expo-image";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -35,6 +36,8 @@ type AuthValues = {
 };
 type Mode = "login" | "signup" | "forgot" | "reset";
 export default function Auth() {
+  useAppearance();
+
   const params = useLocalSearchParams<{ mode?: string; recovery?: string }>();
   const callbackUrl = Linking.useURL();
   const [mode, setMode] = useState<Mode>(
@@ -259,7 +262,7 @@ export default function Auth() {
           <View
             style={{
               flexDirection: "row",
-              backgroundColor: "#E8EEF7",
+              backgroundColor: themeColor("#E8EEF7", "surface"),
               borderRadius: 14,
               padding: 4,
             }}
@@ -276,7 +279,8 @@ export default function Auth() {
                   minHeight: 44,
                   justifyContent: "center",
                   alignItems: "center",
-                  backgroundColor: mode === x ? "#FFF" : "transparent",
+                  backgroundColor:
+                    mode === x ? themeColor("#FFF", "surface") : "transparent",
                   borderRadius: 11,
                 }}
               >
@@ -478,7 +482,7 @@ export default function Auth() {
         )}
         {sent && (
           <View style={styles.card}>
-            <Text style={{ fontSize: 32 }}>✉</Text>
+            <Text style={{ fontSize: textSize(32) }}>✉</Text>
             <Message text={message} />
             <Button
               label="Giriş ekranına dön"

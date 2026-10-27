@@ -1,3 +1,4 @@
+import { useAppearance, themeColor, textSize } from "../../src/lib/appearance";
 import { MessagesEntry } from "../../src/components/ChatEntry";
 import { Brand } from "../../src/components/Brand";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,6 +7,8 @@ import { Pressable, Text, View } from "react-native";
 import { colors } from "../../src/components/ui";
 import { useNotifications } from "../../src/lib/data";
 export default function TabLayout() {
+  useAppearance();
+
   const { data } = useNotifications();
   const unread = data?.filter((n) => !n.read_at).length;
   return (
@@ -18,12 +21,12 @@ export default function TabLayout() {
           paddingTop: 10,
           paddingBottom: 16,
           borderTopWidth: 1,
-          borderTopColor: "#E6EAE5",
-          backgroundColor: "#FCFDF9",
+          borderTopColor: themeColor("#E6EAE5", "border"),
+          backgroundColor: themeColor("#FCFDF9", "surface"),
         },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: "600" },
+        tabBarLabelStyle: { fontSize: textSize(10), fontWeight: "600" },
         headerRight: () => <MessagesEntry />,
-        headerStyle: { backgroundColor: "#FCFDF9" },
+        headerStyle: { backgroundColor: themeColor("#FCFDF9", "surface") },
         headerShadowVisible: false,
         headerTitleStyle: { fontWeight: "800", color: colors.navy },
       }}
@@ -94,7 +97,7 @@ export default function TabLayout() {
                   width: 38,
                   height: 38,
                   borderRadius: 13,
-                  backgroundColor: colors.blue,
+                  backgroundColor: themeColor("#24766C", "surface"),
                   alignItems: "center",
                   justifyContent: "center",
                   shadowColor: colors.blue,
@@ -104,10 +107,18 @@ export default function TabLayout() {
                   elevation: 2,
                 }}
               >
-                <Ionicons name="add" size={25} color="#FFFFFF" />
+                <Ionicons
+                  name="add"
+                  size={25}
+                  color={themeColor("#FFFFFF", "text")}
+                />
               </View>
               <Text
-                style={{ fontSize: 10, fontWeight: "600", color: colors.blue }}
+                style={{
+                  fontSize: textSize(10),
+                  fontWeight: "600",
+                  color: colors.blue,
+                }}
               >
                 Paylaş
               </Text>

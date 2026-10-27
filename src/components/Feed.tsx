@@ -1,3 +1,4 @@
+import { useAppearance, textSize } from "../lib/appearance";
 import { ApplicationOverview } from "./ApplicationOverview";
 import {
   HomeWelcome,
@@ -8,7 +9,7 @@ import { FlatList, View, Text, ScrollView, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useMemo, useState, useEffect, type ReactElement } from "react";
-import { useFeed, useFollows, type FeedFilter } from "../lib/data";
+import { useFeed, useFollows, PAGE_SIZE, type FeedFilter } from "../lib/data";
 import { useAuth } from "../lib/auth";
 import { rankFeed } from "../lib/ranking";
 import { configured } from "../lib/supabase";
@@ -45,6 +46,8 @@ export function Feed({
   baseFilter?: FeedFilter;
   contentOnly?: boolean;
 }) {
+  useAppearance();
+
   const [selected, setSelected] = useState("Tümü");
   const [open, setOpen] = useState(false);
   const [first, setFirst] = useState(false);
@@ -151,7 +154,7 @@ export function Feed({
                 >
                   <Text
                     style={{
-                      fontSize: 14,
+                      fontSize: textSize(14),
                       fontWeight: selected === label ? "700" : "400",
                       color: selected === label ? colors.navy : colors.muted,
                     }}
@@ -193,6 +196,9 @@ export function Feed({
   return (
     <>
       <FlatList
+        initialNumToRender={PAGE_SIZE}
+        maxToRenderPerBatch={PAGE_SIZE}
+        windowSize={9}
         style={styles.page}
         contentContainerStyle={{ padding: 16, paddingBottom: 32, gap: 12 }}
         data={posts}
@@ -280,7 +286,7 @@ export function Feed({
             onPress={() => setFirst(!first)}
           />
           <Chip
-            label="Kritik bilgiler"
+            label="Önemli bilgiler"
             active={critical}
             onPress={() => setCritical(!critical)}
           />

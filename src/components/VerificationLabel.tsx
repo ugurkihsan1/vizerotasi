@@ -1,3 +1,4 @@
+import { useAppearance, themeColor, textSize } from "../lib/appearance";
 import { Text, View } from "react-native";
 import { useVerification } from "../lib/evidence";
 import { styles } from "./ui";
@@ -8,14 +9,16 @@ export function VerificationLabel({
   postId: string;
   compact?: boolean;
 }) {
+  useAppearance();
+
   const q = useVerification(postId);
   const verified = q.data?.status === "verified";
   if (compact)
     return (
       <Text
         style={{
-          color: "#24766C",
-          fontSize: 10,
+          color: themeColor("#24766C", "text"),
+          fontSize: textSize(10),
           lineHeight: 16,
         }}
       >
@@ -27,7 +30,12 @@ export function VerificationLabel({
       <Text
         style={[
           styles.pillText,
-          { color: verified ? "#24766C" : "#71579D", fontSize: 11 },
+          {
+            color: verified
+              ? themeColor("#24766C", "text")
+              : themeColor("#71579D", "text"),
+            fontSize: textSize(11),
+          },
         ]}
       >
         {q.isPending
@@ -38,7 +46,7 @@ export function VerificationLabel({
               ? "✓ Belgeyle doğrulanmış deneyim"
               : "Kullanıcı deneyimi · Belgeyle doğrulanmadı"}
       </Text>
-      <Text style={[styles.muted, { fontSize: 11 }]}>
+      <Text style={[styles.muted, { fontSize: textSize(11) }]}>
         Yayın onayı doğruluk veya resmî kural onayı değildir.
         {verified
           ? " Destekleyici belge yönetimce incelendi; uygulama başvuruya göre değişebilir."

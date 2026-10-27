@@ -1,3 +1,4 @@
+import { useAppearance } from "../src/lib/appearance";
 import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
@@ -13,6 +14,8 @@ import {
   Message,
 } from "../src/components/ui";
 export default function Admin() {
+  useAppearance();
+
   const { profile } = useAuth();
   const { data: countries } = useCountries();
   const [country, setCountry] = useState("");
@@ -49,6 +52,11 @@ export default function Admin() {
         secondary
         label="Belge uyarılarını yönet"
         onPress={() => router.push("/document-notes")}
+      />
+      <Button
+        secondary
+        label="Ülke ekle / düzenle"
+        onPress={() => router.push("/admin-countries")}
       />
       <Message text={message} />
       <View style={styles.card}>
@@ -95,14 +103,14 @@ export default function Admin() {
       </View>
       <View style={styles.card}>
         <Text style={styles.heading}>
-          Kritik bilgiyi düzenle ve kaynağını doğrula
+          Önemli bilgiyi düzenle ve kaynağını doğrula
         </Text>
         <Text style={styles.muted}>
           İpucu önce paylaşım ekranından oluşturulur. Düzenleme sonrasında
           tekrar moderasyon onayı gerekir.
         </Text>
         <Field
-          label="Kritik bilgi kimliği (UUID)"
+          label="Önemli bilgi kimliği (UUID)"
           value={tipId}
           onChangeText={setTipId}
         />

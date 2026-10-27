@@ -1,3 +1,4 @@
+import { useAppearance, themeColor, textSize } from "../src/lib/appearance";
 import { useState } from "react";
 import { FlatList, View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,10 +18,14 @@ import {
   Chip,
 } from "../src/components/ui";
 export default function Groups() {
+  useAppearance();
+
   const { session } = useAuth();
   return <GroupDirectory key={session?.user.id ?? "guest"} />;
 }
 function GroupDirectory() {
+  useAppearance();
+
   const q = useGroups(),
     cache = useQueryClient(),
     { session } = useAuth();
@@ -63,12 +68,16 @@ function GroupDirectory() {
                 width: 44,
                 height: 44,
                 borderRadius: 16,
-                backgroundColor: colors.blue,
+                backgroundColor: themeColor("#24766C", "surface"),
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Ionicons name="add" size={25} color="#FFF" />
+              <Ionicons
+                name="add"
+                size={25}
+                color={themeColor("#FFF", "text")}
+              />
             </Pressable>
           ),
         }}
@@ -132,7 +141,9 @@ function GroupDirectory() {
                 width: 52,
                 height: 52,
                 borderRadius: 18,
-                backgroundColor: g.is_system ? "#EDE8F8" : "#EAF0ED",
+                backgroundColor: g.is_system
+                  ? themeColor("#EDE8F8", "surface")
+                  : themeColor("#EAF0ED", "surface"),
                 alignItems: "center",
                 justifyContent: "center",
               }}
@@ -140,7 +151,9 @@ function GroupDirectory() {
               <Ionicons
                 name={g.is_system ? "school-outline" : "people-outline"}
                 size={26}
-                color={g.is_system ? "#71579D" : colors.blue}
+                color={
+                  g.is_system ? themeColor("#71579D", "text") : colors.blue
+                }
               />
             </View>
             <View style={{ flex: 1, gap: 4 }}>
@@ -156,7 +169,7 @@ function GroupDirectory() {
                       : "Yönetici onaylı"}
               </Text>
               {g.request_count > 0 && (
-                <Text style={{ color: colors.amber, fontSize: 12 }}>
+                <Text style={{ color: colors.amber, fontSize: textSize(12) }}>
                   {g.request_count} katılım isteği
                 </Text>
               )}

@@ -1,3 +1,4 @@
+import { useAppearance, textSize, themeColor } from "../src/lib/appearance";
 import { useState } from "react";
 import { ScrollView, View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,6 +15,8 @@ import {
 import { MemberBadge } from "../src/components/MemberBadge";
 import { styles, colors, Button, Sheet } from "../src/components/ui";
 export default function Badges() {
+  useAppearance();
+
   const { profile } = useAuth();
   const { data: levels } = useMembershipLevels();
   const [selected, setSelected] = useState<MembershipLevel | null>(null);
@@ -39,7 +42,7 @@ export default function Badges() {
       <View style={{ gap: 8 }}>
         <Text
           style={{
-            fontSize: 10,
+            fontSize: textSize(10),
             letterSpacing: 1.3,
             fontWeight: "700",
             color: colors.blue,
@@ -61,7 +64,11 @@ export default function Badges() {
           />
           <View style={styles.row}>
             <Text
-              style={{ fontSize: 34, fontWeight: "800", color: colors.navy }}
+              style={{
+                fontSize: textSize(34),
+                fontWeight: "800",
+                color: colors.navy,
+              }}
             >
               {profile.badge_score ?? 0}
             </Text>
@@ -81,7 +88,7 @@ export default function Badges() {
                 accessibilityLabel="Rozet puanı ilerlemesi"
                 style={{
                   height: 7,
-                  backgroundColor: "#E7EBE5",
+                  backgroundColor: themeColor("#E7EBE5", "surface"),
                   borderRadius: 4,
                 }}
               >
@@ -102,7 +109,7 @@ export default function Badges() {
           )}
           {profile.reputation_metrics &&
             profile.reputation_metrics.penalty_points < 0 && (
-              <Text style={{ fontSize: 12, color: colors.red }}>
+              <Text style={{ fontSize: textSize(12), color: colors.red }}>
                 İncelenen ihlallerden puan etkisi:{" "}
                 {profile.reputation_metrics.penalty_points}
               </Text>
@@ -180,19 +187,21 @@ export default function Badges() {
                   padding: 16,
                   alignItems: "center",
                   gap: 9,
-                  backgroundColor: has ? "#EEF3E8" : "#FFF",
+                  backgroundColor: has
+                    ? themeColor("#EEF3E8", "surface")
+                    : themeColor("#FFF", "surface"),
                 },
               ]}
             >
               <Ionicons
                 name={a.icon}
                 size={30}
-                color={has ? colors.blue : "#9AA6AA"}
+                color={has ? colors.blue : themeColor("#9AA6AA", "text")}
               />
               <Text style={styles.pillText}>{a.name}</Text>
               <Text
                 style={{
-                  fontSize: 10,
+                  fontSize: textSize(10),
                   color: has ? colors.blue : colors.muted,
                 }}
               >

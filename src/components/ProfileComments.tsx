@@ -1,3 +1,4 @@
+import { useAppearance } from "../lib/appearance";
 import { formatDate } from "../lib/dates";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { View, Text } from "react-native";
@@ -7,6 +8,8 @@ import type { Comment } from "../lib/types";
 import { Button, Empty, styles } from "./ui";
 import { statusLabels } from "./PostCard";
 export function ProfileComments({ user }: { user: string }) {
+  useAppearance();
+
   const q = useInfiniteQuery({
     queryKey: ["profile-comments", user],
     initialPageParam: 0,
@@ -40,7 +43,7 @@ export function ProfileComments({ user }: { user: string }) {
       ))}
       {!q.data?.pages[0].length && (
         <Empty title={q.isError ? "Yorumlar yüklenemedi" : "Henüz yorum yok"} />
-      )}{" "}
+      )}
       {q.hasNextPage && (
         <Button
           secondary

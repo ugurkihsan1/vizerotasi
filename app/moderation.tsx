@@ -1,3 +1,4 @@
+import { useAppearance } from "../src/lib/appearance";
 import { ChatReports } from "../src/components/ChatReports";
 import { EvidencePanel, EvidenceQueue } from "../src/components/EvidencePanel";
 import { router } from "expo-router";
@@ -20,6 +21,8 @@ import {
 import { PostCard } from "../src/components/PostCard";
 import type { Post, Comment, Status } from "../src/lib/types";
 export default function Moderation() {
+  useAppearance();
+
   const { profile } = useAuth();
   const [tab, setTab] = useState("all");
   const [target, setTarget] = useState<{ id: string; decision: Status } | null>(
@@ -98,7 +101,7 @@ export default function Moderation() {
               all: "Tüm gönderiler",
               experience: "Deneyimler",
               question: "Sorular",
-              tip: "Kritik",
+              tip: "Önemli",
               comment: "Yorumlar",
               reports: "Bildirilenler",
             }).map(([k, l]) => (

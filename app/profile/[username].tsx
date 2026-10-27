@@ -1,3 +1,4 @@
+import { useAppearance } from "../../src/lib/appearance";
 import { useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { db, configured } from "../../src/lib/supabase";
@@ -5,6 +6,8 @@ import type { Profile } from "../../src/lib/types";
 import { ProfileScreen } from "../../src/screens/ProfileScreen";
 import { Busy, Empty } from "../../src/components/ui";
 export default function PublicProfile() {
+  useAppearance();
+
   const { username } = useLocalSearchParams<{ username: string }>();
   const q = useQuery({
     queryKey: ["username", username],

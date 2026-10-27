@@ -1,3 +1,4 @@
+import { useAppearance } from "../lib/appearance";
 import { useState } from "react";
 import { Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -6,6 +7,8 @@ import { chatError } from "../lib/chat";
 import { formatDateTime } from "../lib/dates";
 import { Button, Message, Sheet, styles } from "./ui";
 export function ChatReports() {
+  useAppearance();
+
   const cache = useQueryClient(),
     [open, setOpen] = useState(false),
     [error, setError] = useState("");
@@ -49,7 +52,7 @@ export function ChatReports() {
           Burada yalnız bildirilen mesajın kopyası görünür; özel sohbetin
           tamamına erişim verilmez.
         </Text>
-        {q.isError && <Message text={chatError(q.error)} />}{" "}
+        {q.isError && <Message text={chatError(q.error)} />}
         {q.data?.map((r) => (
           <View key={r.id} style={styles.card}>
             <Text style={styles.text}>{r.body_snapshot}</Text>

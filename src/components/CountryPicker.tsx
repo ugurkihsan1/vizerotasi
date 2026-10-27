@@ -1,3 +1,4 @@
+import { useAppearance } from "../lib/appearance";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,6 +16,8 @@ export function CountryPicker({
   label?: string;
   disabled?: boolean;
 }) {
+  useAppearance();
+
   const [open, setOpen] = useState(false),
     [search, setSearch] = useState("");
   const q = useCountries();

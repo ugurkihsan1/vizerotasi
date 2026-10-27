@@ -1,9 +1,12 @@
+import { useAppearance } from "../../src/lib/appearance";
 import { View, Text, Pressable } from "react-native";
 import { router } from "expo-router";
 import { useAuth } from "../../src/lib/auth";
 import { ProfileScreen } from "../../src/screens/ProfileScreen";
 import { Empty, styles, Busy } from "../../src/components/ui";
 export default function Profile() {
+  useAppearance();
+
   const { profile, session, loading } = useAuth();
   if (loading) return <Busy />;
   if (!session)

@@ -1007,3 +1007,98 @@ it("provisions Denmark additively and preserves existing checklist edits on reru
     ).rows[0],
   ).toMatchObject({ body: "An existing administrator checklist edit." });
 });
+it("only the author can remove a post or comment and dependent rows disappear", async () => {
+  const author = await user(),
+    other = await user(),
+    admin = await user(20, "admin"),
+    pid = await post(author);
+  const c = await root(
+    "insert into comments(post_id,user_id,body,status) values($1,$2,'A comment to delete','approved') returning id",
+    [pid, other],
+  );
+  const cid = (c.rows[0] as { id: string }).id;
+  await expect(
+    as(null, "select delete_own_content($1)", [pid]),
+  ).rejects.toThrow();
+  await expect(
+    as(other, "select delete_own_content($1)", [pid]),
+  ).rejects.toThrow();
+  await expect(
+    as(admin, "select delete_own_content($1)", [pid]),
+  ).rejects.toThrow();
+  await expect(
+    as(author, "select delete_own_content($1,true)", [cid]),
+  ).rejects.toThrow();
+  await as(other, "select delete_own_content($1,true)", [cid]);
+  expect(
+    (await root("select id from comments where id=$1", [cid])).rows,
+  ).toHaveLength(0);
+  await root(
+    "insert into comments(post_id,user_id,body,status) values($1,$2,'Another dependent comment','approved')",
+    [pid, other],
+  );
+  await as(author, "select delete_own_content($1)", [pid]);
+  expect(
+    (await root("select id from posts where id=$1", [pid])).rows,
+  ).toHaveLength(0);
+  expect(
+    (await root("select id from comments where post_id=$1", [pid])).rows,
+  ).toHaveLength(0);
+});
+it("country editing is administrator-only, validates URLs and generates a real flag", async () => {
+  const normal = await user(),
+    admin = await user(20, "admin");
+  const payload = {
+    id: "belgium",
+    name: "Belçika",
+    code: "BE",
+    summary: "A manually maintained guide",
+    cover_url: "https://example.com/photo.jpg",
+    source_url: "https://example.com/official",
+    appointment_url: "https://example.com/book",
+    is_schengen: true,
+  };
+  await expect(
+    as(normal, "select admin_save_country($1::jsonb)", [
+      JSON.stringify(payload),
+    ]),
+  ).rejects.toThrow();
+  await expect(
+    as(admin, "select admin_save_country($1::jsonb)", [
+      JSON.stringify({ ...payload, cover_url: "http://invalid.test/photo" }),
+    ]),
+  ).rejects.toThrow();
+  await as(admin, "select admin_save_country($1::jsonb)", [
+    JSON.stringify(payload),
+  ]);
+  expect(
+    (
+      await as(
+        null,
+        "select name,code,flag,summary from countries where id='belgium'",
+      )
+    ).rows[0],
+  ).toMatchObject({
+    name: "Belçika",
+    code: "BE",
+    flag: "🇧🇪",
+    summary: payload.summary,
+  });
+  await expect(
+    as(admin, "select admin_save_country($1::jsonb)", [
+      JSON.stringify({ ...payload, id: "duplicate-belgium" }),
+    ]),
+  ).rejects.toThrow();
+  await as(admin, "select admin_save_country($1::jsonb)", [
+    JSON.stringify({ ...payload, summary: "Updated guide" }),
+  ]);
+  expect(
+    (await as(null, "select summary from countries where id='belgium'"))
+      .rows[0],
+  ).toMatchObject({ summary: "Updated guide" });
+  await pg.exec("reset role");
+  await pg.exec(readFileSync("docs/MOBILE_CONTROLS_UPGRADE.sql", "utf8"));
+  expect(
+    (await as(null, "select flag from countries where id='belgium'")).rows[0],
+  ).toMatchObject({ flag: "🇧🇪" });
+});

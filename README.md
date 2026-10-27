@@ -146,4 +146,8 @@ Supabase SQL Editor’da [CHAT_UPGRADE.sql](docs/CHAT_UPGRADE.sql) dosyasının 
 
 Erasmus ve kullanıcıların oluşturduğu gruplar için Supabase SQL Editor’da [GROUPS_UPGRADE.sql](docs/GROUPS_UPGRADE.sql) çalıştırılır. Kurulum ve gizlilik ayrıntıları: [Gruplar rehberi](docs/GROUPS_TR.md).
 
-Danimarka rehberi ve ülke topluluğu için [DENMARK_UPGRADE.sql](docs/DENMARK_UPGRADE.sql) dosyası Supabase SQL Editor'da çalıştırılır (001–002 temeli gerekir). Rehber ve kontrol listesi uygulamada da bulunur; SQL ülkeye paylaşım yapmayı etkinleştirir. Kaynak: Danimarka Göçmenlik Servisi'nin özel ziyaret/turizm sayfası ve ApplyVisa, 27/10/2026 kontrolü. Nyhavn fotoğrafının atfı Fotoğraf kaynakları ekranındadır. Gruplar artık ana akıştaki topluluk sekmelerinden seçilir; üyelik onayı ve gizlilik değişmez.
+Danimarka rehberi ve ülke topluluğu için [DENMARK_UPGRADE.sql](docs/DENMARK_UPGRADE.sql) dosyası Supabase SQL Editor'da çalıştırılır (001–002 temeli gerekir). Rehber ve kontrol listesi uygulamada da bulunur; SQL ülkeye paylaşım yapmayı etkinleştirir. Kaynak: Danimarka Göçmenlik Servisi'nin özel ziyaret/turizm sayfası ve ApplyVisa, 27/10/2026 kontrolü. Rosenborg Kalesi fotoğrafının atfı Fotoğraf kaynakları ekranındadır. Gruplar artık ana akıştaki topluluk sekmelerinden seçilir; üyelik onayı ve gizlilik değişmez.
+
+### Mobil kontroller
+
+Ayarlar, silme ve yönetici ülke ekleme: [kurulum rehberi](docs/MOBILE_CONTROLS_TR.md). Yeni sunucu yetkileri için [MOBILE_CONTROLS_UPGRADE.sql](docs/MOBILE_CONTROLS_UPGRADE.sql) Supabase SQL Editor’da çalıştırılır. Tema ve diğer cihaz tercihleri SQL gerektirmez.

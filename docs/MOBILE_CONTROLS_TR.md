@@ -1,0 +1,10 @@
+# Mobil ayarlar, silme ve ülke yönetimi
+
+Supabase SQL Editor’da `MOBILE_CONTROLS_UPGRADE.sql` dosyasının tamamını çalıştırın. Temel 001 gerekir; tekrar çalıştırılabilir. Yeni RPC'ler ve ülke metadata alanlarını ekler. Önceki içerikleri/ülkeleri silmez. Uzak veritabanına otomatik uygulanmış sayılmaz.
+
+- Profil → Ülkeleri yönet (yalnız admin) veya Yönetim → Ülke ekle / düzenle. Ad, iki harfli kod, bağlantı adı, kısa rehber, fotoğrafın HTTPS bağlantısı, resmî kaynak ve randevu bağlantısı girilir. Bayrak koddan üretilir. Aynı ülke kodu iki farklı ülkeye eklenemez.
+- Fotoğraf URL'si yöneticinin kullanma hakkına sahip olduğu gerçek bir fotoğrafa yönelmelidir. Bu ekran cihazdan dosya yüklemez; bağlantıyla ekler. Özel fotoğraf girildiğinde paketli fotoğrafın atfı o fotoğrafa uygulanmaz.
+- Ülkeyi kaydettikten sonra belge ekle/düzenle ile başlık, açıklama ve kaynak girilir. Ülke/rehber/kapak herkese görünür. Sıradan üyeler ve moderatörler ülke kaydedemez.
+- Paylaşım → Detaylar → Paylaşımı sil. Kendi yorumunun altındaki silme düğmesiyle yorum da silinebilir. Onay diyaloğu vardır; altındaki yorum/yanıtlar, tepkiler ve kayıtlar ilişkili yabancı anahtarlarla silinir. RPC başka birinin içeriğinin silinmesini, yönetici tarafından çağrılsa bile, kabul etmez. Moderasyon ayrı işlemdir.
+- Özel ek dosya yolları silmeden önce yalnız yetkili sahip tarafından alınır. İçerik silindikten sonra özel dosya temizliği denenir. Ağ hatasında bu cihazda sahibine özel kuyruk tutulur; Ayarlar’dan yeniden denenir. Temizlik tamamlanana kadar dosyalar özel depoda kalabilir. Cihaz verisi kaybolursa depodaki sahipsiz dosyalar için işletmeci temizliği gerekir; otomatik saklama süresi uygulanmaz.
+- Ayarlar’da açık/karanlık/sistem teması, büyük yazı, hareket azaltma ve dokunsal geri bildirim bu cihazda saklanır. Hareket azaltma ayrıca sistem erişilebilirlik tercihini izler. Tema fotoğrafları veya bayrakları ters renge çevirmez. Arama geçmişi temizliği kontrol listelerini veya üyelikleri silmez. Bildirim anahtarları uygulama içi tercihleri değiştirir; cihaz push izni oluşturmaz.

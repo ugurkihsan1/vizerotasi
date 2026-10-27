@@ -1,3 +1,4 @@
+import { useAppearance } from "../lib/appearance";
 import { useEffect, useRef, type ComponentRef } from "react";
 import { ScrollView, View } from "react-native";
 import { Chip } from "./ui";
@@ -11,6 +12,8 @@ export function ScrollTabs({
   value: string;
   onChange: (label: string) => void;
 }) {
+  useAppearance();
+
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null),
     positions = useRef<Record<string, number>>({});
   function reveal(label: string) {

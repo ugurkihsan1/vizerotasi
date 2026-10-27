@@ -1,3 +1,4 @@
+import { useAppearance, themeColor, textSize } from "../lib/appearance";
 import { VerificationLabel } from "./VerificationLabel";
 import { useState } from "react";
 import { View, Text, Pressable } from "react-native";
@@ -9,6 +10,8 @@ import { useToggle } from "../lib/data";
 import { useAuth } from "../lib/auth";
 import { styles, colors, useGate, Message } from "./ui";
 export function SourceDocumentWarning({ order }: { order: number }) {
+  useAppearance();
+
   const notes: Record<number, { title: string; body: string }> = {
     2: {
       title: "Fotoğraf ölçüsü ve tarihi önemli",
@@ -35,6 +38,8 @@ export function SourceDocumentWarning({ order }: { order: number }) {
   ) : null;
 }
 function ExperienceWarning({ note }: { note: DocumentNote }) {
+  useAppearance();
+
   const toggle = useToggle("document_note_confirmations", "note_id", note.id);
   const { session } = useAuth();
   const gate = useGate();
@@ -52,8 +57,17 @@ function ExperienceWarning({ note }: { note: DocumentNote }) {
       {note.scope && <Text style={styles.muted}>Kapsam: {note.scope}</Text>}
       {note.similar_count > 0 && (
         <View style={styles.row}>
-          <Ionicons name="people-outline" size={16} color="#7661A6" />
-          <Text style={{ fontSize: 12, color: "#71579D" }}>
+          <Ionicons
+            name="people-outline"
+            size={16}
+            color={themeColor("#7661A6", "text")}
+          />
+          <Text
+            style={{
+              fontSize: textSize(12),
+              color: themeColor("#71579D", "text"),
+            }}
+          >
             {note.similar_count} kişi benzer deneyim bildirdi
           </Text>
         </View>
@@ -64,7 +78,7 @@ function ExperienceWarning({ note }: { note: DocumentNote }) {
           onPress={() => router.push(`/experience/${note.post_id}`)}
           style={{ minHeight: 44, justifyContent: "center" }}
         >
-          <Text style={{ fontSize: 12, color: colors.blue }}>
+          <Text style={{ fontSize: textSize(12), color: colors.blue }}>
             Kaynak deneyimi gör →
           </Text>
         </Pressable>
@@ -88,7 +102,13 @@ function ExperienceWarning({ note }: { note: DocumentNote }) {
             }
             style={{ minHeight: 44, justifyContent: "center" }}
           >
-            <Text style={{ fontSize: 12, fontWeight: "600", color: "#71579D" }}>
+            <Text
+              style={{
+                fontSize: textSize(12),
+                fontWeight: "600",
+                color: themeColor("#71579D", "text"),
+              }}
+            >
               {toggle.active
                 ? "✓ Benzer deneyim bildirdin"
                 : "Ben de benzer bir deneyim yaşadım"}
@@ -109,6 +129,8 @@ export function DocumentWarnings({
   documentId?: string;
   documentKey?: string;
 }) {
+  useAppearance();
+
   const q = useDocumentNotes(country);
   const notes = q.data?.filter(
     (n) =>

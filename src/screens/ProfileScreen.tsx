@@ -1,3 +1,4 @@
+import { useAppearance, themeColor, textSize } from "../lib/appearance";
 import { useAuth } from "../lib/auth";
 import { chatError } from "../lib/chat";
 import { formatDate } from "../lib/dates";
@@ -28,6 +29,8 @@ export function ProfileScreen({
   profile: Profile;
   own?: boolean;
 }) {
+  useAppearance();
+
   const [tab, setTab] = useState("Paylaşımlar");
   const { session } = useAuth();
   const gate = useGate();
@@ -49,9 +52,11 @@ export function ProfileScreen({
     queryFn: async () => {
       const r = await db().rpc("profile_stats", { target_user: profile.id });
       if (r.error) throw r.error;
-      return r.data?.[0] as
-        | { contributions: number; helpful: number; countries: number }
-        | undefined;
+      return (r.data?.[0] ?? null) as {
+        contributions: number;
+        helpful: number;
+        countries: number;
+      } | null;
     },
   });
   return (
@@ -62,7 +67,6 @@ export function ProfileScreen({
       saved={tab === "Kaydedilenler"}
       baseFilter={{
         kind: tab === "Deneyimler" ? "experience" : undefined,
-        pending: tab === "İncelemede",
       }}
       header={
         <View style={{ gap: 18 }}>
@@ -70,7 +74,7 @@ export function ProfileScreen({
             <View
               style={{
                 height: 64,
-                backgroundColor: colors.navy,
+                backgroundColor: themeColor("#182E43", "surface"),
                 overflow: "hidden",
               }}
             >
@@ -81,7 +85,7 @@ export function ProfileScreen({
                   height: 140,
                   borderRadius: 70,
                   borderWidth: 1,
-                  borderColor: "#49645F",
+                  borderColor: themeColor("#49645F", "border"),
                   right: 20,
                   top: -70,
                 }}
@@ -93,7 +97,7 @@ export function ProfileScreen({
                   height: 190,
                   borderRadius: 95,
                   borderWidth: 1,
-                  borderColor: "#49645F",
+                  borderColor: themeColor("#49645F", "border"),
                   right: -5,
                   top: -96,
                 }}
@@ -112,7 +116,7 @@ export function ProfileScreen({
                   style={{
                     padding: 5,
                     borderRadius: 44,
-                    backgroundColor: "#FFF",
+                    backgroundColor: themeColor("#FFF", "surface"),
                   }}
                 >
                   <Avatar
@@ -189,7 +193,7 @@ export function ProfileScreen({
                 {profile.role !== "user" && (
                   <Text
                     style={{
-                      fontSize: 11,
+                      fontSize: textSize(11),
                       color: colors.amber,
                       fontWeight: "600",
                     }}
@@ -204,7 +208,7 @@ export function ProfileScreen({
                   flexDirection: "row",
                   paddingVertical: 15,
                   borderTopWidth: 1,
-                  borderTopColor: "#EDF0EB",
+                  borderTopColor: themeColor("#EDF0EB", "border"),
                   justifyContent: "space-between",
                 }}
               >
@@ -219,20 +223,22 @@ export function ProfileScreen({
                   >
                     <Text
                       style={{
-                        fontSize: 23,
+                        fontSize: textSize(23),
                         fontWeight: "800",
                         color: colors.navy,
                       }}
                     >
                       {value}
                     </Text>
-                    <Text style={{ fontSize: 11, color: colors.muted }}>
+                    <Text
+                      style={{ fontSize: textSize(11), color: colors.muted }}
+                    >
                       {label}
                     </Text>
                   </View>
                 ))}
               </View>
-              <Text style={[styles.muted, { fontSize: 11 }]}>
+              <Text style={[styles.muted, { fontSize: textSize(11) }]}>
                 {formatDate(profile.created_at)} tarihinde katıldı
               </Text>
             </View>
@@ -264,12 +270,17 @@ export function ProfileScreen({
                 <View
                   key={b.badge_id}
                   style={{
-                    backgroundColor: "#FFF1D7",
+                    backgroundColor: themeColor("#FFF1D7", "surface"),
                     padding: 12,
                     borderRadius: 14,
                   }}
                 >
-                  <Text style={{ fontSize: 12, color: "#8E692C" }}>
+                  <Text
+                    style={{
+                      fontSize: textSize(12),
+                      color: themeColor("#8E692C", "text"),
+                    }}
+                  >
                     🏅 {(b.badges as unknown as { name: string })?.name}
                   </Text>
                 </View>
@@ -288,7 +299,7 @@ export function ProfileScreen({
                     alignItems: "center",
                     padding: 16,
                     gap: 12,
-                    backgroundColor: "#ECF2ED",
+                    backgroundColor: themeColor("#ECF2ED", "surface"),
                   },
                 ]}
               >
@@ -307,6 +318,13 @@ export function ProfileScreen({
                 />
               </Pressable>
               {profile.role === "admin" && (
+                <Button
+                  secondary
+                  label="Ülkeleri yönet"
+                  onPress={() => router.push("/admin-countries")}
+                />
+              )}
+              {profile.role === "admin" && (
                 <Pressable
                   accessibilityRole="link"
                   onPress={() => router.push("/admin")}
@@ -316,7 +334,7 @@ export function ProfileScreen({
                     alignItems: "center",
                   }}
                 >
-                  <Text style={{ fontSize: 12, color: colors.blue }}>
+                  <Text style={{ fontSize: textSize(12), color: colors.blue }}>
                     İçerik ve üye yönetimi →
                   </Text>
                 </Pressable>
@@ -332,7 +350,7 @@ export function ProfileScreen({
               "Paylaşımlar",
               "Deneyimler",
               "Yorumlar",
-              ...(own ? ["İncelemede", "Kaydedilenler", "Belgelerim"] : []),
+              ...(own ? ["Kaydedilenler", "Belgelerim"] : []),
             ].map((t) => (
               <Chip
                 key={t}

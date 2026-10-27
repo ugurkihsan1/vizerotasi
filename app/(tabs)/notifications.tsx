@@ -1,3 +1,4 @@
+import { useAppearance, themeColor } from "../../src/lib/appearance";
 import { formatDateTime } from "../../src/lib/dates";
 import { FlatList, Text, Pressable, View } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,6 +22,8 @@ function NotificationRow({
   };
   onOpen: () => void;
 }) {
+  useAppearance();
+
   const post = usePost(n.post_id ?? "");
   return (
     <Pressable
@@ -29,7 +32,10 @@ function NotificationRow({
         onOpen();
         if (post.data) router.push(postPath(post.data));
       }}
-      style={[styles.card, !n.read_at && { backgroundColor: "#EAF1FF" }]}
+      style={[
+        styles.card,
+        !n.read_at && { backgroundColor: themeColor("#EAF1FF", "surface") },
+      ]}
     >
       <Text style={[styles.text, { fontWeight: "600" }]}>
         {!n.read_at ? "• " : ""}
@@ -40,6 +46,8 @@ function NotificationRow({
   );
 }
 export default function Notifications() {
+  useAppearance();
+
   const { session } = useAuth();
   const q = useNotifications();
   const cache = useQueryClient();

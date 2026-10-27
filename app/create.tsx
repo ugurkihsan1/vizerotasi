@@ -1,3 +1,4 @@
+import { useAppearance, themeColor, textSize } from "../src/lib/appearance";
 import { CountryPicker } from "../src/components/CountryPicker";
 import { EvidenceUpload } from "../src/components/EvidenceUpload";
 import { uploadEvidence, type EvidenceDraft } from "../src/lib/evidence";
@@ -52,6 +53,8 @@ import {
   selectedDocumentPlacement,
 } from "../src/lib/guide-topics";
 export default function Create() {
+  const appearance = useAppearance();
+
   const params = useLocalSearchParams<{
     kind?: string;
     country?: string;
@@ -350,9 +353,10 @@ export default function Create() {
           setUploadedUris((current) => [...current, file.uri]);
         }
       setSuccess(true);
-      void Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Success,
-      ).catch(() => {});
+      if (appearance.haptics)
+        void Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        ).catch(() => {});
       void cache.invalidateQueries({ queryKey: ["feed"] });
       void cache.invalidateQueries({ queryKey: ["guide-community-tips"] });
     } catch (e) {
@@ -436,7 +440,7 @@ export default function Create() {
           [
             ["experience", "✦ Vize deneyimi paylaş"],
             ["question", "? Soru sor"],
-            ["tip", "⚡ Kritik bilgi paylaş"],
+            ["tip", "⚡ Önemli bilgi paylaş"],
           ] as const
         ).map(([k, l]) => (
           <Pressable
@@ -456,10 +460,10 @@ export default function Create() {
                 borderRadius: 16,
                 backgroundColor:
                   k === "experience"
-                    ? "#E4EFE8"
+                    ? themeColor("#E4EFE8", "surface")
                     : k === "question"
-                      ? "#E6EDF4"
-                      : "#FBEDD4",
+                      ? themeColor("#E6EDF4", "surface")
+                      : themeColor("#FBEDD4", "surface"),
                 alignItems: "center",
                 justifyContent: "center",
               }}
@@ -482,9 +486,9 @@ export default function Create() {
                   ? "Vize deneyimi paylaş"
                   : k === "question"
                     ? "Soru sor"
-                    : "Kritik bilgi paylaş"}
+                    : "Önemli bilgi paylaş"}
               </Text>
-              <Text style={[styles.muted, { fontSize: 12 }]}>
+              <Text style={[styles.muted, { fontSize: textSize(12) }]}>
                 {k === "experience"
                   ? "Başvurunu, sürecini ve sonucunu anlat."
                   : k === "question"
@@ -548,7 +552,7 @@ export default function Create() {
                       gap: 12,
                       paddingTop: 12,
                       borderTopWidth: 1,
-                      borderTopColor: "#E4E9E2",
+                      borderTopColor: themeColor("#E4E9E2", "border"),
                     }}
                   >
                     <Text style={styles.pillText}>
@@ -684,14 +688,16 @@ export default function Create() {
         )}
         {(kind !== "experience" || step === 3) && (
           <>
-            <Text style={[styles.muted, { color: "#9A6615" }]}>
+            <Text
+              style={[styles.muted, { color: themeColor("#9A6615", "text") }]}
+            >
               {privacyWarning}
             </Text>
             {kind !== "experience" && (
               <View style={{ gap: 10 }}>
                 <Text style={styles.pillText}>
                   {kind === "tip"
-                    ? "Kritik bilgi hangi konuyla ilgili?"
+                    ? "Önemli bilgi hangi konuyla ilgili?"
                     : "Konu"}
                 </Text>
                 <View style={styles.row}>
@@ -720,7 +726,7 @@ export default function Create() {
                       gap: 8,
                       paddingLeft: 12,
                       borderLeftWidth: 3,
-                      borderLeftColor: "#DCD2ED",
+                      borderLeftColor: themeColor("#DCD2ED", "border"),
                     }}
                   >
                     <Text style={styles.pillText}>Hangi belgeyle ilgili?</Text>
@@ -784,26 +790,34 @@ export default function Create() {
                       <View
                         style={{
                           padding: 12,
-                          backgroundColor: "#F0EBFA",
+                          backgroundColor: themeColor("#F0EBFA", "surface"),
                           borderRadius: 10,
                           gap: 4,
                         }}
                       >
                         <Text
                           style={{
-                            fontSize: 12,
+                            fontSize: textSize(12),
                             fontWeight: "600",
-                            color: "#644A94",
+                            color: themeColor("#644A94", "text"),
                           }}
                         >
                           Bilginin bağlanacağı yer
                         </Text>
                         {!!value && (
                           <Text
-                            style={[styles.pillText, { color: "#644A94" }]}
+                            style={[
+                              styles.pillText,
+                              { color: themeColor("#644A94", "text") },
+                            ]}
                           >{`${countries.data?.find((c) => c.id === value)?.name ?? "Ülke"} → Turistik Vize → ${categoryRoot === "documents" && category !== "documents" ? "Belgeler → " + (documentChoices.find((d) => d.id === category)?.name ?? "Belge seç") : (guideTopicLabels[category] ?? "Başvuru Süreci")}`}</Text>
                         )}
-                        <Text style={[styles.muted, { color: "#71579D" }]}>
+                        <Text
+                          style={[
+                            styles.muted,
+                            { color: themeColor("#71579D", "text") },
+                          ]}
+                        >
                           {value
                             ? placement
                             : "Ülke ve konu seç; notun ilgili başvuru adımına bağlansın."}

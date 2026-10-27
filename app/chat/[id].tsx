@@ -1,3 +1,4 @@
+import { useAppearance, themeColor, textSize } from "../../src/lib/appearance";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -44,6 +45,8 @@ import {
   colors,
 } from "../../src/components/ui";
 export default function Chat() {
+  useAppearance();
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useAuth();
   return (
@@ -51,6 +54,8 @@ export default function Chat() {
   );
 }
 function ChatRoomScreen({ id }: { id: string }) {
+  useAppearance();
+
   const insets = useSafeAreaInsets();
   const { session, profile, loading } = useAuth(),
     cache = useQueryClient();
@@ -300,53 +305,34 @@ function ChatRoomScreen({ id }: { id: string }) {
     ).length;
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: "#F5F5F0" }}
+      style={{ flex: 1, backgroundColor: colors.bg }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 56 + insets.top : 0}
     >
-      <Stack.Screen options={{ title: roomTitle }} />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Sohbet bilgileri"
-        onPress={() => setInfo(true)}
-        style={{
-          paddingHorizontal: 20,
-          paddingVertical: 12,
-          borderBottomWidth: 1,
-          borderBottomColor: "#E5EAE5",
-          backgroundColor: "#FFF",
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 10,
+      <Stack.Screen
+        options={{
+          title: roomTitle,
+          headerRight: () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Sohbet bilgileri"
+              onPress={() => setInfo(true)}
+              style={{
+                width: 44,
+                height: 44,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons
+                name="ellipsis-horizontal"
+                size={23}
+                color={colors.muted}
+              />
+            </Pressable>
+          ),
         }}
-      >
-        <Ionicons
-          name={
-            room.data.kind === "community"
-              ? "earth-outline"
-              : room.data.kind === "group"
-                ? "people-outline"
-                : "chatbubble-outline"
-          }
-          size={22}
-          color={colors.blue}
-        />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.pillText} numberOfLines={1}>
-            {roomTitle}
-          </Text>
-          <Text style={styles.muted}>
-            {room.data.kind === "community"
-              ? "Takip eden üyelere açık topluluk odası"
-              : `${members.data.filter((m) => m.status === "active").length} katılımcı · Yalnız oda üyeleri`}
-          </Text>
-        </View>
-        <Ionicons
-          name="information-circle-outline"
-          size={22}
-          color={colors.muted}
-        />
-      </Pressable>
+      />
       {room.data.kind === "direct" && other?.status === "invited" && (
         <Text style={[styles.muted, { padding: 12, textAlign: "center" }]}>
           Sohbet isteği gönderildi. Kabul edilene kadar en fazla 3 mesaj
@@ -385,7 +371,11 @@ function ChatRoomScreen({ id }: { id: string }) {
                 <Text
                   style={[
                     styles.muted,
-                    { textAlign: "center", fontSize: 11, marginVertical: 6 },
+                    {
+                      textAlign: "center",
+                      fontSize: textSize(11),
+                      marginVertical: 6,
+                    },
                   ]}
                 >
                   {day}
@@ -407,14 +397,16 @@ function ChatRoomScreen({ id }: { id: string }) {
                   borderRadius: 18,
                   borderBottomRightRadius: mine ? 5 : 18,
                   borderBottomLeftRadius: mine ? 18 : 5,
-                  backgroundColor: mine ? "#24766C" : "#FFF",
+                  backgroundColor: mine
+                    ? themeColor("#24766C", "surface")
+                    : themeColor("#FFF", "surface"),
                   gap: 5,
                 }}
               >
                 {!mine && (
                   <Text
                     style={{
-                      fontSize: 11,
+                      fontSize: textSize(11),
                       fontWeight: "700",
                       color: colors.blue,
                     }}
@@ -425,9 +417,9 @@ function ChatRoomScreen({ id }: { id: string }) {
                 <Text
                   selectable
                   style={{
-                    fontSize: 15,
+                    fontSize: textSize(15),
                     lineHeight: 22,
-                    color: mine ? "#FFF" : colors.text,
+                    color: mine ? themeColor("#FFF", "text") : colors.text,
                     fontStyle: m.hidden_at ? "italic" : "normal",
                   }}
                 >
@@ -435,8 +427,8 @@ function ChatRoomScreen({ id }: { id: string }) {
                 </Text>
                 <Text
                   style={{
-                    fontSize: 10,
-                    color: mine ? "#D8ECE6" : colors.muted,
+                    fontSize: textSize(10),
+                    color: mine ? themeColor("#D8ECE6", "text") : colors.muted,
                     alignSelf: "flex-end",
                   }}
                 >
@@ -484,9 +476,9 @@ function ChatRoomScreen({ id }: { id: string }) {
           paddingHorizontal: 16,
           paddingBottom: Math.max(insets.bottom, 14),
           paddingTop: 10,
-          backgroundColor: "#FFF",
+          backgroundColor: themeColor("#FFF", "surface"),
           borderTopWidth: 1,
-          borderTopColor: "#E5EAE5",
+          borderTopColor: themeColor("#E5EAE5", "border"),
           gap: 7,
         }}
       >
@@ -508,7 +500,7 @@ function ChatRoomScreen({ id }: { id: string }) {
                 minHeight: 46,
                 maxHeight: 120,
                 paddingVertical: 12,
-                backgroundColor: "#F4F6F1",
+                backgroundColor: themeColor("#F4F6F1", "surface"),
               },
             ]}
           />
@@ -523,7 +515,7 @@ function ChatRoomScreen({ id }: { id: string }) {
               width: 46,
               height: 46,
               borderRadius: 15,
-              backgroundColor: colors.blue,
+              backgroundColor: themeColor("#24766C", "surface"),
               alignItems: "center",
               justifyContent: "center",
               opacity:
@@ -532,7 +524,11 @@ function ChatRoomScreen({ id }: { id: string }) {
                   : 1,
             }}
           >
-            <Ionicons name="send" color="#FFF" size={20} />
+            <Ionicons
+              name="send"
+              color={themeColor("#FFF", "text")}
+              size={20}
+            />
           </Pressable>
         </View>
       </View>

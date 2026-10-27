@@ -1,3 +1,4 @@
+import { useAppearance, textSize, themeColor } from "../../src/lib/appearance";
 import { PlaneReaction } from "../../src/components/PlaneReaction";
 import { useCallback, useRef, useState } from "react";
 import { FlatList, View, Text, Pressable } from "react-native";
@@ -43,6 +44,8 @@ function GroupPostCard({
   onDelete: () => void;
   busy: boolean;
 }) {
+  useAppearance();
+
   const { session } = useAuth();
   const [expanded, setExpanded] = useState(false);
   return (
@@ -55,7 +58,7 @@ function GroupPostCard({
         />
         <View style={{ flex: 1 }}>
           <Text style={styles.pillText}>{post.author.display_name}</Text>
-          <Text style={[styles.muted, { fontSize: 11 }]}>
+          <Text style={[styles.muted, { fontSize: textSize(11) }]}>
             {formatDateTime(post.created_at)}
           </Text>
         </View>
@@ -88,7 +91,7 @@ function GroupPostCard({
           onPress={() => setExpanded(!expanded)}
           style={{ minHeight: 44, justifyContent: "center" }}
         >
-          <Text style={{ color: colors.blue, fontSize: 13 }}>
+          <Text style={{ color: colors.blue, fontSize: textSize(13) }}>
             {expanded ? "Daha az göster" : "Devamını oku"}
           </Text>
         </Pressable>
@@ -98,7 +101,7 @@ function GroupPostCard({
           flexDirection: "row",
           gap: 20,
           borderTopWidth: 1,
-          borderTopColor: "#EDF0EB",
+          borderTopColor: themeColor("#EDF0EB", "border"),
           paddingTop: 4,
         }}
       >
@@ -142,6 +145,8 @@ function GroupPostCard({
   );
 }
 export default function GroupRoute() {
+  useAppearance();
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useAuth();
   return <GroupScreen key={`${id}:${session?.user.id ?? "guest"}`} id={id} />;
@@ -153,6 +158,8 @@ export function GroupScreen({
   id: string;
   top?: React.ReactNode;
 }) {
+  useAppearance();
+
   const { session, profile } = useAuth(),
     q = useSharingGroup(id),
     g = q.data,
@@ -260,7 +267,7 @@ export function GroupScreen({
                   width: 56,
                   height: 56,
                   borderRadius: 20,
-                  backgroundColor: "#EDE8F8",
+                  backgroundColor: themeColor("#EDE8F8", "surface"),
                   alignItems: "center",
                   justifyContent: "center",
                 }}
@@ -268,7 +275,7 @@ export function GroupScreen({
                 <Ionicons
                   name={g.is_system ? "school-outline" : "people-outline"}
                   size={29}
-                  color="#71579D"
+                  color={themeColor("#71579D", "text")}
                 />
               </View>
               <View style={{ flex: 1, gap: 4 }}>
@@ -356,10 +363,10 @@ export function GroupScreen({
                   alignItems: "center",
                   gap: 10,
                   padding: 14,
-                  backgroundColor: "#FFF",
+                  backgroundColor: themeColor("#FFF", "surface"),
                   borderRadius: 18,
                   borderWidth: 1,
-                  borderColor: "#E4E9E2",
+                  borderColor: themeColor("#E4E9E2", "border"),
                 }}
               >
                 <Ionicons
@@ -549,6 +556,8 @@ function GroupMembers({
   act: (name: string, args: Record<string, unknown>) => Promise<boolean>;
   busy: boolean;
 }) {
+  useAppearance();
+
   const { session } = useAuth();
   const [selected, setSelected] = useState<GroupMember | null>(null),
     [confirmTransfer, setConfirmTransfer] = useState(false);
@@ -599,7 +608,7 @@ function GroupMembers({
           style={{
             gap: 8,
             borderBottomWidth: 1,
-            borderBottomColor: "#E4E9E2",
+            borderBottomColor: themeColor("#E4E9E2", "border"),
             paddingBottom: 8,
           }}
         >
@@ -750,6 +759,8 @@ function GroupComments({
   busy: boolean;
   error: string;
 }) {
+  useAppearance();
+
   const { session } = useAuth();
   const [body, setBody] = useState(""),
     nonce = useRef<string | null>(null),
@@ -793,7 +804,7 @@ function GroupComments({
           styles.muted,
           {
             borderBottomWidth: 1,
-            borderBottomColor: "#E4E9E2",
+            borderBottomColor: themeColor("#E4E9E2", "border"),
             paddingBottom: 10,
           },
         ]}
@@ -809,7 +820,7 @@ function GroupComments({
             label="Yorumları yeniden yükle"
             onPress={() => void q.refetch()}
           />
-        )}{" "}
+        )}
         {q.data?.pages.flat().map((c) => (
           <View key={c.id} style={{ gap: 5 }}>
             <View
@@ -844,7 +855,7 @@ function GroupComments({
               )}
             </View>
             <Text style={styles.text}>{c.body}</Text>
-            <Text style={[styles.muted, { fontSize: 11 }]}>
+            <Text style={[styles.muted, { fontSize: textSize(11) }]}>
               {formatDateTime(c.created_at)}
             </Text>
             {deleting === c.id && (

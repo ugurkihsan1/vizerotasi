@@ -1,3 +1,4 @@
+import { useAppearance } from "../lib/appearance";
 import { useState } from "react";
 import { View, Text, Linking, Pressable } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +19,8 @@ import { EvidenceUpload } from "./EvidenceUpload";
 import { VerificationLabel } from "./VerificationLabel";
 import { Button, Field, Message, Sheet, styles } from "./ui";
 export function TipPlacementEditor({ post }: { post: Post }) {
+  useAppearance();
+
   const [open, setOpen] = useState(false),
     [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -76,6 +79,8 @@ export function TipPlacementEditor({ post }: { post: Post }) {
   );
 }
 export function EvidencePanel({ post }: { post: Post }) {
+  useAppearance();
+
   const { session, profile } = useAuth();
   const staff = !!profile && profile.role !== "user",
     own = session?.user.id === post.user_id;
@@ -283,6 +288,8 @@ export function EvidencePanel({ post }: { post: Post }) {
   );
 }
 function EvidenceQueueItem({ id }: { id: string }) {
+  useAppearance();
+
   const post = useQuery({
     queryKey: ["evidence-review-post", id],
     queryFn: async () => {
@@ -303,6 +310,8 @@ function EvidenceQueueItem({ id }: { id: string }) {
   );
 }
 export function EvidenceQueue() {
+  useAppearance();
+
   const q = useQuery({
     queryKey: ["evidence-queue"],
     queryFn: async () => {

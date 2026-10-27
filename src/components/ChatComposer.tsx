@@ -1,3 +1,4 @@
+import { useAppearance } from "../lib/appearance";
 import { useEffect, useState } from "react";
 import { View, Text, Pressable } from "react-native";
 import { useQuery } from "@tanstack/react-query";
@@ -18,6 +19,8 @@ export function ChatPeoplePicker({
   disabled?: boolean;
   max?: number;
 }) {
+  useAppearance();
+
   const { session } = useAuth();
   const [text, setText] = useState(""),
     [search, setSearch] = useState("");

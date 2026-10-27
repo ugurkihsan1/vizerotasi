@@ -1,5 +1,6 @@
+import { useAppearance, themeColor } from "../lib/appearance";
 import { useRef, type ElementRef } from "react";
-import { Text, TextInput, View } from "react-native";
+import { Text, TextInput, View, Platform } from "react-native";
 import { styles, colors } from "./ui";
 export function DateInput({
   label,
@@ -12,6 +13,8 @@ export function DateInput({
   onChange: (value: string) => void;
   error?: string;
 }) {
+  useAppearance();
+
   const month = useRef<ElementRef<typeof TextInput>>(null),
     year = useRef<ElementRef<typeof TextInput>>(null),
     day = useRef<ElementRef<typeof TextInput>>(null);
@@ -59,9 +62,9 @@ export function DateInput({
               keyboardType="number-pad"
               inputMode="numeric"
               placeholder={["GG", "AA", "YYYY"][index]}
-              placeholderTextColor="#8190A5"
+              placeholderTextColor={themeColor("#8190A5", "text")}
               maxLength={index === 0 ? 10 : index === 1 ? 2 : 4}
-              selectTextOnFocus
+              selectTextOnFocus={Platform.OS !== "web"}
               style={[
                 styles.input,
                 { flex: 1, textAlign: "center", paddingHorizontal: 8 },

@@ -1,3 +1,5 @@
+import { themeColor, textSize, useAppearance } from "../lib/appearance";
+
 import { PlaneReaction } from "./PlaneReaction";
 import { VerificationLabel } from "./VerificationLabel";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,7 +22,7 @@ import { useState } from "react";
 export const kindLabels = {
   experience: "Deneyim",
   question: "Soru",
-  tip: "⚡ Kritik nokta",
+  tip: "⚡ Önemli bilgi",
   update: "Ülke güncellemesi",
 };
 export const resultLabels = {
@@ -43,6 +45,8 @@ export function Avatar({
   url?: string | null;
   size?: number;
 }) {
+  useAppearance();
+
   return url ? (
     <Image
       source={url}
@@ -56,7 +60,7 @@ export function Avatar({
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: "#DCE9FC",
+        backgroundColor: themeColor("#DCE9FC", "surface"),
         alignItems: "center",
         justifyContent: "center",
       }}
@@ -65,7 +69,7 @@ export function Avatar({
         style={{
           fontWeight: "800",
           color: colors.blue,
-          fontSize: size > 50 ? 24 : 14,
+          fontSize: size > textSize(50) ? textSize(24) : textSize(14),
         }}
       >
         {name.slice(0, 2).toLocaleUpperCase("tr-TR")}
@@ -77,6 +81,7 @@ export function postPath(post: Pick<Post, "kind" | "id">) {
   return `/${post.kind === "experience" ? "experience" : post.kind === "question" ? "question" : "tip"}/${post.id}` as "/experience/[id]";
 }
 export function Actions({ post }: { post: Post }) {
+  const appearance = useAppearance();
   const gate = useGate();
   const { session } = useAuth();
   const vote = useToggle("helpful_votes", "post_id", post.id);
@@ -86,7 +91,7 @@ export function Actions({ post }: { post: Post }) {
     try {
       setError("");
       await fn();
-      void Haptics.selectionAsync().catch(() => {});
+      if (appearance.haptics) void Haptics.selectionAsync().catch(() => {});
     } catch (e) {
       setError(friendlyError(e));
     }
@@ -150,6 +155,8 @@ export function Actions({ post }: { post: Post }) {
   );
 }
 export function ShareButton({ post }: { post: Post }) {
+  useAppearance();
+
   return (
     <Button
       label="Paylaş"
@@ -169,6 +176,8 @@ export function PostCard({
   post: Post;
   detail?: boolean;
 }) {
+  useAppearance();
+
   const { data: countries } = useCountries();
   const { data: author } = useProfile(post.user_id);
   const country = countries?.find((x) => x.id === post.country_id);
@@ -183,17 +192,19 @@ export function PostCard({
           overflow: "hidden",
           backgroundColor:
             post.kind === "experience"
-              ? "#F0F7F2"
+              ? themeColor("#F0F7F2", "surface")
               : post.kind === "question"
-                ? "#EFF5FD"
+                ? themeColor("#EFF5FD", "surface")
                 : post.kind === "tip"
-                  ? "#FFF5E7"
-                  : "#FFFFFF",
+                  ? themeColor("#FFF5E7", "surface")
+                  : themeColor("#FFFFFF", "surface"),
         },
         post.kind === "tip" && {
-          borderColor: "#EDDCC4",
+          borderColor: themeColor("#EDDCC4", "border"),
         },
-        post.kind === "question" && { borderColor: "#DDE6E9" },
+        post.kind === "question" && {
+          borderColor: themeColor("#DDE6E9", "border"),
+        },
       ]}
     >
       {post.kind === "experience" && post.result && (
@@ -208,29 +219,33 @@ export function PostCard({
             gap: 8,
             backgroundColor:
               post.result === "approved"
-                ? "#CDECD9"
+                ? themeColor("#CDECD9", "surface")
                 : post.result === "rejected"
-                  ? "#F7D1CD"
-                  : "#FFE8A6",
+                  ? themeColor("#F7D1CD", "surface")
+                  : themeColor("#FFE8A6", "surface"),
           }}
         >
           <Text
             style={{
               fontWeight: "800",
-              fontSize: 14,
+              fontSize: textSize(14),
               color:
                 post.result === "approved"
-                  ? "#176744"
+                  ? themeColor("#176744", "text")
                   : post.result === "rejected"
-                    ? "#A22E30"
-                    : "#866000",
+                    ? themeColor("#A22E30", "text")
+                    : themeColor("#866000", "text"),
             }}
           >
             {resultLabels[post.result]}
           </Text>
           {post.result !== "waiting" && days !== null && (
             <Text
-              style={{ fontSize: 12, fontWeight: "600", color: colors.navy }}
+              style={{
+                fontSize: textSize(12),
+                fontWeight: "600",
+                color: colors.navy,
+              }}
             >
               {days} günde sonuçlandı
             </Text>
@@ -260,9 +275,15 @@ export function PostCard({
             style={[
               styles.muted,
               {
-                color: post.kind === "tip" ? "#71579D" : colors.blue,
-                fontSize: 11,
-                backgroundColor: post.kind === "tip" ? "#F0EBFA" : "#EDF3F0",
+                color:
+                  post.kind === "tip"
+                    ? themeColor("#71579D", "text")
+                    : colors.blue,
+                fontSize: textSize(11),
+                backgroundColor:
+                  post.kind === "tip"
+                    ? themeColor("#F0EBFA", "surface")
+                    : themeColor("#EDF3F0", "surface"),
                 paddingHorizontal: 9,
                 paddingVertical: 3,
                 borderRadius: 7,
@@ -311,7 +332,7 @@ export function PostCard({
             style={[
               styles.heading,
               {
-                fontSize: detail ? 22 : 20,
+                fontSize: detail ? textSize(22) : textSize(20),
                 lineHeight: 27,
                 letterSpacing: -0.35,
               },
@@ -333,7 +354,7 @@ export function PostCard({
                 post.granted_days > 0 && (
                   <View
                     style={{
-                      backgroundColor: "#EAF3ED",
+                      backgroundColor: themeColor("#EAF3ED", "surface"),
                       paddingHorizontal: 11,
                       paddingVertical: 6,
                       borderRadius: 9,
@@ -341,9 +362,9 @@ export function PostCard({
                   >
                     <Text
                       style={{
-                        fontSize: 12,
+                        fontSize: textSize(12),
                         fontWeight: "700",
-                        color: "#24766C",
+                        color: themeColor("#24766C", "text"),
                       }}
                     >
                       {post.granted_days} gün vize
@@ -356,12 +377,25 @@ export function PostCard({
               {[post.city, post.employment_status]
                 .filter(Boolean)
                 .map((label, i) => (
-                  <Text key={i} style={{ fontSize: 12, color: colors.muted }}>
+                  <Text
+                    key={i}
+                    style={{ fontSize: textSize(12), color: colors.muted }}
+                  >
                     {i > 0 ? "· " : ""}
                     {label}
                   </Text>
                 ))}
             </View>
+          )}
+          {post.kind === "experience" && !!post.purpose && (
+            <Text
+              style={[
+                styles.pillText,
+                { fontSize: textSize(12), color: colors.blue },
+              ]}
+            >
+              {post.purpose}
+            </Text>
           )}
           {!!post.body && (
             <Text style={styles.text} numberOfLines={detail ? undefined : 2}>
@@ -399,7 +433,7 @@ export function PostCard({
             <Text
               style={{
                 flex: 1,
-                fontSize: 12,
+                fontSize: textSize(12),
                 fontWeight: "600",
                 color: colors.navy,
               }}
@@ -407,7 +441,7 @@ export function PostCard({
             >
               {author?.username ?? "Topluluk üyesi"}
             </Text>
-            <Text style={{ fontSize: 11, color: colors.muted }}>
+            <Text style={{ fontSize: textSize(11), color: colors.muted }}>
               {formatDate(post.created_at)}
             </Text>
           </Pressable>
@@ -416,7 +450,7 @@ export function PostCard({
           <View
             style={{
               borderTopWidth: 1,
-              borderTopColor: "#EDF0EC",
+              borderTopColor: themeColor("#EDF0EC", "border"),
               paddingTop: 8,
             }}
           >

@@ -1,3 +1,4 @@
+import { useAppearance, themeColor, textSize } from "../lib/appearance";
 import { View, Text, Pressable } from "react-native";
 import { useCountries } from "../lib/data";
 import { Image } from "expo-image";
@@ -12,6 +13,8 @@ export function DestinationPhoto({
   id: string;
   height?: number;
 }) {
+  const { motionReduced } = useAppearance();
+
   const { data: countries } = useCountries();
   const country = countries?.find((c) => c.id === id);
   const flag = country ? flagSvg(country.code) : null;
@@ -22,23 +25,25 @@ export function DestinationPhoto({
         width: "100%",
         height,
         overflow: "hidden",
-        backgroundColor: "#E4E9E5",
+        backgroundColor: themeColor("#E4E9E5", "surface"),
       }}
     >
-      {photo && (
+      {(photo || country?.cover_url) && (
         <Image
-          source={photoAssets[id]}
+          source={
+            country?.cover_url ? { uri: country.cover_url } : photoAssets[id]
+          }
           contentFit="cover"
           contentPosition={{
             left: "50%",
             top: id === "france" ? (height >= 120 ? "0%" : "35%") : "25%",
           }}
           style={{ width: "100%", height }}
-          accessibilityLabel={photo.landmark}
-          transition={150}
+          accessibilityLabel={photo?.landmark ?? `${country?.name} fotoğrafı`}
+          transition={motionReduced ? 0 : 150}
         />
       )}
-      {photo && height >= 120 && (
+      {photo && !country?.cover_url && height >= 120 && (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Fotoğraf bilgisi ve kaynak"
@@ -57,7 +62,7 @@ export function DestinationPhoto({
             minWidth: 32,
             minHeight: 32,
             borderRadius: 16,
-            backgroundColor: "#172F50B8",
+            backgroundColor: themeColor("#172F50B8", "surface"),
             alignItems: "center",
             justifyContent: "center",
           }}
@@ -65,7 +70,7 @@ export function DestinationPhoto({
           <Ionicons
             name="information-circle-outline"
             size={20}
-            color="#FFFFFF"
+            color={themeColor("#FFFFFF", "text")}
           />
         </Pressable>
       )}
@@ -78,10 +83,10 @@ export function DestinationPhoto({
             top: 9,
             padding: 4,
             borderRadius: 8,
-            backgroundColor: "#FFFFFFF0",
+            backgroundColor: themeColor("#FFFFFFF0", "surface"),
             borderWidth: 1,
-            borderColor: "#FFFFFF",
-            shadowColor: "#172F50",
+            borderColor: themeColor("#FFFFFF", "border"),
+            shadowColor: themeColor("#172F50", "surface"),
             shadowOpacity: 0.1,
             shadowRadius: 4,
           }}
@@ -96,7 +101,7 @@ export function DestinationPhoto({
               accessible={false}
             />
           ) : (
-            <Text style={{ fontSize: 17 }}>{country.flag}</Text>
+            <Text style={{ fontSize: textSize(17) }}>{country.flag}</Text>
           )}
         </View>
       )}

@@ -1527,7 +1527,7 @@ test("search finds experiences, critical tips and questions with country-aware f
     "title.ilike.%sigorta%",
   );
   await page
-    .getByRole("button", { name: "Kritik noktalar", exact: true })
+    .getByRole("button", { name: "Önemli bilgiler", exact: true })
     .click();
   await expect(
     page.getByText("Poliçede ıslak imza notum", { exact: true }),
@@ -1886,6 +1886,9 @@ test("country chat explains and confirms following before opening the community 
   expect(state.followed).toBe(true);
   await expect(
     page.getByText("Takip eden üyelere açık topluluk odası", { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Sohbet bilgileri", exact: true }),
   ).toBeVisible();
   await page.screenshot({ path: "/tmp/chat-community-empty-mobile.png" });
 });
@@ -2386,7 +2389,7 @@ test("Denmark exposes its official checklist, invitation restriction and Copenha
   ).toBeVisible();
   await page.goto("/country/denmark");
   await expect(
-    page.getByRole("img", { name: "Nyhavn, Kopenhag", exact: true }),
+    page.getByRole("img", { name: "Rosenborg Kalesi, Kopenhag", exact: true }),
   ).toBeVisible();
 });
 test("followed country pages are exhausted before other countries enter the home feed", async ({
@@ -2488,7 +2491,9 @@ test("post details keep the contribution and comments visible while process meta
     page.getByText("Bu deneyim benim için çok faydalı oldu.", { exact: true }),
   ).toBeInViewport();
   await expect(page.getByText("Süreç", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("✈️", { exact: true }).first()).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "0 Faydalı", exact: true }),
+  ).toBeVisible();
   await page.screenshot({ path: "/tmp/mobile2-detail.png" });
   await page.getByRole("button", { name: "Detaylar", exact: true }).click();
   await expect(page.getByText("Süreç", { exact: true })).toBeVisible();
@@ -2540,4 +2545,273 @@ test("mobile inbox searches conversations without hiding message requests or cha
   ).toHaveCount(0);
   await page.getByRole("link", { name: "Yol arkadaşı", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/chat/${id}$`));
+});
+
+test("dark appearance persists and adapts forms, cards and larger text without changing photographs", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.goto("/settings");
+  await page.getByRole("button", { name: "Karanlık", exact: true }).click();
+  await expect(page.getByTestId("app-surface")).toHaveCSS(
+    "background-color",
+    "rgb(15, 23, 32)",
+  );
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          JSON.parse(localStorage.getItem("app-appearance:v1") ?? "{}").theme,
+      ),
+    )
+    .toBe("dark");
+  await page.getByRole("switch", { name: "Büyük yazı", exact: true }).click();
+  await expect(page.getByText("Görünüm", { exact: true })).toHaveCSS(
+    "font-size",
+    "21px",
+  );
+  await page.reload();
+  await expect(page.getByTestId("app-surface")).toHaveCSS(
+    "background-color",
+    "rgb(15, 23, 32)",
+  );
+  await page.goto("/discover");
+  await expect(
+    page.getByLabel("Ülke, belge, deneyim veya soru ara", { exact: true }),
+  ).toHaveCSS("color", "rgb(218, 228, 236)");
+  await expect
+    .poll(() =>
+      page
+        .getByRole("img", { name: "Rosenborg Kalesi, Kopenhag", exact: true })
+        .evaluate((img: HTMLImageElement) => img.naturalWidth),
+    )
+    .toBeGreaterThan(0);
+  await page.screenshot({ path: "/tmp/mobile3-dark-discover.png" });
+  await page.goto("/country/denmark?tab=Belgeler");
+  await expect(
+    page.getByRole("checkbox", { name: "Pasaport: Hazırladım", exact: true }),
+  ).toBeVisible();
+  await page.screenshot({ path: "/tmp/mobile3-dark-checklist.png" });
+});
+test("own posts and comments can be deleted only after confirmation and purpose remains visible", async ({
+  page,
+}) => {
+  await member(page);
+  const id = "00000000-0000-0000-0000-000000000887",
+    cid = "00000000-0000-0000-0000-000000000888";
+  let comment = true,
+    deleted = false;
+  const post = {
+    id,
+    user_id: "00000000-0000-0000-0000-000000000200",
+    country_id: "spain",
+    kind: "experience",
+    title: "Kültür etkinliği deneyimim",
+    body: "Etkinlik davetimi belgelerimle birlikte sundum.",
+    purpose: "Kültürel etkinlik",
+    result: "approved",
+    status: "approved",
+    created_at: "2026-10-28T10:00:00Z",
+    is_sample: false,
+    helpful_count: 0,
+    comment_count: 1,
+  };
+  await page.route("https://*.supabase.co/rest/v1/feed?**", (r) =>
+    r.fulfill({
+      json: new URL(r.request().url()).searchParams.has("id") ? post : [],
+    }),
+  );
+  await page.route("https://*.supabase.co/rest/v1/comments?**", (r) =>
+    r.fulfill({
+      json: comment
+        ? [
+            {
+              id: cid,
+              post_id: id,
+              user_id: post.user_id,
+              body: "Kendi yorumum.",
+              parent_comment_id: null,
+              status: "approved",
+              created_at: "2026-10-28T11:00:00Z",
+            },
+          ]
+        : [],
+    }),
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/delete_own_content",
+    (r) => {
+      const args = r.request().postDataJSON();
+      if (args.is_comment) {
+        expect(args.target).toBe(cid);
+        comment = false;
+      } else {
+        expect(args.target).toBe(id);
+        deleted = true;
+      }
+      return r.fulfill({ status: 204, body: "" });
+    },
+  );
+  await page.goto(`/experience/${id}`);
+  await expect(
+    page.getByText("Kültürel etkinlik", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Yorumu sil", exact: true }).click();
+  expect(comment).toBe(true);
+  await page
+    .getByRole("button", { name: "Silmeyi onayla", exact: true })
+    .click();
+  await expect(page.getByText("Kendi yorumum.", { exact: true })).toHaveCount(
+    0,
+  );
+  await page.getByRole("button", { name: "Detaylar", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Paylaşımı sil", exact: true })
+    .click();
+  expect(deleted).toBe(false);
+  await page
+    .getByRole("button", { name: "Silmeyi onayla", exact: true })
+    .click();
+  await expect.poll(() => deleted).toBe(true);
+  await expect(page).toHaveURL(/\/profile$/);
+});
+test("administrators add countries and documents from their profile tools while normal members are denied", async ({
+  page,
+}) => {
+  await member(page);
+  await page.goto("/admin-countries");
+  await expect(
+    page.getByText("Bu alan yöneticilere özel", { exact: true }),
+  ).toBeVisible();
+  await page.route("https://*.supabase.co/rest/v1/profiles?**", (r) =>
+    r.fulfill({
+      json: {
+        id: "00000000-0000-0000-0000-000000000200",
+        username: "administrator",
+        display_name: "Admin",
+        role: "admin",
+        membership_level: "Öncü Üye",
+        reputation: 0,
+      },
+    }),
+  );
+  let saved = false,
+    docs: {
+      id: string;
+      country_id: string;
+      title: string;
+      body: string;
+      source_url: string;
+    }[] = [];
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/admin_save_country",
+    (r) => {
+      expect(r.request().postDataJSON().payload).toMatchObject({
+        id: "belgium",
+        name: "Belçika",
+        code: "BE",
+        is_schengen: true,
+      });
+      saved = true;
+      return r.fulfill({ json: "belgium" });
+    },
+  );
+  await page.route("https://*.supabase.co/rest/v1/country_documents**", (r) => {
+    if (r.request().method() === "POST") {
+      const v = r.request().postDataJSON();
+      docs.push({ id: "manual-document", ...v });
+      return r.fulfill({ status: 201, body: "" });
+    }
+    return r.fulfill({ json: docs });
+  });
+  await page.goto("/profile");
+  await expect(
+    page.getByRole("button", { name: "İncelemede", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Ülkeleri yönet", exact: true })
+    .click();
+  await page.getByLabel("Ülke adı", { exact: true }).fill("Belçika");
+  await page.getByLabel("İki harfli ülke kodu", { exact: true }).fill("BE");
+  await page.getByLabel("Ülke bağlantı adı", { exact: true }).fill("belgium");
+  await page
+    .getByRole("button", { name: "Ülkeyi kaydet", exact: true })
+    .click();
+  await expect.poll(() => saved).toBe(true);
+  await page.getByRole("button", { name: "Belge ekle", exact: true }).click();
+  await page.getByLabel("Belge adı", { exact: true }).fill("Pasaport");
+  await page
+    .getByLabel("Belge açıklaması", { exact: true })
+    .fill("Güncel pasaport ve gerekli boş sayfalar.");
+  await page
+    .getByLabel("Belgenin resmî kaynağı (https)", { exact: true })
+    .fill("https://example.com/official");
+  await page
+    .getByRole("button", { name: "Belgeyi kaydet", exact: true })
+    .click();
+  await expect.poll(() => docs.length).toBe(1);
+});
+test("the plane reaction becomes filled and respects reduced motion", async ({
+  page,
+}) => {
+  await member(page);
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "app-appearance:v1",
+      JSON.stringify({
+        theme: "light",
+        reducedMotion: true,
+        haptics: false,
+        largeText: false,
+      }),
+    ),
+  );
+  const id = "00000000-0000-0000-0000-000000000889";
+  let liked = false;
+  await page.route("https://*.supabase.co/rest/v1/feed?**", (r) =>
+    r.fulfill({
+      json: [
+        {
+          id,
+          user_id: "00000000-0000-0000-0000-000000000301",
+          country_id: "spain",
+          kind: "question",
+          title: "Bir başvuru sorusu",
+          body: "Güncel başvuru belgeleri hakkında bir soru.",
+          status: "approved",
+          created_at: "2026-10-28T10:00:00Z",
+          is_sample: false,
+          helpful_count: liked ? 1 : 0,
+          comment_count: 0,
+        },
+      ],
+    }),
+  );
+  await page.route("https://*.supabase.co/rest/v1/helpful_votes**", (r) => {
+    if (r.request().method() === "POST") liked = true;
+    else if (r.request().method() === "DELETE") liked = false;
+    return r.fulfill({
+      json:
+        r.request().method() === "GET"
+          ? liked
+            ? { user_id: "00000000-0000-0000-0000-000000000200" }
+            : null
+          : null,
+    });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "0 Faydalı", exact: true }).click();
+  await expect(page.getByTestId("reaction-plane-filled")).toBeVisible();
+  await page.getByRole("button", { name: "1 Faydalı", exact: true }).click();
+  await expect(page.getByTestId("reaction-plane-outline")).toBeVisible();
+  await page.evaluate(() => {
+    const p = JSON.parse(localStorage.getItem("app-appearance:v1")!);
+    localStorage.setItem(
+      "app-appearance:v1",
+      JSON.stringify({ ...p, reducedMotion: false }),
+    );
+  });
+  await page.reload();
+  await page.getByRole("button", { name: "0 Faydalı", exact: true }).click();
+  await expect(page.getByTestId("reaction-plane-filled")).toBeVisible();
 });

@@ -1,3 +1,5 @@
+import { useAppearance, textSize, themeColor } from "../lib/appearance";
+import { DeleteContent } from "../components/DeleteContent";
 import { PlaneReaction } from "../components/PlaneReaction";
 import { EvidencePanel } from "../components/EvidencePanel";
 import { formatDate, formatDateTime } from "../lib/dates";
@@ -48,6 +50,8 @@ export function Report({
   postId?: string;
   commentId?: string;
 }) {
+  useAppearance();
+
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState(reasons[0]);
   const [message, setMessage] = useState("");
@@ -67,7 +71,7 @@ export function Report({
           justifyContent: "center",
         }}
       >
-        <Text style={{ fontSize: 20 }}>•••</Text>
+        <Text style={{ fontSize: textSize(20) }}>•••</Text>
       </Pressable>
       <Sheet
         title="İçeriği bildir"
@@ -118,6 +122,8 @@ function CommentRow({
   comment: Comment;
   onReply: () => void;
 }) {
+  useAppearance();
+
   const author = useProfile(comment.user_id);
   const { session } = useAuth();
   const gate = useGate();
@@ -178,7 +184,11 @@ function CommentRow({
         >
           <PlaneReaction active={helpful.active} />
         </Pressable>
-        <Report commentId={comment.id} />
+        {session?.user.id === comment.user_id ? (
+          <DeleteContent id={comment.id} isComment />
+        ) : (
+          <Report commentId={comment.id} />
+        )}
       </View>
       <Message text={error} />
       {gate.view}
@@ -186,6 +196,8 @@ function CommentRow({
   );
 }
 export default function DetailScreen() {
+  useAppearance();
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const post = usePost(id);
   const comments = useComments(id);
@@ -267,6 +279,7 @@ export default function DetailScreen() {
             title="Paylaşım detayları"
             onClose={() => setDetails(false)}
           >
+            {session?.user.id === p.user_id && <DeleteContent id={p.id} />}
             {p.kind === "experience" && (
               <View style={styles.card}>
                 <Text style={styles.heading}>Süreç</Text>
@@ -307,7 +320,7 @@ export default function DetailScreen() {
                       gap: 6,
                       paddingTop: 10,
                       borderTopWidth: 1,
-                      borderTopColor: "#E4E9E2",
+                      borderTopColor: themeColor("#E4E9E2", "border"),
                     }}
                   >
                     <Text style={styles.pillText}>

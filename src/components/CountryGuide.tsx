@@ -1,3 +1,4 @@
+import { useAppearance, textSize, themeColor } from "../lib/appearance";
 import { ChecklistSummary } from "./ChecklistSummary";
 import { formatDate } from "../lib/dates";
 import { useState, useEffect } from "react";
@@ -10,7 +11,7 @@ import {
   mergeCountryDocuments,
   type OfficialDocument,
 } from "../lib/country-guides";
-import { useDocuments } from "../lib/data";
+import { useDocuments, useCountries } from "../lib/data";
 import { useAuth } from "../lib/auth";
 import type { Document } from "../lib/types";
 import { styles, colors, Button, Message, Sheet } from "./ui";
@@ -21,6 +22,8 @@ import { DocumentWarnings } from "./DocumentWarnings";
 import { CriticalNotice } from "./CriticalNotice";
 type GuideDocument = Document & Partial<OfficialDocument>;
 function OfficialLink({ url, label }: { url: string; label: string }) {
+  useAppearance();
+
   const [error, setError] = useState("");
   return (
     <View>
@@ -34,7 +37,9 @@ function OfficialLink({ url, label }: { url: string; label: string }) {
         }
         style={{ minHeight: 44, justifyContent: "center" }}
       >
-        <Text style={{ color: colors.blue, fontSize: 13 }}>{label} ↗</Text>
+        <Text style={{ color: colors.blue, fontSize: textSize(13) }}>
+          {label} ↗
+        </Text>
       </Pressable>
       <Message text={error} />
     </View>
@@ -49,6 +54,8 @@ function DocumentCard({
   checked: boolean;
   onCheck: () => void;
 }) {
+  useAppearance();
+
   const [open, setOpen] = useState(false);
   return (
     <View
@@ -58,7 +65,9 @@ function DocumentCard({
           borderRadius: 16,
           padding: open ? 14 : 10,
           gap: open ? 12 : 4,
-          borderColor: checked ? "#C7DFD2" : "#E9EDE8",
+          borderColor: checked
+            ? themeColor("#C7DFD2", "border")
+            : themeColor("#E9EDE8", "border"),
         },
       ]}
     >
@@ -73,7 +82,9 @@ function DocumentCard({
         >
           <Text style={styles.pillText}>{doc.title}</Text>
           {doc.requirement === "conditional" && (
-            <Text style={[styles.muted, { fontSize: 11 }]}>Duruma bağlı</Text>
+            <Text style={[styles.muted, { fontSize: textSize(11) }]}>
+              Duruma bağlı
+            </Text>
           )}
         </Pressable>
         <Pressable
@@ -117,7 +128,7 @@ function DocumentCard({
       {open && (
         <View style={{ gap: 10 }}>
           <Text style={styles.text}>{doc.body}</Text>
-          <Text style={[styles.muted, { fontSize: 11 }]}>
+          <Text style={[styles.muted, { fontSize: textSize(11) }]}>
             {doc.source_name ?? "Kaynak"}
             {doc.source_checked_at
               ? ` · Kontrol: ${formatDate(doc.source_checked_at)}`
@@ -128,7 +139,7 @@ function DocumentCard({
           )}
           <Button
             secondary
-            label="Bu konuda kritik bilgi paylaş"
+            label="Bu konuda önemli bilgi paylaş"
             onPress={() =>
               router.push({
                 pathname: "/create",
@@ -156,7 +167,10 @@ export function CountryGuide({
   mode: "documents" | "guide";
   header: React.ReactElement;
 }) {
+  useAppearance();
+
   const guide = getCountryGuide(country)!;
+  const metadata = useCountries().data?.find((c) => c.id === country);
   const q = useDocuments(country);
   const documents = mergeCountryDocuments(
     country,
@@ -210,7 +224,9 @@ export function CountryGuide({
       ListHeaderComponent={
         <View style={{ gap: 16, paddingBottom: 16 }}>
           {header}
-          {mode === "guide" && <Text style={styles.muted}>{guide.scope}</Text>}
+          {mode === "guide" && (
+            <Text style={styles.muted}>{metadata?.summary || guide.scope}</Text>
+          )}
           {mode === "documents" && (
             <ChecklistSummary
               complete={documents.filter((d) => ready.includes(d.id)).length}
@@ -258,7 +274,7 @@ export function CountryGuide({
               >
                 <Text style={styles.text}>{guide.appointment}</Text>
                 <OfficialLink
-                  url={guide.sources[0].url}
+                  url={metadata?.appointment_url || guide.sources[0].url}
                   label="Resmî randevu yönlendirmesi"
                 />
               </GuideSection>
@@ -321,8 +337,12 @@ export function CountryGuide({
           )}
           {mode === "guide" && (
             <GuideSection title="Resmî kaynaklar">
-              {" "}
-              <View style={[styles.card, { backgroundColor: "#EDF3FC" }]}>
+              <View
+                style={[
+                  styles.card,
+                  { backgroundColor: themeColor("#EDF3FC", "surface") },
+                ]}
+              >
                 <Text style={styles.muted}>
                   Ülkeye özgü talimatlar ve ortak Schengen koşulları ayrı
                   kaynaklardır. Bağlantılar{" "}
@@ -331,7 +351,7 @@ export function CountryGuide({
                 </Text>
                 {guide.sources.map((s) => (
                   <View key={s.id}>
-                    <Text style={[styles.muted, { fontSize: 11 }]}>
+                    <Text style={[styles.muted, { fontSize: textSize(11) }]}>
                       {s.scope}
                     </Text>
                     <OfficialLink url={s.url} label={s.name} />
@@ -348,12 +368,17 @@ export function CountryGuide({
             <Text style={styles.pillText}>
               {guide.name} · Turistik vize belgeleri
             </Text>
-            <Text style={styles.muted}>{guide.scope}</Text>
+            <Text style={styles.muted}>{metadata?.summary || guide.scope}</Text>
             <Text style={styles.muted}>
               Durumuna bağlı belgeler yalnız sana uygunsa gerekir. İşaretlemek
               resmî uygunluk veya vize onayı anlamına gelmez.
             </Text>
-            <View style={[styles.card, { backgroundColor: "#EDF3FC" }]}>
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: themeColor("#EDF3FC", "surface") },
+              ]}
+            >
               <Text style={styles.pillText}>Resmî kaynaklar</Text>
               <Text style={styles.muted}>
                 Ülkeye özgü talimatlar ve ortak Schengen koşulları ayrı
@@ -363,7 +388,7 @@ export function CountryGuide({
               </Text>
               {guide.sources.map((s) => (
                 <View key={s.id}>
-                  <Text style={[styles.muted, { fontSize: 11 }]}>
+                  <Text style={[styles.muted, { fontSize: textSize(11) }]}>
                     {s.scope}
                   </Text>
                   <OfficialLink url={s.url} label={s.name} />

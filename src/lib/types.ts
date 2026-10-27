@@ -3,6 +3,11 @@ import type { ProgressMetrics } from "./community";
 export type Kind = "experience" | "question" | "tip" | "update";
 export type Status = "pending" | "approved" | "rejected" | "needs_revision";
 export interface Country {
+  cover_url?: string | null;
+  summary?: string;
+  source_url?: string | null;
+  appointment_url?: string | null;
+  is_schengen?: boolean;
   community_ready?: boolean;
   id: string;
   name: string;
