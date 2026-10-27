@@ -325,8 +325,9 @@ export function CountryGuide({
               <View style={[styles.card, { backgroundColor: "#EDF3FC" }]}>
                 <Text style={styles.muted}>
                   Ülkeye özgü talimatlar ve ortak Schengen koşulları ayrı
-                  kaynaklardır. Bağlantılar 22/10/2026 tarihinde kontrol edildi;
-                  bu, belgelerin yayın tarihi değildir.
+                  kaynaklardır. Bağlantılar{" "}
+                  {formatDate(guide.sources[0].checked_at)} tarihinde kontrol
+                  edildi; bu, belgelerin yayın tarihi değildir.
                 </Text>
                 {guide.sources.map((s) => (
                   <View key={s.id}>
@@ -356,8 +357,9 @@ export function CountryGuide({
               <Text style={styles.pillText}>Resmî kaynaklar</Text>
               <Text style={styles.muted}>
                 Ülkeye özgü talimatlar ve ortak Schengen koşulları ayrı
-                kaynaklardır. Bağlantılar 22/10/2026 tarihinde kontrol edildi;
-                bu, belgelerin yayın tarihi değildir.
+                kaynaklardır. Bağlantılar{" "}
+                {formatDate(guide.sources[0].checked_at)} tarihinde kontrol
+                edildi; bu, belgelerin yayın tarihi değildir.
               </Text>
               {guide.sources.map((s) => (
                 <View key={s.id}>

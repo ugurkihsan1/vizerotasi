@@ -423,7 +423,7 @@ test("a normal member can choose the guide topic and submit a critical note for 
   await page.goto("/create?kind=tip&country=spain&category=appointment");
   await expect(
     page.getByText(
-      "İspanya rehberindeki Randevu adımında mor topluluk notu olarak görünür.",
+      "İspanya rehberindeki Randevu adımında topluluk notu olarak görünür.",
       { exact: true },
     ),
   ).toBeVisible();
@@ -638,7 +638,7 @@ test("document subtypes submit a precise country-guide category", async ({
     .getByRole("button", { name: "Belge türünü seç", exact: true })
     .click();
   await page.getByRole("radio", { name: /seyahat sağlık sigortası/i }).click();
-  await expect(page.getByText(/mor topluluk notu/)).toBeVisible();
+  await expect(page.getByText(/topluluk notu/)).toBeVisible();
   await page
     .getByLabel("Kısa bir başlık", { exact: true })
     .fill("Sigorta belgesindeki imza");
@@ -1041,9 +1041,9 @@ test("sharing scales to 35 countries with a searchable picker and placeholders n
       code: c.code,
       flag: c.flag,
     })),
-    ...Array.from({ length: 25 }, (_, i) => ({
+    ...Array.from({ length: 34 - guides.length }, (_, i) => ({
       id: `future-${i}`,
-      name: i === 24 ? "Lüksemburg" : `Test ülkesi ${i}`,
+      name: i === 33 - guides.length ? "Lüksemburg" : `Test ülkesi ${i}`,
       code: "LU",
       flag: "🇱🇺",
     })),
@@ -1094,7 +1094,7 @@ test("sharing scales to 35 countries with a searchable picker and placeholders n
     page.getByText("Gönderin incelemeye alındı 🎉", { exact: true }),
   ).toBeVisible();
   expect(submitted).toMatchObject({
-    country_id: "future-24",
+    country_id: `future-${33 - guides.length}`,
     title: "Güncel randevu sürecini soruyorum",
   });
   expect(JSON.stringify(submitted)).not.toContain("Örn.");
@@ -1331,7 +1331,7 @@ test("insurance community notes stay under insurance and publication never impli
     insurance.getByText("✓ Belgeyle doğrulanmış deneyim", { exact: true }),
   ).toBeVisible();
   await expect(
-    insurance.getByText(/Yayın onayı doğruluk veya resmî kural onayı değildir/),
+    insurance.getByText("Kişisel deneyim · Resmî kural değil", { exact: true }),
   ).toBeVisible();
   const finance = page
     .getByRole("checkbox", { name: /Maddi durum.*Hazırladım/i })
@@ -2171,7 +2171,7 @@ test("country stories live only in Discover and checklist sources stay behind mo
     page.getByRole("link", { name: /topluluğu(?:, takip ediliyor)?$/ }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("link", { name: "Paylaşım gruplarını aç" }),
+    page.getByRole("tab", { name: "Erasmus", exact: true }),
   ).toBeVisible();
   await page.goto("/discover");
   await expect(
@@ -2300,4 +2300,244 @@ test("group managers review membership requests and users create their own appro
     page.getByRole("button", { name: "Grubu oluştur", exact: true }),
   ).toBeHidden();
   await page.screenshot({ path: "/tmp/groups-owner-mobile.png" });
+});
+
+test("Erasmus is an inline home feed tab with isolated community posts", async ({
+  page,
+}) => {
+  await member(page);
+  const state = await sharingFixtures(page, "active");
+  state.posts.push({
+    id: "community-inline-post",
+    group_id: erasmusGroupId,
+    user_id: "00000000-0000-0000-0000-000000000301",
+    body: "Sadece Erasmus topluluğundaki kabul mektubu deneyimi.",
+    created_at: "2026-10-27T12:00:00Z",
+    author: {
+      display_name: "Erasmus öğrencisi",
+      username: "erasmus_student",
+      avatar_url: null,
+    },
+    like_count: 0,
+    comment_count: 0,
+    liked: false,
+  });
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Erasmus", exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(
+    page.getByText("Sadece Erasmus topluluğundaki kabul mektubu deneyimi.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Grupta paylaşım yap" }),
+  ).toBeVisible();
+  await page.getByRole("tab", { name: "Tümü", exact: true }).click();
+  await expect(
+    page.getByText("Sadece Erasmus topluluğundaki kabul mektubu deneyimi.", {
+      exact: true,
+    }),
+  ).toHaveCount(0);
+});
+test("recent searches are hidden until the mobile search field is focused", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.addInitScript(() =>
+    localStorage.setItem("recent-searches:guest", JSON.stringify(["Sigorta"])),
+  );
+  await page.goto("/discover");
+  await expect(page.getByText("Son aramalar", { exact: true })).toHaveCount(0);
+  await page
+    .getByLabel("Ülke, belge, deneyim veya soru ara", { exact: true })
+    .click();
+  await expect(page.getByText("Son aramalar", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Sigorta aramasını aç", exact: true })
+    .click();
+  await expect(
+    page.getByLabel("Ülke, belge, deneyim veya soru ara", { exact: true }),
+  ).toHaveValue("Sigorta");
+  await expect(page.getByText("Son aramalar", { exact: true })).toHaveCount(0);
+});
+test("Denmark exposes its official checklist, invitation restriction and Copenhagen photo", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.goto("/country/denmark?tab=Belgeler");
+  await expect(
+    page.getByRole("checkbox", { name: "Pasaport: Hazırladım", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", {
+      name: "Türkiye için ev sahibi ve ziyaret koşullarını kontrol et",
+      exact: true,
+    })
+    .scrollIntoViewIfNeeded();
+  await page
+    .getByRole("button", {
+      name: "Türkiye için ev sahibi ve ziyaret koşullarını kontrol et",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByText(/Resmî Danimarka sayfası Türkiye’yi Grup 3 içinde sayar/),
+  ).toBeVisible();
+  await page.goto("/country/denmark");
+  await expect(
+    page.getByRole("img", { name: "Nyhavn, Kopenhag", exact: true }),
+  ).toBeVisible();
+});
+test("followed country pages are exhausted before other countries enter the home feed", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "guest-country-interests",
+      JSON.stringify(["estonia"]),
+    ),
+  );
+  const requests: { country: string; offset: number }[] = [];
+  await page.route("https://*.supabase.co/rest/v1/feed?**", (route) => {
+    const u = new URL(route.request().url()),
+      country = u.searchParams.get("country_id") ?? "",
+      offset = Number(u.searchParams.get("offset") ?? 0);
+    requests.push({ country, offset });
+    if (country.startsWith("not."))
+      expect(
+        requests.some((r) => r.country === "in.(estonia)" && r.offset === 15),
+      ).toBe(true);
+    const count = country === "in.(estonia)" ? (offset === 0 ? 15 : 1) : 1;
+    return route.fulfill({
+      json: Array.from({ length: count }, (_, i) => ({
+        id: `${country.startsWith("not.") ? "other" : "followed"}-${offset + i}`,
+        user_id: "00000000-0000-0000-0000-000000000301",
+        country_id: country.startsWith("not.") ? "spain" : "estonia",
+        kind: "question",
+        title: `${country.startsWith("not.") ? "Diğer" : "Takip"} paylaşım ${offset + i}`,
+        body: "Örnek başvuru sorusu ve gerçek içerik alanları.",
+        status: "approved",
+        created_at: "2026-10-27T10:00:00Z",
+        is_sample: false,
+        helpful_count: 0,
+        comment_count: 0,
+      })),
+    });
+  });
+  await page.goto("/");
+  await expect(
+    page.getByText("Takip paylaşım 0", { exact: true }),
+  ).toBeVisible();
+  await page.mouse.move(190, 500);
+  await expect
+    .poll(
+      async () => {
+        if (!requests.some((r) => r.country.startsWith("not.")))
+          await page.mouse.wheel(0, 1400);
+        return requests.some((r) => r.country.startsWith("not."));
+      },
+      { timeout: 15000, intervals: [300, 500, 800] },
+    )
+    .toBe(true);
+  expect(requests[0]).toEqual({ country: "in.(estonia)", offset: 0 });
+});
+test("post details keep the contribution and comments visible while process metadata lives in a sheet", async ({
+  page,
+}) => {
+  await fixtures(page);
+  const id = "00000000-0000-0000-0000-000000000886";
+  await page.route("https://*.supabase.co/rest/v1/feed?**", (r) =>
+    r.fulfill({
+      json: {
+        id,
+        kind: "experience",
+        country_id: "spain",
+        user_id: "00000000-0000-0000-0000-000000000301",
+        title: "Başvurumdaki deneyim",
+        body: "Belgelerimi tamamladım ve başvuru merkezine teslim ettim.",
+        status: "approved",
+        result: "approved",
+        created_at: "2026-10-27T10:00:00Z",
+        application_date: "2026-10-01",
+        decision_date: "2026-10-02",
+        is_sample: false,
+        helpful_count: 0,
+        comment_count: 1,
+      },
+    }),
+  );
+  await page.route("https://*.supabase.co/rest/v1/comments?**", (r) =>
+    r.fulfill({
+      json: [
+        {
+          id: "comment-fixture",
+          post_id: id,
+          user_id: "00000000-0000-0000-0000-000000000302",
+          parent_comment_id: null,
+          body: "Bu deneyim benim için çok faydalı oldu.",
+          status: "approved",
+          created_at: "2026-10-27T12:00:00Z",
+        },
+      ],
+    }),
+  );
+  await page.goto(`/experience/${id}`);
+  await expect(
+    page.getByText("Bu deneyim benim için çok faydalı oldu.", { exact: true }),
+  ).toBeInViewport();
+  await expect(page.getByText("Süreç", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("✈️", { exact: true }).first()).toBeVisible();
+  await page.screenshot({ path: "/tmp/mobile2-detail.png" });
+  await page.getByRole("button", { name: "Detaylar", exact: true }).click();
+  await expect(page.getByText("Süreç", { exact: true })).toBeVisible();
+});
+test("mobile inbox searches conversations without hiding message requests or changing permissions", async ({
+  page,
+}) => {
+  const { id } = await chatFixtures(page);
+  await page.route("https://*.supabase.co/rest/v1/rpc/chat_inbox", (r) =>
+    r.fulfill({
+      json: [
+        {
+          id,
+          kind: "direct",
+          title: "Yol arkadaşı",
+          status: "active",
+          last_body: "Randevu tarihini konuşalım.",
+          last_at: "2026-10-27T12:00:00Z",
+          unread_count: 2,
+          closed_at: null,
+        },
+        {
+          id: "00000000-0000-0000-0000-000000000901",
+          kind: "group",
+          title: "İspanya hazırlık",
+          status: "invited",
+          last_body: null,
+          last_at: "2026-10-27T10:00:00Z",
+          unread_count: 0,
+          closed_at: null,
+        },
+      ],
+    }),
+  );
+  await page.goto("/messages");
+  await expect(
+    page.getByRole("link", {
+      name: "İspanya hazırlık · Sohbet isteği",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.screenshot({ path: "/tmp/mobile2-inbox.png" });
+  await page.getByLabel("Sohbet ara", { exact: true }).fill("Yol");
+  await expect(
+    page.getByRole("link", {
+      name: "İspanya hazırlık · Sohbet isteği",
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await page.getByRole("link", { name: "Yol arkadaşı", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/chat/${id}$`));
 });

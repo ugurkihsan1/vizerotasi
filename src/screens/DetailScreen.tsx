@@ -1,7 +1,8 @@
+import { PlaneReaction } from "../components/PlaneReaction";
 import { EvidencePanel } from "../components/EvidencePanel";
 import { formatDate, formatDateTime } from "../lib/dates";
 import { useState } from "react";
-import { View, Text, FlatList, Linking } from "react-native";
+import { View, Text, FlatList, Linking, Pressable } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -31,7 +32,6 @@ import {
   useGate,
   Message,
 } from "../components/ui";
-import { privacyWarning } from "../lib/schemas";
 const reasons = [
   "Yanlış bilgi",
   "Kişisel bilgi",
@@ -56,11 +56,19 @@ export function Report({
   const { session } = useAuth();
   return (
     <>
-      <Button
-        label="••• Bildir"
-        secondary
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="İçeriği bildir"
         onPress={() => gate.require(() => setOpen(true))}
-      />
+        style={{
+          minWidth: 44,
+          minHeight: 44,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Text style={{ fontSize: 20 }}>•••</Text>
+      </Pressable>
       <Sheet
         title="İçeriği bildir"
         visible={open}
@@ -117,7 +125,15 @@ function CommentRow({
   const [error, setError] = useState("");
   return (
     <View
-      style={[styles.card, { marginLeft: comment.parent_comment_id ? 22 : 0 }]}
+      style={[
+        styles.card,
+        {
+          padding: 14,
+          gap: 8,
+          borderRadius: 16,
+          marginLeft: comment.parent_comment_id ? 22 : 0,
+        },
+      ]}
     >
       <View style={styles.row}>
         <Avatar
@@ -128,7 +144,6 @@ function CommentRow({
           <Text style={styles.pillText}>
             {author.data?.username ?? "Topluluk üyesi"}
           </Text>
-          <Text style={styles.muted}>{author.data?.membership_level}</Text>
         </View>
       </View>
       <Text style={styles.text}>{comment.body}</Text>
@@ -142,9 +157,10 @@ function CommentRow({
         {!comment.parent_comment_id && comment.status === "approved" && (
           <Button label="Yanıtla" secondary onPress={onReply} />
         )}
-        <Button
-          secondary
-          label={helpful.active ? "♥ Faydalı" : "♡ Faydalı"}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Faydalı"
+          accessibilityState={{ selected: helpful.active }}
           disabled={helpful.pending || session?.user.id === comment.user_id}
           onPress={() =>
             gate.require(() => {
@@ -153,7 +169,15 @@ function CommentRow({
                 .catch(() => setError("Tepki kaydedilemedi."));
             })
           }
-        />
+          style={{
+            minHeight: 44,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 5,
+          }}
+        >
+          <PlaneReaction active={helpful.active} />
+        </Pressable>
         <Report commentId={comment.id} />
       </View>
       <Message text={error} />
@@ -173,6 +197,7 @@ export default function DetailScreen() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [revision, setRevision] = useState(false);
+  const [details, setDetails] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
   if (post.isPending) return <Busy />;
@@ -229,114 +254,132 @@ export default function DetailScreen() {
       ListHeaderComponent={
         <View style={{ gap: 16 }}>
           <PostCard post={p} detail />
-          {p.kind === "experience" && (
-            <View style={styles.card}>
-              <Text style={styles.heading}>Süreç</Text>
-              {[
-                ["Randevu", p.appointment_date],
-                ["Başvuru", p.application_date],
-                ["Karar", p.decision_date],
-                ["Pasaport", p.passport_date],
-              ].map(([label, date]) => (
-                <Text key={label} style={styles.text}>
-                  ● {label} · {date ? formatDate(date) : "Henüz belirtilmedi"}
-                </Text>
-              ))}
-              {p.advice && (
-                <>
-                  <Text style={styles.heading}>Başvuracak birine not</Text>
-                  <Text style={styles.text}>{p.advice}</Text>
-                </>
-              )}
-            </View>
-          )}
-          {p.kind === "experience" && !!p.invitation_notes && (
-            <View style={styles.card}>
-              <Text style={styles.heading}>Davetiye durumu</Text>
-              <Text style={styles.muted}>
-                {p.invitation ? "Davetiyesi var" : "Davetiyeye ilişkin not"}
-              </Text>
-              <Text style={styles.text}>{p.invitation_notes}</Text>
-            </View>
-          )}
-          {p.kind === "experience" && !!p.previous_visas?.length && (
-            <View style={styles.card}>
-              <Text style={styles.heading}>Önceki Schengen vizeleri</Text>
-              {p.previous_visas.map((visa, index) => (
-                <View
-                  key={index}
-                  style={{
-                    gap: 6,
-                    paddingTop: 10,
-                    borderTopWidth: 1,
-                    borderTopColor: "#E4E9E2",
-                  }}
-                >
-                  <Text style={styles.pillText}>
-                    {index + 1}. {visa.country}
-                  </Text>
-                  {visa.issue_date && (
-                    <Text style={styles.muted}>
-                      Veriliş: {formatDate(visa.issue_date)}
-                    </Text>
-                  )}
-                  {!!visa.duration && (
-                    <Text style={styles.text}>
-                      Vize süresi: {visa.duration}
-                    </Text>
-                  )}
-                  {!!visa.entries && (
-                    <Text style={styles.muted}>
-                      {
-                        {
-                          single: "Tek giriş",
-                          double: "Çift giriş",
-                          multi: "Çok giriş",
-                        }[visa.entries]
-                      }
-                    </Text>
-                  )}
-                  {!!visa.notes && (
-                    <Text style={styles.text}>{visa.notes}</Text>
-                  )}
-                </View>
-              ))}
-            </View>
-          )}
-          <EvidencePanel post={p} />
-          {p.source_url && (
+          <View style={[styles.row, { justifyContent: "space-between" }]}>
+            <Text style={styles.heading}>Yorumlar</Text>
             <Button
-              label="Kaynağı aç"
               secondary
-              onPress={() =>
-                void Linking.openURL(p.source_url!).catch(() =>
-                  setMessage("Bağlantı açılamadı."),
-                )
-              }
+              label="Detaylar"
+              onPress={() => setDetails(true)}
             />
-          )}
-          <View style={styles.row}>
-            <ShareButton post={p} />
-            {p.status === "approved" && <Report postId={id} />}
           </View>
-          {session?.user.id === p.user_id &&
-            ["needs_revision", "rejected"].includes(p.status) && (
+          <Sheet
+            visible={details}
+            title="Paylaşım detayları"
+            onClose={() => setDetails(false)}
+          >
+            {p.kind === "experience" && (
+              <View style={styles.card}>
+                <Text style={styles.heading}>Süreç</Text>
+                {[
+                  ["Randevu", p.appointment_date],
+                  ["Başvuru", p.application_date],
+                  ["Karar", p.decision_date],
+                  ["Pasaport", p.passport_date],
+                ].map(([label, date]) => (
+                  <Text key={label} style={styles.text}>
+                    ● {label} · {date ? formatDate(date) : "Henüz belirtilmedi"}
+                  </Text>
+                ))}
+                {p.advice && (
+                  <>
+                    <Text style={styles.heading}>Başvuracak birine not</Text>
+                    <Text style={styles.text}>{p.advice}</Text>
+                  </>
+                )}
+              </View>
+            )}
+            {p.kind === "experience" && !!p.invitation_notes && (
+              <View style={styles.card}>
+                <Text style={styles.heading}>Davetiye durumu</Text>
+                <Text style={styles.muted}>
+                  {p.invitation ? "Davetiyesi var" : "Davetiyeye ilişkin not"}
+                </Text>
+                <Text style={styles.text}>{p.invitation_notes}</Text>
+              </View>
+            )}
+            {p.kind === "experience" && !!p.previous_visas?.length && (
+              <View style={styles.card}>
+                <Text style={styles.heading}>Önceki Schengen vizeleri</Text>
+                {p.previous_visas.map((visa, index) => (
+                  <View
+                    key={index}
+                    style={{
+                      gap: 6,
+                      paddingTop: 10,
+                      borderTopWidth: 1,
+                      borderTopColor: "#E4E9E2",
+                    }}
+                  >
+                    <Text style={styles.pillText}>
+                      {index + 1}. {visa.country}
+                    </Text>
+                    {visa.issue_date && (
+                      <Text style={styles.muted}>
+                        Veriliş: {formatDate(visa.issue_date)}
+                      </Text>
+                    )}
+                    {!!visa.duration && (
+                      <Text style={styles.text}>
+                        Vize süresi: {visa.duration}
+                      </Text>
+                    )}
+                    {!!visa.entries && (
+                      <Text style={styles.muted}>
+                        {
+                          {
+                            single: "Tek giriş",
+                            double: "Çift giriş",
+                            multi: "Çok giriş",
+                          }[visa.entries]
+                        }
+                      </Text>
+                    )}
+                    {!!visa.notes && (
+                      <Text style={styles.text}>{visa.notes}</Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+            <EvidencePanel post={p} />
+            {p.source_url && (
               <Button
-                label="Gönderini düzenle"
-                onPress={() => {
-                  setNewTitle(p.title);
-                  setNewBody(p.body);
-                  setRevision(true);
-                }}
+                label="Kaynağı aç"
+                secondary
+                onPress={() =>
+                  void Linking.openURL(p.source_url!).catch(() =>
+                    setMessage("Bağlantı açılamadı."),
+                  )
+                }
               />
             )}
-          <Text style={styles.heading}>Topluluk ne diyor?</Text>
+            <View style={styles.row}>
+              <ShareButton post={p} />
+              {p.status === "approved" && <Report postId={id} />}
+            </View>
+            {session?.user.id === p.user_id &&
+              ["needs_revision", "rejected"].includes(p.status) && (
+                <Button
+                  label="Gönderini düzenle"
+                  onPress={() => {
+                    setNewTitle(p.title);
+                    setNewBody(p.body);
+                    setRevision(true);
+                  }}
+                />
+              )}
+          </Sheet>
+
           {comments.isError && (
             <Text style={styles.muted}>Yorumlar yüklenemedi.</Text>
           )}
         </View>
       }
-      ListEmptyComponent={<Empty title="İlk yanıt senden gelsin" />}
+      ListEmptyComponent={
+        <Text style={[styles.muted, { padding: 12 }]}>
+          İlk yorum senden olsun.
+        </Text>
+      }
       ListFooterComponent={
         <View style={{ gap: 12, marginTop: 20 }}>
           {reply && (
@@ -346,7 +389,6 @@ export default function DetailScreen() {
               onPress={() => setReply(null)}
             />
           )}
-          <Text style={styles.muted}>{privacyWarning}</Text>
           <Field
             label={reply ? "Yanıtını yaz" : "Bir şey söyle…"}
             value={body}

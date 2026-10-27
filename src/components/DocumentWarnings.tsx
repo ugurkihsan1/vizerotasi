@@ -46,7 +46,7 @@ function ExperienceWarning({ note }: { note: DocumentNote }) {
       count={note.post_id ? 1 : undefined}
     >
       {note.post_id && note.source_type === "experience" && (
-        <VerificationLabel postId={note.post_id} />
+        <VerificationLabel postId={note.post_id} compact />
       )}
       <Text style={styles.text}>{note.body}</Text>
       {note.scope && <Text style={styles.muted}>Kapsam: {note.scope}</Text>}

@@ -148,5 +148,20 @@
     "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/46/Geirangerfjord_.jpg",
     "changes": "Wikimedia küçük önizlemesi; uygulama kartlarında sığdırılarak kırpılır. İçerik değiştirilmedi.",
     "sha256": "714ef3aed2b914e65a7d5ca17c6fe8dba54be244c65b08b14aa367091b68d5e1"
+  },
+  {
+    "id": "denmark",
+    "country": "Danimarka",
+    "landmark": "Nyhavn, Kopenhag",
+    "file": "denmark.jpg",
+    "originalTitle": "File:Kopenhagen (DK), Nyhavn -- 2017 -- 1711.jpg",
+    "author": "Dietmar Rabich",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Kopenhagen_(DK),_Nyhavn_--_2017_--_1711.jpg",
+    "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Kopenhagen_%28DK%29%2C_Nyhavn_--_2017_--_1711.jpg/960px-Kopenhagen_%28DK%29%2C_Nyhavn_--_2017_--_1711.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/ce/Kopenhagen_%28DK%29%2C_Nyhavn_--_2017_--_1711.jpg",
+    "changes": "Kart gösteriminde kadraj kırpılabilir.",
+    "sha256": "79226747024c6ed137e51a905d2ff45435f442dae1d24ef3b9362a00d460c31a"
   }
 ]

@@ -17,7 +17,6 @@ import {
   Busy,
 } from "../../src/components/ui";
 import { CountryStory } from "../../src/components/CountryStory";
-import { GroupsEntry } from "../../src/components/GroupsEntry";
 import type { Kind } from "../../src/lib/types";
 const scopes = [
   "Tümü",
@@ -35,7 +34,8 @@ export default function Discover() {
 }
 function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
   const [text, setText] = useState(initialQuery),
-    [search, setSearch] = useState(initialQuery.trim());
+    [search, setSearch] = useState(initialQuery.trim()),
+    [searchFocused, setSearchFocused] = useState(false);
   const [scope, setScope] = useState<Scope>("Tümü"),
     [recent, setRecent] = useState<string[]>([]);
   const { session } = useAuth();
@@ -110,7 +110,15 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
         value={text}
         maxLength={240}
         onChangeText={setText}
-        onSubmitEditing={() => remember(text.trim())}
+        onFocus={() => setSearchFocused(true)}
+        onBlur={() => {
+          if (text.trim()) remember(text.trim());
+          setTimeout(() => setSearchFocused(false), 150);
+        }}
+        onSubmitEditing={() => {
+          remember(text.trim());
+          setSearchFocused(false);
+        }}
         returnKeyType="search"
       />
       {search && (
@@ -150,7 +158,7 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
           )}
         </ScrollView>
       )}
-      {!search && recent.length > 0 && (
+      {searchFocused && !search && recent.length > 0 && (
         <View style={{ gap: 8 }}>
           <View style={[styles.row, { justifyContent: "space-between" }]}>
             <Text style={styles.muted}>Son aramalar</Text>
@@ -166,16 +174,29 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
               <Text style={{ fontSize: 12, color: colors.blue }}>Temizle</Text>
             </Pressable>
           </View>
-          <View style={styles.row}>
+          <View style={{ gap: 4 }}>
             {recent.map((x) => (
-              <Chip
+              <Pressable
                 key={x}
-                label={x}
+                accessibilityRole="button"
+                accessibilityLabel={`${x} aramasını aç`}
                 onPress={() => {
                   setText(x);
                   setScope("Tümü");
+                  setSearchFocused(false);
+                  remember(x);
                 }}
-              />
+                style={{
+                  minHeight: 48,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <Text style={{ fontSize: 20, color: colors.muted }}>↺</Text>
+                <Text style={[styles.text, { flex: 1 }]}>{x}</Text>
+                <Text style={styles.muted}>↗</Text>
+              </Pressable>
             ))}
           </View>
         </View>
@@ -228,7 +249,6 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
           </ScrollView>
         </View>
       )}
-      {!search && <GroupsEntry />}
       {search &&
         validSearch &&
         (scope === "Belgeler" || scope === "Kişiler") && (

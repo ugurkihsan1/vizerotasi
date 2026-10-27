@@ -29,3 +29,14 @@ it("prioritizes followed countries for otherwise equal posts", () => {
     )[0].id,
   ).toBe("b");
 });
+it("keeps every followed country ahead of newer or more popular unfollowed posts", () => {
+  const old = make("old", "estonia", "experience");
+  old.created_at = "2020-01-01T00:00:00Z";
+  const hot = make("hot", "france", "question");
+  hot.helpful_count = 100000;
+  hot.created_at = new Date().toISOString();
+  expect(rankFeed([hot, old], ["estonia"]).map((p) => p.id)).toEqual([
+    "old",
+    "hot",
+  ]);
+});

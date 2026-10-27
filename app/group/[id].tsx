@@ -1,3 +1,4 @@
+import { PlaneReaction } from "../../src/components/PlaneReaction";
 import { useCallback, useRef, useState } from "react";
 import { FlatList, View, Text, Pressable } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -119,11 +120,7 @@ function GroupPostCard({
             gap: 6,
           }}
         >
-          <Ionicons
-            name={post.liked ? "heart" : "heart-outline"}
-            size={21}
-            color={post.liked ? colors.red : colors.muted}
-          />
+          <PlaneReaction active={post.liked} />
           <Text style={styles.muted}>{post.like_count} beğeni</Text>
         </Pressable>
         <Pressable
@@ -149,7 +146,13 @@ export default function GroupRoute() {
   const { session } = useAuth();
   return <GroupScreen key={`${id}:${session?.user.id ?? "guest"}`} id={id} />;
 }
-function GroupScreen({ id }: { id: string }) {
+export function GroupScreen({
+  id,
+  top,
+}: {
+  id: string;
+  top?: React.ReactNode;
+}) {
   const { session, profile } = useAuth(),
     q = useSharingGroup(id),
     g = q.data,
@@ -208,10 +211,17 @@ function GroupScreen({ id }: { id: string }) {
       nonce.current = null;
     }
   }
-  if (q.isPending) return <Busy />;
+  if (q.isPending)
+    return (
+      <View style={styles.content}>
+        {top}
+        <Busy />
+      </View>
+    );
   if (q.isError || !g)
     return (
       <View style={styles.content}>
+        {top}
         <Text style={styles.muted}>
           {q.isError ? groupError(q.error) : "Grup bulunamadı."}
         </Text>
@@ -241,6 +251,7 @@ function GroupScreen({ id }: { id: string }) {
         onEndReachedThreshold={0.4}
         ListHeaderComponent={
           <View style={{ gap: 14, paddingBottom: 4 }}>
+            {top}
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
             >

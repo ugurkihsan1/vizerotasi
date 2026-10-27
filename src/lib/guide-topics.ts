@@ -34,40 +34,40 @@ export function criticalTipPlacement(country: string, category: string) {
     const guide = getCountryGuide(country);
     if (!guide) return "Seçtiğin ülkenin Kritik bölümünde yayınlanır.";
     if (category === "appointment")
-      return `${guide.name} rehberindeki Randevu adımında mor topluluk notu olarak görünür.`;
+      return `${guide.name} rehberindeki Randevu adımında topluluk notu olarak görünür.`;
     if (category === "invitation")
-      return `${guide.name} rehberindeki Konaklama ve davet mektubu bölümünde ve ilgili belgenin altında mor topluluk notu olarak görünür.`;
+      return `${guide.name} rehberindeki Konaklama ve davet mektubu bölümünde ve ilgili belgenin altında topluluk notu olarak görünür.`;
     if (category === "rejection")
-      return `${guide.name} rehberindeki Ret ve yeniden başvuru bölümünde mor topluluk notu olarak görünür.`;
+      return `${guide.name} rehberindeki Ret ve yeniden başvuru bölümünde topluluk notu olarak görünür.`;
     if (
       category === "documents" ||
       category === "other" ||
       category === "doc-form"
     )
-      return `${guide.name} rehberindeki Başvuru Süreci bölümünde mor topluluk notu olarak görünür.`;
+      return `${guide.name} rehberindeki Başvuru Süreci bölümünde topluluk notu olarak görünür.`;
     return selectedDocumentPlacement(country, category);
   }
   const placements: Record<string, string> = {
     appointment:
-      "İspanya rehberindeki Randevu adımında mor topluluk notu olarak görünür.",
+      "İspanya rehberindeki Randevu adımında topluluk notu olarak görünür.",
     invitation:
-      "İspanya rehberindeki Konaklama ve davet mektubu adımında ve Konaklama belgelerinin altında mor topluluk notu olarak görünür.",
+      "İspanya rehberindeki Konaklama ve davet mektubu adımında ve Konaklama belgelerinin altında topluluk notu olarak görünür.",
     passport:
-      "İspanya belge listesindeki Pasaport maddesinin altında mor topluluk notu olarak görünür.",
+      "İspanya belge listesindeki Pasaport maddesinin altında topluluk notu olarak görünür.",
     employment:
-      "İspanya belge listesindeki Çalışma veya gelir durumunu açıklayan belgelerin altında mor topluluk notu olarak görünür.",
+      "İspanya belge listesindeki Çalışma veya gelir durumunu açıklayan belgelerin altında topluluk notu olarak görünür.",
     student:
-      "İspanya belge listesindeki Çalışma veya gelir durumunu açıklayan belgelerin altında mor topluluk notu olarak görünür.",
+      "İspanya belge listesindeki Çalışma veya gelir durumunu açıklayan belgelerin altında topluluk notu olarak görünür.",
     finance:
-      "İspanya belge listesindeki Maddi durumu gösteren belgelerin altında mor topluluk notu olarak görünür.",
+      "İspanya belge listesindeki Maddi durumu gösteren belgelerin altında topluluk notu olarak görünür.",
     sponsor:
-      "İspanya belge listesindeki Maddi durumu gösteren belgelerin altında mor topluluk notu olarak görünür.",
+      "İspanya belge listesindeki Maddi durumu gösteren belgelerin altında topluluk notu olarak görünür.",
     rejection:
-      "İspanya rehberindeki Başvuru öncesi dikkat bölümünde mor topluluk notu olarak görünür.",
+      "İspanya rehberindeki Başvuru öncesi dikkat bölümünde topluluk notu olarak görünür.",
   };
   return (
     placements[category] ??
-    "İspanya rehberindeki Başvuru Süreci bölümünde mor topluluk notu olarak görünür."
+    "İspanya rehberindeki Başvuru Süreci bölümünde topluluk notu olarak görünür."
   );
 }
 
@@ -143,12 +143,12 @@ export function selectedDocumentPlacement(country: string, category: string) {
   const option = documentOptions(country).find((o) => o.id === category);
   if (!option || category === "documents")
     return country === "spain"
-      ? "İspanya rehberindeki Başvuru Süreci bölümünde mor topluluk notu olarak görünür."
-      : `${getCountryGuide(country)?.name ?? "Seçtiğin ülke"} rehberindeki Başvuru Süreci bölümünde mor topluluk notu olarak görünür.`;
+      ? "İspanya rehberindeki Başvuru Süreci bölümünde topluluk notu olarak görünür."
+      : `${getCountryGuide(country)?.name ?? "Seçtiğin ülke"} rehberindeki Başvuru Süreci bölümünde topluluk notu olarak görünür.`;
   if (category === "doc-form" && country === "spain")
-    return `${getCountryGuide(country)?.name ?? "İspanya"} rehberindeki Başvuru Süreci bölümünde mor topluluk notu olarak görünür.`;
+    return `${getCountryGuide(country)?.name ?? "İspanya"} rehberindeki Başvuru Süreci bölümünde topluluk notu olarak görünür.`;
   const label =
     getCountryGuide(country)?.name ??
     (country === "spain" ? "İspanya" : "Seçtiğin ülke");
-  return `${label} belge listesindeki “${option.name}” maddesinde mor topluluk notu olarak görünür.`;
+  return `${label} belge listesindeki “${option.name}” maddesinde topluluk notu olarak görünür.`;
 }

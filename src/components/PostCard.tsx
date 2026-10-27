@@ -1,3 +1,4 @@
+import { PlaneReaction } from "./PlaneReaction";
 import { VerificationLabel } from "./VerificationLabel";
 import { Ionicons } from "@expo/vector-icons";
 import { CountryFlag } from "./CountryFlag";
@@ -106,11 +107,7 @@ export function Actions({ post }: { post: Post }) {
             gap: 6,
           }}
         >
-          <Ionicons
-            name={vote.active ? "heart" : "heart-outline"}
-            size={21}
-            color={vote.active ? colors.blue : colors.muted}
-          />
+          <PlaneReaction active={vote.active} />
           <Text style={styles.muted}>{post.helpful_count} Faydalı</Text>
         </Pressable>
         <Pressable
@@ -180,10 +177,21 @@ export function PostCard({
     <View
       style={[
         styles.card,
-        { padding: 0, gap: 0, overflow: "hidden" },
+        {
+          padding: 0,
+          gap: 0,
+          overflow: "hidden",
+          backgroundColor:
+            post.kind === "experience"
+              ? "#F0F7F2"
+              : post.kind === "question"
+                ? "#EFF5FD"
+                : post.kind === "tip"
+                  ? "#FFF5E7"
+                  : "#FFFFFF",
+        },
         post.kind === "tip" && {
-          backgroundColor: "#FFFFFF",
-          borderColor: "#E6DFF1",
+          borderColor: "#EDDCC4",
         },
         post.kind === "question" && { borderColor: "#DDE6E9" },
       ]}
@@ -311,30 +319,6 @@ export function PostCard({
           >
             {post.title}
           </Text>
-          {detail && post.kind === "experience" && (
-            <View style={styles.row}>
-              {[
-                post.first_schengen ? "İlk Schengen" : null,
-                post.employment_status,
-                post.city,
-                post.financing,
-              ]
-                .filter(Boolean)
-                .map((x) => (
-                  <View key={x} style={styles.pill}>
-                    <Text style={styles.pillText}>{x}</Text>
-                  </View>
-                ))}
-            </View>
-          )}
-          {detail && post.kind === "experience" && (
-            <Text style={styles.muted}>
-              İstenen: {post.requested_days ?? "—"} gün · Verilen:{" "}
-              {post.granted_days ?? "—"} gün{" "}
-              {post.entries &&
-                `· ${{ single: "Tek giriş", double: "Çift giriş", multi: "Çok giriş" }[post.entries] ?? ""}`}
-            </Text>
-          )}
           {!detail && post.kind === "experience" && (
             <View
               style={{
@@ -392,7 +376,7 @@ export function PostCard({
                   : "Resmî kaynak referansı"}
               </Text>
             ) : (
-              <VerificationLabel postId={post.id} compact={!detail} />
+              <VerificationLabel postId={post.id} compact />
             ))}
         </Pressable>
         {!detail && (

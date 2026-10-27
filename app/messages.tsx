@@ -1,3 +1,5 @@
+import { Ionicons } from "@expo/vector-icons";
+import { Avatar } from "../src/components/PostCard";
 import { useCallback, useState } from "react";
 import { ScrollView, View, Text, Pressable } from "react-native";
 import { router, useFocusEffect } from "expo-router";
@@ -38,6 +40,7 @@ function MessagesScreen() {
   const inbox = useChatInbox(focused),
     countries = useCountries(),
     follows = useFollows();
+  const [search, setSearch] = useState("");
   const [compose, setCompose] = useState(false),
     [people, setPeople] = useState<Profile[]>([]),
     [title, setTitle] = useState(""),
@@ -99,32 +102,72 @@ function MessagesScreen() {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={{ gap: 6 }}>
-        <Text style={styles.title}>Sohbetlerin burada.</Text>
-        <Text style={styles.muted}>
-          Topluluğunla konuş, yol arkadaşlarınla bağlantıda kal.
-        </Text>
-      </View>
-      <Button
-        label="Yeni sohbet / Grup kur"
-        onPress={() => {
-          setError("");
-          setCompose(true);
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
         }}
+      >
+        <Text style={styles.heading}>Sohbetler</Text>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Engellenen kişiler"
+            onPress={() => setShowBlocks(true)}
+            style={{
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name="settings-outline" size={22} color={colors.muted} />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Yeni sohbet / Grup kur"
+            onPress={() => {
+              setError("");
+              setCompose(true);
+            }}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 15,
+              backgroundColor: colors.blue,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name="create-outline" size={24} color="#FFF" />
+          </Pressable>
+        </View>
+      </View>
+      <Field
+        label="Sohbet ara"
+        placeholder="Kişi veya sohbet ara"
+        value={search}
+        onChangeText={setSearch}
       />
-      <Text style={styles.heading}>Takip ettiğin topluluklar</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ gap: 10 }}
       >
-        {" "}
         {countries.data
           ?.filter((c) => follows.data?.includes(c.id))
           .map((c) => (
             <View
               key={c.id}
-              style={[styles.card, { width: 180, padding: 12, gap: 8 }]}
+              style={{
+                width: 150,
+                padding: 10,
+                gap: 6,
+                borderRadius: 18,
+                backgroundColor: "#E8F1EC",
+              }}
             >
               <View style={styles.row}>
                 <CountryFlag code={c.code} emoji={c.flag} name={c.name} />
@@ -138,14 +181,6 @@ function MessagesScreen() {
             </View>
           ))}
       </ScrollView>
-      {!follows.isPending && !follows.data?.length && (
-        <Empty
-          title="Bir ülkeyi takip ederek başla"
-          action="Ülkeleri keşfet"
-          onPress={() => router.push("/discover")}
-        />
-      )}
-      <Text style={styles.heading}>Mesajlar ve istekler</Text>
       {inbox.isPending && <Busy />}
       {inbox.isError && (
         <Empty
@@ -154,54 +189,81 @@ function MessagesScreen() {
           onPress={() => void inbox.refetch()}
         />
       )}
-      {inbox.data?.pages.flat().map((room) => (
-        <Pressable
-          key={room.id}
-          accessibilityRole="link"
-          accessibilityLabel={`${room.title}${room.status === "invited" ? " · Sohbet isteği" : ""}`}
-          onPress={() => router.push(`/chat/${room.id}`)}
-          style={[styles.card, { padding: 16, gap: 7 }]}
-        >
-          <View style={[styles.row, { justifyContent: "space-between" }]}>
-            <Text style={[styles.pillText, { flex: 1 }]} numberOfLines={1}>
-              {room.title}
+      {inbox.data?.pages
+        .flat()
+        .filter((room) =>
+          room.title
+            .toLocaleLowerCase("tr-TR")
+            .includes(search.toLocaleLowerCase("tr-TR")),
+        )
+        .map((room) => (
+          <Pressable
+            key={room.id}
+            accessibilityRole="link"
+            accessibilityLabel={`${room.title}${room.status === "invited" ? " · Sohbet isteği" : ""}`}
+            onPress={() => router.push(`/chat/${room.id}`)}
+            style={{
+              backgroundColor: "#FFF",
+              borderRadius: 18,
+              padding: 14,
+              gap: 6,
+            }}
+          >
+            <View
+              style={[
+                styles.row,
+                { justifyContent: "space-between", flexWrap: "nowrap" },
+              ]}
+            >
+              <Avatar
+                name={
+                  room.kind === "group"
+                    ? "👥"
+                    : room.kind === "community"
+                      ? "🌍"
+                      : room.title
+                }
+                size={42}
+              />
+              <Text style={[styles.pillText, { flex: 1 }]} numberOfLines={1}>
+                {room.title}
+              </Text>
+              {room.unread_count > 0 && (
+                <View
+                  style={{
+                    borderRadius: 10,
+                    backgroundColor: colors.blue,
+                    paddingHorizontal: 7,
+                    paddingVertical: 2,
+                  }}
+                >
+                  <Text style={{ color: "#FFF", fontSize: 11 }}>
+                    {room.unread_count}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.muted} numberOfLines={1}>
+              {room.status === "invited"
+                ? "Yeni sohbet isteği"
+                : room.closed_at
+                  ? "Grup kapatıldı"
+                  : room.last_body === null
+                    ? "Henüz mesaj yok"
+                    : room.last_body === ""
+                      ? "Mesaj kaldırıldı"
+                      : room.last_body}
             </Text>
-            {room.unread_count > 0 && (
-              <View
-                style={{
-                  borderRadius: 10,
-                  backgroundColor: colors.blue,
-                  paddingHorizontal: 7,
-                  paddingVertical: 2,
-                }}
-              >
-                <Text style={{ color: "#FFF", fontSize: 11 }}>
-                  {room.unread_count}
-                </Text>
-              </View>
-            )}
-          </View>
-          <Text style={styles.muted} numberOfLines={1}>
-            {room.status === "invited"
-              ? "Sohbet isteği · Kabul etmeden geçmiş görünmez"
-              : room.closed_at
-                ? "Grup kapatıldı"
-                : room.last_body === null
-                  ? "Henüz mesaj yok"
-                  : room.last_body === ""
-                    ? "Mesaj kaldırıldı"
-                    : room.last_body}
-          </Text>
-          <Text style={{ fontSize: 10, color: colors.muted }}>
-            {room.kind === "community"
-              ? "Topluluk"
-              : room.kind === "group"
-                ? "Grup"
-                : "Özel sohbet"}{" "}
-            · {formatDateTime(room.last_at)}
-          </Text>
-        </Pressable>
-      ))}
+            <Text style={{ fontSize: 10, color: colors.muted }}>
+              {room.kind === "community"
+                ? "Topluluk"
+                : room.kind === "group"
+                  ? "Grup"
+                  : "Özel sohbet"}{" "}
+              · {formatDateTime(room.last_at)}
+            </Text>
+          </Pressable>
+        ))}
       {inbox.isSuccess && !inbox.data.pages.flat().length && (
         <Text style={styles.muted}>
           Henüz sohbetin yok. Bir kişiyi seçerek başlayabilirsin.
@@ -215,20 +277,12 @@ function MessagesScreen() {
           onPress={() => void inbox.fetchNextPage()}
         />
       )}
-      <Button
-        secondary
-        label="Engellenen kişiler"
-        onPress={() => setShowBlocks(true)}
-      />
       <Sheet
         title="Yeni sohbet"
         visible={compose}
         onClose={() => setCompose(false)}
       >
-        <Text style={styles.muted}>
-          Bir kişiyle özel sohbet, birden fazla kişiyle en fazla 10 kişilik grup
-          kur. Seçtiğin kişilere davet gider.
-        </Text>
+        <Text style={styles.muted}>Seçtiğin kişilere sohbet isteği gider.</Text>
         <ChatPeoplePicker
           selected={people}
           onChange={setPeople}

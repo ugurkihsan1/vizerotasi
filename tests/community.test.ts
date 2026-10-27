@@ -977,3 +977,33 @@ it("withdraws verification and its bonus when verified content changes or is del
     ).rows,
   ).toHaveLength(0);
 });
+it("provisions Denmark additively and preserves existing checklist edits on rerun", async () => {
+  expect(
+    (
+      await as(
+        null,
+        "select code,is_schengen from countries where id='denmark'",
+      )
+    ).rows[0],
+  ).toMatchObject({ code: "DK", is_schengen: true });
+  expect(
+    (
+      await as(
+        null,
+        "select id from country_documents where country_id='denmark'",
+      )
+    ).rows,
+  ).toHaveLength(13);
+  await root(
+    "update country_documents set body='An existing administrator checklist edit.' where country_id='denmark' and sort_order=1",
+  );
+  await pg.exec(readFileSync("docs/DENMARK_UPGRADE.sql", "utf8"));
+  expect(
+    (
+      await as(
+        null,
+        "select body from country_documents where country_id='denmark' and sort_order=1",
+      )
+    ).rows[0],
+  ).toMatchObject({ body: "An existing administrator checklist edit." });
+});

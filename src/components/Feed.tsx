@@ -2,14 +2,12 @@ import { ApplicationOverview } from "./ApplicationOverview";
 import {
   HomeWelcome,
   OwnSubmissionNotice,
-  CommunityNote,
   CommunityEmpty,
 } from "./HomeSections";
-import { GroupsEntry } from "./GroupsEntry";
 import { FlatList, View, Text, ScrollView, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useMemo, useState, type ReactElement } from "react";
+import { useMemo, useState, useEffect, type ReactElement } from "react";
 import { useFeed, useFollows, type FeedFilter } from "../lib/data";
 import { useAuth } from "../lib/auth";
 import { rankFeed } from "../lib/ranking";
@@ -27,6 +25,8 @@ import {
   colors,
 } from "./ui";
 export function Feed({
+  homeTabs,
+  homeKind,
   country,
   author,
   saved = false,
@@ -35,6 +35,8 @@ export function Feed({
   baseFilter = {},
   contentOnly = false,
 }: {
+  homeTabs?: ReactElement;
+  homeKind?: "experience" | "question";
   country?: string;
   author?: string;
   saved?: boolean;
@@ -61,6 +63,7 @@ export function Feed({
   const query = useFeed(
     {
       ...baseFilter,
+      prioritizeFollowed: !country && !author && !saved && !search,
       country,
       author,
       saved,
@@ -74,7 +77,7 @@ export function Feed({
           ? "experience"
           : selected === "Sorular"
             ? "question"
-            : baseFilter.kind,
+            : (homeKind ?? baseFilter.kind),
       result: result || baseFilter.result,
     },
     !contentOnly,
@@ -84,6 +87,25 @@ export function Feed({
     const items = query.data?.pages.flat() ?? [];
     return newest ? items : rankFeed(items, follows ?? []);
   }, [query.data, newest, follows]);
+  const { isPending, isError, hasNextPage, isFetchingNextPage, fetchNextPage } =
+    query;
+  useEffect(() => {
+    if (
+      !isPending &&
+      !isError &&
+      !posts.length &&
+      hasNextPage &&
+      !isFetchingNextPage
+    )
+      void fetchNextPage();
+  }, [
+    posts.length,
+    isPending,
+    isError,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  ]);
   const primary = !country && !author && !saved;
   const top = (
     <View style={{ gap: 12, paddingBottom: 12 }}>
@@ -93,7 +115,6 @@ export function Feed({
           {!header && <HomeWelcome />}
           {!header && <ApplicationOverview />}
           {!header && <OwnSubmissionNotice />}
-          {!header && <GroupsEntry />}
         </View>
       )}
       {!author && !saved && (
@@ -105,7 +126,8 @@ export function Feed({
             gap: 8,
           }}
         >
-          {!country && (
+          {homeTabs && <View style={{ flex: 1 }}>{homeTabs}</View>}
+          {!country && !homeTabs && (
             <View
               accessibilityLabel="İçerik türü"
               style={{ flexDirection: "row", gap: 14, flex: 1 }}
@@ -152,9 +174,11 @@ export function Feed({
             }}
           >
             <Ionicons name="options-outline" size={19} color={colors.muted} />
-            <Text style={styles.muted}>
-              Filtrele{count ? ` · ${count}` : ""}
-            </Text>
+            {!homeTabs && (
+              <Text style={styles.muted}>
+                Filtrele{count ? ` · ${count}` : ""}
+              </Text>
+            )}
           </Pressable>
         </View>
       )}
@@ -227,15 +251,7 @@ export function Feed({
             void query.fetchNextPage();
         }}
         onEndReachedThreshold={0.4}
-        ListFooterComponent={
-          query.isFetchingNextPage ? (
-            <Busy />
-          ) : primary && !header ? (
-            <View style={{ gap: 14, paddingTop: 8 }}>
-              <CommunityNote />
-            </View>
-          ) : undefined
-        }
+        ListFooterComponent={query.isFetchingNextPage ? <Busy /> : undefined}
       />
       <Sheet
         visible={open}

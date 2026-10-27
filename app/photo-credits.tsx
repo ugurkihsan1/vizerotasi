@@ -55,9 +55,6 @@ export default function PhotoCredits() {
           </View>
         </View>
       ))}
-      <Text style={[styles.muted, { fontSize: 11 }]}>
-        Kartlarda kadraj kırpılır; özgün fotoğrafların içeriği değiştirilmez.
-      </Text>
       {country && (
         <Button
           secondary

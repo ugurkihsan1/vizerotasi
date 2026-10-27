@@ -57,7 +57,7 @@ export function CommunityTips({
           source="community"
           topic={guideTopicLabels[tip.category_id] ?? tip.category_id}
         >
-          <VerificationLabel postId={tip.id} />
+          <VerificationLabel postId={tip.id} compact />
           <Text style={styles.text}>{tip.body}</Text>
           <Pressable
             accessibilityRole="link"

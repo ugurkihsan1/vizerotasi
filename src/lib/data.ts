@@ -43,6 +43,7 @@ export function useProfile(id?: string) {
   });
 }
 export interface FeedFilter {
+  prioritizeFollowed?: boolean;
   countryIds?: string[];
   country?: string;
   kind?: Kind;
@@ -57,10 +58,22 @@ export interface FeedFilter {
 }
 export function useFeed(filter: FeedFilter = {}, enabled = true) {
   const { session } = useAuth();
+  const follows = useFollows();
+  const priority = filter.prioritizeFollowed
+    ? (follows.data ?? [])
+        .filter((id) => /^[a-z][a-z0-9-]{0,50}$/.test(id))
+        .sort()
+    : [];
   return useInfiniteQuery({
-    queryKey: ["feed", filter, session?.user.id],
-    enabled: configured && enabled,
-    initialPageParam: 0,
+    queryKey: ["feed", filter, session?.user.id, priority],
+    enabled:
+      configured &&
+      enabled &&
+      (!filter.prioritizeFollowed || !follows.isPending),
+    initialPageParam: {
+      phase: priority.length ? "followed" : "others",
+      offset: 0,
+    },
     queryFn: async ({ pageParam }) => {
       let ids: string[] | null = null;
       if (filter.saved) {
@@ -78,7 +91,12 @@ export function useFeed(filter: FeedFilter = {}, enabled = true) {
         .select("*")
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
-        .range(pageParam, pageParam + PAGE_SIZE - 1);
+        .range(pageParam.offset, pageParam.offset + PAGE_SIZE - 1);
+      if (priority.length)
+        q =
+          pageParam.phase === "followed"
+            ? q.in("country_id", priority)
+            : q.not("country_id", "in", `(${priority.join(",")})`);
       if (ids) q = q.in("id", ids);
       if (filter.country) q = q.eq("country_id", filter.country);
       if (filter.countryIds?.length) q = q.in("country_id", filter.countryIds);
@@ -102,8 +120,12 @@ export function useFeed(filter: FeedFilter = {}, enabled = true) {
       if (r.error) throw r.error;
       return r.data as Post[];
     },
-    getNextPageParam: (last, pages) =>
-      last.length === PAGE_SIZE ? pages.length * PAGE_SIZE : undefined,
+    getNextPageParam: (last, _pages, cursor) =>
+      last.length === PAGE_SIZE
+        ? { ...cursor, offset: cursor.offset + PAGE_SIZE }
+        : cursor.phase === "followed"
+          ? { phase: "others", offset: 0 }
+          : undefined,
   });
 }
 export function usePost(id: string) {

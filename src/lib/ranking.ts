@@ -34,5 +34,8 @@ export function rankFeed(
     result.push(p);
     seenAuthors.add(p.user_id);
   }
-  return result;
+  return [
+    ...result.filter((p) => followed.includes(p.country_id)),
+    ...result.filter((p) => !followed.includes(p.country_id)),
+  ];
 }

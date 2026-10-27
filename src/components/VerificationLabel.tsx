@@ -14,13 +14,12 @@ export function VerificationLabel({
     return (
       <Text
         style={{
-          color: verified ? "#24766C" : "#806A9D",
+          color: "#24766C",
           fontSize: 10,
           lineHeight: 16,
         }}
       >
-        {verified ? "✓ Belgeyle doğrulandı" : "Kullanıcı deneyimi"} · Resmî
-        kural değil
+        {verified ? "✓ Belgeyle doğrulanmış deneyim" : "Kullanıcı deneyimi"}
       </Text>
     );
   return (

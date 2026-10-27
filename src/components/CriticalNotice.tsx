@@ -19,16 +19,24 @@ export function CriticalNotice({
   initiallyOpen?: boolean;
 } & PropsWithChildren) {
   const [open, setOpen] = useState(initiallyOpen);
+  const official = source === "reference";
+  const accent = official ? "#71579D" : "#24766C";
   return (
     <View
       style={{
         borderLeftWidth: 3,
-        borderLeftColor: "#7661A6",
+        borderLeftColor: accent,
         borderRadius: 10,
-        backgroundColor: open ? "#FCFAFF" : "#F0EBFA",
+        backgroundColor: official
+          ? open
+            ? "#FCFAFF"
+            : "#F0EBFA"
+          : open
+            ? "#F8FCFA"
+            : "#E7F2ED",
         overflow: "hidden",
         borderWidth: 1,
-        borderColor: "#E9E0F5",
+        borderColor: official ? "#E9E0F5" : "#D2E7DD",
       }}
     >
       <Pressable
@@ -45,12 +53,12 @@ export function CriticalNotice({
           gap: 8,
         }}
       >
-        <Ionicons name="alert-circle-outline" color="#71579D" size={18} />
+        <Ionicons name="alert-circle-outline" color={accent} size={18} />
         <View style={{ flex: 1, gap: 3 }}>
-          <Text style={{ fontSize: 13, fontWeight: "700", color: "#644A94" }}>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: accent }}>
             {title}
           </Text>
-          <Text style={{ fontSize: 10, color: "#806A9D" }}>
+          <Text style={{ fontSize: 10, color: accent }}>
             {source === "reference"
               ? referenceLabel
               : source === "community"
@@ -60,36 +68,20 @@ export function CriticalNotice({
                   : `${count ?? 1} başvuru deneyimi · Kullanıcı aktarımı`}
           </Text>
         </View>
-        {source === "community" && (
-          <Text style={{ fontSize: 9, color: "#71579D", maxWidth: 74 }}>
-            Resmî kural değil
-          </Text>
-        )}
         <Ionicons
           name={open ? "chevron-up" : "chevron-down"}
           size={16}
-          color="#71579D"
+          color={accent}
         />
       </Pressable>
       {open && (
         <View style={{ padding: 13, paddingTop: 2, gap: 10 }}>
           {children}
-          <Text
-            style={[
-              styles.muted,
-              {
-                fontSize: 11,
-                lineHeight: 18,
-                paddingTop: 10,
-                borderTopWidth: 1,
-                borderTopColor: "#ECE4F6",
-              },
-            ]}
-          >
-            {source === "reference"
-              ? "Bu bilgi kaynak belgenin kapsamıyla sınırlıdır. Başvurmadan önce güncel resmî koşulları kontrol et."
-              : "Kişisel deneyim veya editör açıklamasıdır; belge muafiyeti ya da herkese uygulanan bir kural değildir. Güncel koşulları resmî kaynaktan kontrol et."}
-          </Text>
+          {!official && (
+            <Text style={[styles.muted, { fontSize: 11 }]}>
+              Kişisel deneyim · Resmî kural değil
+            </Text>
+          )}
         </View>
       )}
     </View>
