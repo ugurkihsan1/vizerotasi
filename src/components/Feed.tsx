@@ -200,11 +200,11 @@ export function Feed({
         maxToRenderPerBatch={PAGE_SIZE}
         windowSize={9}
         style={styles.page}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 32, gap: 12 }}
         data={posts}
         keyExtractor={(p) => p.id}
         renderItem={({ item }) => <PostCard post={item} />}
-        ListHeaderComponent={<View style={{ padding: 16 }}>{top}</View>}
+        ListHeaderComponent={top}
         ListEmptyComponent={
           !configured ? (
             <Empty

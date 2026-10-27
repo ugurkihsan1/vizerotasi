@@ -49,7 +49,7 @@ function GroupPostCard({
   const { session } = useAuth();
   const [expanded, setExpanded] = useState(false);
   return (
-    <View style={[styles.timeline, { gap: 12 }]}>
+    <View style={[styles.card, { padding: 16, gap: 12 }]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
         <Avatar
           name={post.author.display_name}
@@ -243,7 +243,7 @@ export function GroupScreen({
     <>
       <FlatList
         style={styles.page}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={styles.content}
         data={canRead ? (feed.data?.pages.flat() ?? []) : []}
         keyExtractor={(p) => p.id}
         refreshing={feed.isRefetching || q.isRefetching}
@@ -257,7 +257,7 @@ export function GroupScreen({
         }}
         onEndReachedThreshold={0.4}
         ListHeaderComponent={
-          <View style={{ gap: 14, padding: 16 }}>
+          <View style={{ gap: 14, paddingBottom: 4 }}>
             {top}
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
