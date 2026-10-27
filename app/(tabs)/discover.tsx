@@ -3,9 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { View, Text, ScrollView, Pressable, FlatList } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../src/lib/auth";
-import { useCountries, useFeed } from "../../src/lib/data";
+import { useCountries, useFeed, useFollows } from "../../src/lib/data";
 import { resolveSearch } from "../../src/lib/search";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { PostCard } from "../../src/components/PostCard";
 import {
   Field,
@@ -16,9 +16,8 @@ import {
   Empty,
   Busy,
 } from "../../src/components/ui";
-import { DestinationPhoto } from "../../src/components/DestinationPhoto";
-import { CountryFlag } from "../../src/components/CountryFlag";
-import { SpainFeature } from "../../src/components/HomeSections";
+import { CountryStory } from "../../src/components/CountryStory";
+import { GroupsEntry } from "../../src/components/GroupsEntry";
 import type { Kind } from "../../src/lib/types";
 const scopes = [
   "Tümü",
@@ -42,6 +41,7 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
   const { session } = useAuth();
   const key = `recent-searches:${session?.user.id ?? "guest"}`;
   const countries = useCountries();
+  const follows = useFollows();
   useEffect(() => {
     let active = true;
     void AsyncStorage.getItem(key)
@@ -191,7 +191,7 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
       {showCountries && (
         <View style={{ gap: 12 }}>
           <Text style={styles.heading}>
-            {search ? "Eşleşen ülkeler" : "Bir ülkeyle başla"}
+            {search ? "Eşleşen ülkeler" : "Ülkeler"}
           </Text>
           {countries.isPending && <Busy />}
           {countries.isError && (
@@ -206,42 +206,29 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
               Ülke bulunamadı. Ülke adını veya kodunu deneyebilirsin.
             </Text>
           )}
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
-            {matched.map((c) => (
-              <Pressable
-                key={c.id}
-                accessibilityRole="link"
-                accessibilityLabel={`${c.name} topluluğuna git`}
-                onPress={() => router.push(`/country/${c.id}`)}
-                style={{
-                  width: "47.8%",
-                  flexGrow: 1,
-                  maxWidth: "50%",
-                  borderRadius: 20,
-                  overflow: "hidden",
-                  backgroundColor: "#FFF",
-                  borderWidth: 1,
-                  borderColor: "#E4E9E2",
-                }}
-              >
-                {!search && <DestinationPhoto id={c.id} height={106} />}
-                <View
-                  style={{
-                    padding: 12,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 7,
-                  }}
-                >
-                  <CountryFlag code={c.code} emoji={c.flag} name={c.name} />
-                  <Text style={[styles.pillText, { flex: 1 }]}>{c.name}</Text>
-                </View>
-              </Pressable>
-            ))}
-          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 12 }}
+          >
+            {matched
+              .slice()
+              .sort(
+                (a, b) =>
+                  Number(follows.data?.includes(b.id)) -
+                  Number(follows.data?.includes(a.id)),
+              )
+              .map((c) => (
+                <CountryStory
+                  key={c.id}
+                  country={c}
+                  followed={follows.data?.includes(c.id)}
+                />
+              ))}
+          </ScrollView>
         </View>
       )}
-      {!search && <SpainFeature />}
+      {!search && <GroupsEntry />}
       {search &&
         validSearch &&
         (scope === "Belgeler" || scope === "Kişiler") && (

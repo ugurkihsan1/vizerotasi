@@ -5,8 +5,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { photoAssets, photoCredits } from "../src/lib/destination-photos";
 import { styles, Button, Message } from "../src/components/ui";
 export default function PhotoCredits() {
-  const { country } = useLocalSearchParams<{ country?: string }>();
-  const [error, setError] = useState("");
+  const { country } = useLocalSearchParams<{ country?: string }>(),
+    [error, setError] = useState("");
   const entries = country
     ? photoCredits.filter((p) => p.id === country)
     : photoCredits;
@@ -17,41 +17,47 @@ export default function PhotoCredits() {
   }
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Rotaların gerçek yüzü.</Text>
-      <Text style={styles.muted}>
-        Ülke kartlarında gerçek yerlerin fotoğraflarını kullanıyoruz. Fotoğrafçı
-        ve lisans bilgilerini burada bulabilirsin.
-      </Text>
       <Message text={error} />
       {entries.map((p) => (
-        <View style={styles.card} key={p.id}>
-          <Image
-            source={photoAssets[p.id]}
-            style={{ width: "100%", height: 190, borderRadius: 14 }}
-            contentFit="contain"
-            accessibilityLabel={p.landmark}
-          />
-          <Text style={styles.heading}>
-            {p.country} · {p.landmark}
-          </Text>
-          <Text style={styles.text}>Fotoğraf: {p.author}</Text>
-          <Text style={styles.muted}>{p.license} · Wikimedia Commons</Text>
-          <Text style={styles.muted}>
-            Kartlara sığdırmak için fotoğrafın bir bölümü gösterilebilir. Özgün
-            fotoğrafın içeriği değiştirilmedi.
-          </Text>
-          <Button
-            secondary
-            label="Fotoğrafın kaynak sayfası"
-            onPress={() => open(p.sourceUrl)}
-          />
-          <Button
-            secondary
-            label="Fotoğraf lisansı"
-            onPress={() => open(p.licenseUrl)}
-          />
+        <View key={p.id} style={[styles.card, { padding: 14, gap: 10 }]}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <Image
+              source={photoAssets[p.id]}
+              contentFit="cover"
+              style={{ width: 64, height: 64, borderRadius: 14 }}
+              accessibilityLabel={p.landmark}
+            />
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={styles.pillText}>{p.landmark}</Text>
+              <Text style={[styles.muted, { fontSize: 12 }]}>
+                Fotoğraf: {p.author}
+              </Text>
+              <Text style={[styles.muted, { fontSize: 11 }]}>
+                {p.license} · Wikimedia Commons
+              </Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Button
+                secondary
+                label="Kaynak"
+                onPress={() => open(p.sourceUrl)}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button
+                secondary
+                label="Fotoğraf lisansı"
+                onPress={() => open(p.licenseUrl)}
+              />
+            </View>
+          </View>
         </View>
       ))}
+      <Text style={[styles.muted, { fontSize: 11 }]}>
+        Kartlarda kadraj kırpılır; özgün fotoğrafların içeriği değiştirilmez.
+      </Text>
       {country && (
         <Button
           secondary

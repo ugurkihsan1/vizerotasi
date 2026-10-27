@@ -56,6 +56,8 @@ export default function Layout() {
                 contentStyle: { backgroundColor: colors.bg },
               }}
             >
+              <Stack.Screen name="groups" options={{ title: "Gruplar" }} />
+              <Stack.Screen name="group/[id]" options={{ title: "Grup" }} />
               <Stack.Screen name="messages" options={{ title: "Mesajlar" }} />
               <Stack.Screen name="chat/[id]" options={{ title: "Sohbet" }} />
               <Stack.Screen

@@ -141,3 +141,7 @@ Keşfet araması öncelikle deneyim, kritik nokta ve soruları gösterir; içeri
 Takip edilen ülke topluluklarında ortak oda, üyeler arasında davet kabulüne bağlı birebir ve en fazla 10 kişilik grup mesajlaşması eklidir. Üst menüdeki Mesajlar simgesi ve profil/ülke düğmeleri üzerinden açılır. Realtime metin mesajları, okunmamış/istek sayısı, özel odalarda görüldü, grup daveti/ayrılma, engelleme, mesaj kaldırma ve bildirilen tekil mesajın yönetim incelemesi bulunur. Özel sohbet geçmişi staff rolüne topluca açılmaz.
 
 Supabase SQL Editor’da [CHAT_UPGRADE.sql](docs/CHAT_UPGRADE.sql) dosyasının tamamını uygulayın. Yalnız temel topluluk şemasını gerektirir; tekrar çalıştırılabilir ve mevcut veriyi silmez. [Akış, erişim kuralları, sınırlar ve test kapsamı](docs/CHAT_TR.md). Uzak SQL yönetici erişimi bulunmadığı için bu çalışma sırasında uygulanmadı. Bu sürüm metin mesajlaşmasıdır; medya, arama ve arka plan push gönderimi eklenmedi.
+
+### Yönetici onaylı paylaşım grupları
+
+Erasmus ve kullanıcıların oluşturduğu gruplar için Supabase SQL Editor’da [GROUPS_UPGRADE.sql](docs/GROUPS_UPGRADE.sql) çalıştırılır. Kurulum ve gizlilik ayrıntıları: [Gruplar rehberi](docs/GROUPS_TR.md).

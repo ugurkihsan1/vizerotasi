@@ -1,3 +1,4 @@
+import { ScrollTabs } from "../../src/components/ScrollTabs";
 import { CommunityChatEntry } from "../../src/components/ChatEntry";
 import { DocumentWarnings } from "../../src/components/DocumentWarnings";
 import { DestinationPhoto } from "../../src/components/DestinationPhoto";
@@ -11,7 +12,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../src/lib/auth";
 import { useLocalSearchParams, router } from "expo-router";
 import { useState, useEffect } from "react";
-import { View, Text, FlatList, Linking, ScrollView } from "react-native";
+import { View, Text, FlatList, Linking } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useCountries, useDocuments, useToggle } from "../../src/lib/data";
 import { db, configured } from "../../src/lib/supabase";
@@ -156,74 +157,72 @@ export default function Country() {
   });
   const header = (
     <View style={{ gap: 16 }}>
-      <View
-        style={{
-          borderRadius: 24,
-          overflow: "hidden",
-          backgroundColor: "#DFE9E2",
-        }}
-      >
-        <DestinationPhoto id={id} height={120} />
-      </View>
+      {tab !== "Belgeler" && (
+        <View
+          style={{
+            borderRadius: 24,
+            overflow: "hidden",
+            backgroundColor: "#DFE9E2",
+          }}
+        >
+          <DestinationPhoto id={id} height={120} />
+        </View>
+      )}
       <Text style={styles.title}>
         {country?.flag} {country?.name ?? "Ülke topluluğu"}
       </Text>
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <View style={{ flex: 1 }}>
-          <Follow id={id} />
+      {tab !== "Belgeler" && (
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <View style={{ flex: 1 }}>
+            <Follow id={id} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <CommunityChatEntry countryId={id} name={country?.name ?? "Ülke"} />
+          </View>
         </View>
-        <View style={{ flex: 1 }}>
-          <CommunityChatEntry countryId={id} name={country?.name ?? "Ülke"} />
+      )}
+      {tab !== "Belgeler" && (
+        <View style={styles.row}>
+          <Text style={styles.pillText}>
+            {stats.data?.experiences ?? "—"} deneyim
+          </Text>
+          <Text style={styles.pillText}>
+            · {stats.data?.questions ?? "—"} soru
+          </Text>
+          <Text style={styles.pillText}>
+            · {stats.data?.tips ?? "—"} kritik bilgi
+          </Text>
         </View>
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.pillText}>
-          {stats.data?.experiences ?? "—"} deneyim
-        </Text>
-        <Text style={styles.pillText}>
-          · {stats.data?.questions ?? "—"} soru
-        </Text>
-        <Text style={styles.pillText}>
-          · {stats.data?.tips ?? "—"} kritik bilgi
-        </Text>
-      </View>
-      {stats.data?.average_days != null && (
+      )}
+      {tab !== "Belgeler" && stats.data?.average_days != null && (
         <Text style={styles.muted}>
           Ortalama sonuç: {stats.data.average_days} gün · Topluluk deneyimleri
         </Text>
       )}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8 }}
-      >
-        {(id === "spain"
-          ? [
-              "Akış",
-              "Deneyimler",
-              "Sorular",
-              "Ret Deneyimleri",
-              "Kritik",
-              "Belgeler",
-              "Rehber",
-            ]
-          : [
-              "Akış",
-              "Deneyimler",
-              "Sorular",
-              "Kritik",
-              "Belgeler",
-              ...(getCountryGuide(id) ? ["Rehber"] : []),
-            ]
-        ).map((t) => (
-          <Chip
-            key={t}
-            label={t}
-            active={tab === t}
-            onPress={() => setTab(t)}
-          />
-        ))}
-      </ScrollView>
+      <ScrollTabs
+        labels={
+          id === "spain"
+            ? [
+                "Akış",
+                "Deneyimler",
+                "Sorular",
+                "Ret Deneyimleri",
+                "Kritik",
+                "Belgeler",
+                "Rehber",
+              ]
+            : [
+                "Akış",
+                "Deneyimler",
+                "Sorular",
+                "Kritik",
+                "Belgeler",
+                ...(getCountryGuide(id) ? ["Rehber"] : []),
+              ]
+        }
+        value={tab}
+        onChange={setTab}
+      />
     </View>
   );
   if (id === "spain" && tab === "Belgeler")

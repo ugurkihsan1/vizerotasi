@@ -2,21 +2,15 @@ import { ApplicationOverview } from "./ApplicationOverview";
 import {
   HomeWelcome,
   OwnSubmissionNotice,
-  SpainFeature,
   CommunityNote,
   CommunityEmpty,
 } from "./HomeSections";
-import { CountryStory } from "./CountryStory";
+import { GroupsEntry } from "./GroupsEntry";
 import { FlatList, View, Text, ScrollView, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useMemo, useState, type ReactElement } from "react";
-import {
-  useCountries,
-  useFeed,
-  useFollows,
-  type FeedFilter,
-} from "../lib/data";
+import { useFeed, useFollows, type FeedFilter } from "../lib/data";
 import { useAuth } from "../lib/auth";
 import { rankFeed } from "../lib/ranking";
 import { configured } from "../lib/supabase";
@@ -85,7 +79,6 @@ export function Feed({
     },
     !contentOnly,
   );
-  const { data: countries } = useCountries();
   const { data: follows } = useFollows();
   const posts = useMemo(() => {
     const items = query.data?.pages.flat() ?? [];
@@ -100,43 +93,7 @@ export function Feed({
           {!header && <HomeWelcome />}
           {!header && <ApplicationOverview />}
           {!header && <OwnSubmissionNotice />}
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Text style={styles.heading}>Ülkeler</Text>
-            <Pressable
-              accessibilityRole="link"
-              accessibilityLabel="Tüm ülkeleri keşfet"
-              onPress={() => router.push("/discover")}
-              style={{ minHeight: 44, justifyContent: "center" }}
-            >
-              <Ionicons name="arrow-forward" size={20} color={colors.blue} />
-            </Pressable>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 12 }}
-          >
-            {countries
-              ?.slice()
-              .sort(
-                (a, b) =>
-                  Number(follows?.includes(b.id)) -
-                  Number(follows?.includes(a.id)),
-              )
-              .map((c) => (
-                <CountryStory
-                  key={c.id}
-                  country={c}
-                  followed={follows?.includes(c.id)}
-                />
-              ))}
-          </ScrollView>
+          {!header && <GroupsEntry />}
         </View>
       )}
       {!author && !saved && (
@@ -275,7 +232,6 @@ export function Feed({
             <Busy />
           ) : primary && !header ? (
             <View style={{ gap: 14, paddingTop: 8 }}>
-              <SpainFeature />
               <CommunityNote />
             </View>
           ) : undefined

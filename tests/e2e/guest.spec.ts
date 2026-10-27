@@ -125,6 +125,9 @@ test("Spain retains 13 documents, changes employment details and persists checks
     })
     .click();
   await expect(page.getByText("A. Çalışanlar", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Liste seçenekleri ve kaynaklar" })
+    .click();
   await page.getByRole("button", { name: "Çalışma durumunu seç" }).click();
   await page.getByRole("radio", { name: "Öğrenci", exact: true }).click();
   await expect(
@@ -473,9 +476,7 @@ test("all other countries including Norway have source-linked guides and documen
   ]) {
     await page.goto(`/country/${id}`);
     await page.getByRole("button", { name: "Belgeler", exact: true }).click();
-    await expect(
-      page.getByText(`${name} · Turistik vize belgeleri`, { exact: true }),
-    ).toBeVisible();
+    await expect(page.getByText(name, { exact: false }).first()).toBeVisible();
     await expect(
       page.getByText("0 / 13 belge işaretlendi", { exact: true }),
     ).toBeVisible();
@@ -492,6 +493,9 @@ test("all other countries including Norway have source-linked guides and documen
         exact: true,
       }),
     ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Resmî kaynaklar", exact: true })
+      .click();
     await expect(
       page.getByRole("link", {
         name: "Avrupa Komisyonu – Schengen vizesine başvuru",
@@ -550,7 +554,7 @@ test("all ten country cards load bundled landmark photographs and expose photo c
   ];
   for (const landmark of landmarks) {
     const photo = page
-      .getByRole("link", { name: /topluluğuna git$/ })
+      .getByRole("link", { name: /topluluğu(?:, takip ediliyor)?$/ })
       .getByRole("img", { name: landmark, exact: true });
     await photo.scrollIntoViewIfNeeded();
     await expect
@@ -562,7 +566,7 @@ test("all ten country cards load bundled landmark photographs and expose photo c
     expect(await photo.getAttribute("src")).not.toContain("data:image/svg");
   }
   await page
-    .getByRole("link", { name: "Fransa topluluğuna git", exact: true })
+    .getByRole("link", { name: "Fransa topluluğu", exact: true })
     .click();
   await page
     .getByRole("button", { name: "Fotoğraf bilgisi ve kaynak", exact: true })
@@ -1560,7 +1564,7 @@ test("search finds experiences, critical tips and questions with country-aware f
   ).toBeVisible();
   await page.getByRole("button", { name: "Ülkeler", exact: true }).click();
   await page
-    .getByRole("link", { name: "Almanya topluluğuna git", exact: true })
+    .getByRole("link", { name: "Almanya topluluğu", exact: true })
     .click();
   await expect(page).toHaveURL(/\/country\/germany$/);
 });
@@ -2026,4 +2030,274 @@ test("staff reviews only the reported chat snapshot through the moderation scree
     page.getByText("Bekleyen sohbet bildirimi yok.", { exact: true }),
   ).toBeVisible();
   expect(historyReads).toBe(0);
+});
+
+const erasmusGroupId = "00000000-0000-0000-0000-00000000e001";
+async function sharingFixtures(
+  page: Page,
+  status: string | null = null,
+  manager = false,
+) {
+  const author = {
+    display_name: "Normal member",
+    username: "fixture_member",
+    avatar_url: null,
+  };
+  const state = {
+    groups: [
+      {
+        id: erasmusGroupId,
+        name: "Erasmus",
+        description: "Erasmus hazırlığında birbirimize destek oluyoruz.",
+        is_system: true,
+        owner_id: null as string | null,
+        my_status: status,
+        is_manager: manager,
+        member_count: 1,
+        request_count: manager ? 1 : 0,
+      },
+    ],
+    posts: [] as Record<string, unknown>[],
+    comments: [] as Record<string, unknown>[],
+    requests: [] as string[],
+    published: [] as Record<string, unknown>[],
+    failPublish: false,
+  };
+  await page.route("https://*.supabase.co/rest/v1/**", async (route) => {
+    const url = new URL(route.request().url()),
+      endpoint = url.pathname.split("/").at(-1)!,
+      args =
+        route.request().method() === "POST"
+          ? route.request().postDataJSON()
+          : {};
+    if (endpoint.startsWith("sharing_")) state.requests.push(endpoint);
+    if (endpoint === "sharing_directory")
+      return route.fulfill({
+        json: args.target_group
+          ? state.groups.filter((g) => g.id === args.target_group)
+          : state.groups,
+      });
+    if (endpoint === "sharing_feed")
+      return route.fulfill({ json: state.posts });
+    if (endpoint === "sharing_request") {
+      state.groups[0].my_status = "pending";
+      return route.fulfill({ json: null });
+    }
+    if (endpoint === "sharing_create") {
+      const id = "00000000-0000-0000-0000-00000000e002";
+      state.groups.push({
+        id,
+        name: args.group_name,
+        description: args.group_description,
+        is_system: false,
+        owner_id: "00000000-0000-0000-0000-000000000200",
+        my_status: "active",
+        is_manager: true,
+        member_count: 1,
+        request_count: 0,
+      });
+      return route.fulfill({ json: id });
+    }
+    if (endpoint === "sharing_publish") {
+      state.published.push(args);
+      if (state.failPublish) {
+        state.failPublish = false;
+        return route.fulfill({
+          status: 503,
+          json: { message: "Temporary connection failure" },
+        });
+      }
+      state.posts.unshift({
+        id: args.client_id,
+        group_id: args.target,
+        user_id: "00000000-0000-0000-0000-000000000200",
+        body: args.post_body,
+        created_at: "2026-10-27T12:00:00Z",
+        author,
+        liked: false,
+        like_count: 0,
+        comment_count: 0,
+      });
+      return route.fulfill({ json: args.client_id });
+    }
+    if (endpoint === "sharing_like") {
+      state.posts[0].liked = args.liked;
+      state.posts[0].like_count = args.liked ? 1 : 0;
+      return route.fulfill({ json: null });
+    }
+    if (endpoint === "sharing_comment") {
+      state.comments.push({
+        id: args.client_id,
+        user_id: "00000000-0000-0000-0000-000000000200",
+        body: args.comment_body,
+        created_at: "2026-10-27T12:05:00Z",
+        profiles: author,
+      });
+      state.posts[0].comment_count = 1;
+      return route.fulfill({ json: args.client_id });
+    }
+    if (endpoint === "sharing_group_comments")
+      return route.fulfill({ json: state.comments });
+    if (endpoint === "sharing_group_members")
+      return route.fulfill({
+        json: [
+          {
+            user_id: "00000000-0000-0000-0000-000000000301",
+            status: state.groups[0].request_count ? "pending" : "active",
+            role: "member",
+            profiles: {
+              display_name: "Erasmus öğrencisi",
+              username: "erasmus_student",
+              avatar_url: null,
+            },
+          },
+        ],
+      });
+    if (endpoint === "sharing_manage") {
+      state.groups[0].request_count = 0;
+      state.groups[0].member_count = 2;
+      return route.fulfill({ json: null });
+    }
+    return route.fallback();
+  });
+  return state;
+}
+test("country stories live only in Discover and checklist sources stay behind mobile options", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.goto("/");
+  await expect(
+    page.getByRole("link", { name: /topluluğu(?:, takip ediliyor)?$/ }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Paylaşım gruplarını aç" }),
+  ).toBeVisible();
+  await page.goto("/discover");
+  await expect(
+    page.getByRole("link", { name: "Estonya topluluğu", exact: true }),
+  ).toBeVisible();
+  await page.goto("/country/spain?tab=Belgeler");
+  await expect(
+    page.getByRole("button", { name: "Belgeler", exact: true }),
+  ).toBeInViewport();
+  await expect(
+    page.getByRole("checkbox", { name: "Pasaport: Hazırladım", exact: true }),
+  ).toBeInViewport();
+  await expect(
+    page.getByRole("button", { name: "Topluluk sohbeti", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText("Başvuru merkezinin yayımladığı belge", { exact: true }),
+  ).toHaveCount(0);
+  await page.screenshot({ path: "/tmp/groups-checklist-mobile.png" });
+  await page
+    .getByRole("button", { name: "Liste seçenekleri ve kaynaklar" })
+    .click();
+  await expect(
+    page.getByText("Başvuru merkezinin yayımladığı belge", { exact: true }),
+  ).toBeVisible();
+});
+test("guests discover Erasmus but cannot read or join without signing in", async ({
+  page,
+}) => {
+  await fixtures(page);
+  const state = await sharingFixtures(page);
+  await page.goto("/groups");
+  await page.getByRole("link", { name: "Erasmus grubunu aç" }).click();
+  await expect(
+    page.getByText("Paylaşımlar yalnız onaylı üyelere görünür.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Grupta paylaşım yap" }),
+  ).toHaveCount(0);
+  expect(state.requests).not.toContain("sharing_feed");
+  await page.getByRole("button", { name: "Giriş yap ve katıl" }).click();
+  await expect(page).toHaveURL(/\/auth$/);
+});
+test("members request admission, wait for approval, then share and comment without duplicate retries", async ({
+  page,
+}) => {
+  await member(page);
+  const state = await sharingFixtures(page);
+  await page.goto(`/group/${erasmusGroupId}`);
+  await page
+    .getByRole("button", { name: "Katılma isteği gönder", exact: true })
+    .click();
+  await expect(
+    page.getByText("Katılım isteğin onay bekliyor", { exact: true }),
+  ).toBeVisible();
+  expect(state.requests).not.toContain("sharing_feed");
+  state.groups[0].my_status = "active";
+  await page.reload();
+  await page.getByRole("button", { name: "Grupta paylaşım yap" }).click();
+  await page
+    .getByLabel("Paylaşımın", { exact: true })
+    .fill("Erasmus için konaklama araştırırken öğrendiğim bilgiler.");
+  state.failPublish = true;
+  await page.getByRole("button", { name: "Paylaş", exact: true }).click();
+  await expect(
+    page
+      .getByText("İşlem tamamlanamadı. Yeniden deneyebilirsin.", {
+        exact: true,
+      })
+      .last(),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Paylaş", exact: true }).click();
+  await expect(
+    page.getByText("Erasmus için konaklama araştırırken öğrendiğim bilgiler.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(state.published).toHaveLength(2);
+  expect(state.published[0].client_id).toBe(state.published[1].client_id);
+  await page.getByRole("button", { name: "Beğen", exact: true }).click();
+  await expect(page.getByText("1 beğeni", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Yorumları aç", exact: true }).click();
+  await page
+    .getByLabel("Yorumun", { exact: true })
+    .fill("Ben de kabul mektubumu bekliyorum.");
+  await page
+    .getByRole("button", { name: "Yorumu gönder", exact: true })
+    .click();
+  await expect(
+    page.getByText("Ben de kabul mektubumu bekliyorum.", { exact: true }),
+  ).toBeVisible();
+});
+test("group managers review membership requests and users create their own approval-based groups", async ({
+  page,
+}) => {
+  await member(page);
+  const state = await sharingFixtures(page, "active", true);
+  await page.goto(`/group/${erasmusGroupId}`);
+  await page
+    .getByRole("button", { name: "1 katılım isteğini incele", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "erasmus_student üye işlemleri", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Katılımı onayla", exact: true })
+    .click();
+  await expect.poll(() => state.groups[0].member_count).toBe(2);
+  await page.getByRole("button", { name: "Kapat", exact: true }).click();
+  await page.goto("/groups");
+  await page.getByRole("button", { name: "Grup oluştur", exact: true }).click();
+  await page.getByLabel("Grup adı", { exact: true }).fill("Berlin Erasmus");
+  await page
+    .getByLabel("Kısa açıklama", { exact: true })
+    .fill("Berlin hazırlık grubu");
+  await page
+    .getByRole("button", { name: "Grubu oluştur", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Grupta paylaşım yap", exact: true }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/e002$/);
+  await expect(
+    page.getByRole("button", { name: "Grubu oluştur", exact: true }),
+  ).toBeHidden();
+  await page.screenshot({ path: "/tmp/groups-owner-mobile.png" });
 });

@@ -1,3 +1,4 @@
+import { ChecklistSummary } from "./ChecklistSummary";
 import { formatDate } from "../lib/dates";
 import { useState, useEffect } from "react";
 import { View, Text, FlatList, Pressable, Linking } from "react-native";
@@ -12,7 +13,7 @@ import {
 import { useDocuments } from "../lib/data";
 import { useAuth } from "../lib/auth";
 import type { Document } from "../lib/types";
-import { styles, colors, Button, Message } from "./ui";
+import { styles, colors, Button, Message, Sheet } from "./ui";
 import { documentTopics } from "../lib/guide-topics";
 import { GuideSection } from "./SpainDocuments";
 import { CommunityTips } from "./CommunityTips";
@@ -51,7 +52,15 @@ function DocumentCard({
   const [open, setOpen] = useState(false);
   return (
     <View
-      style={[styles.card, { padding: open ? 16 : 10, gap: open ? 12 : 4 }]}
+      style={[
+        styles.card,
+        {
+          borderRadius: 16,
+          padding: open ? 14 : 10,
+          gap: open ? 12 : 4,
+          borderColor: checked ? "#C7DFD2" : "#E9EDE8",
+        },
+      ]}
     >
       <View style={styles.row}>
         <Pressable
@@ -62,15 +71,10 @@ function DocumentCard({
           onPress={() => setOpen(!open)}
           style={{ flex: 1, minHeight: 44, gap: 4 }}
         >
-          <Text style={styles.pillText}>
-            {doc.sort_order ? `${doc.sort_order}. ` : ""}
-            {doc.title}
-          </Text>
-          <Text style={styles.muted}>
-            {doc.requirement === "conditional"
-              ? "Durumuna bağlı"
-              : "Temel belge"}
-          </Text>
+          <Text style={styles.pillText}>{doc.title}</Text>
+          {doc.requirement === "conditional" && (
+            <Text style={[styles.muted, { fontSize: 11 }]}>Duruma bağlı</Text>
+          )}
         </Pressable>
         <Pressable
           accessibilityRole="checkbox"
@@ -166,6 +170,7 @@ export function CountryGuide({
   });
   const ready = checklist.key === storageKey ? checklist.ids : [];
   const [error, setError] = useState("");
+  const [options, setOptions] = useState(false);
   useEffect(() => {
     let active = true;
     void AsyncStorage.getItem(storageKey)
@@ -205,24 +210,13 @@ export function CountryGuide({
       ListHeaderComponent={
         <View style={{ gap: 16, paddingBottom: 16 }}>
           {header}
-          <Text style={styles.heading}>
-            {guide.name} ·{" "}
-            {mode === "documents"
-              ? "Turistik vize belgeleri"
-              : "Başvuru rehberi"}
-          </Text>
-          <Text style={styles.muted}>{guide.scope}</Text>
+          {mode === "guide" && <Text style={styles.muted}>{guide.scope}</Text>}
           {mode === "documents" && (
-            <View style={styles.card}>
-              <Text style={styles.pillText}>
-                {documents.filter((d) => ready.includes(d.id)).length} /{" "}
-                {documents.length} belge işaretlendi
-              </Text>
-              <Text style={styles.muted}>
-                Durumuna bağlı belgeler yalnız sana uygunsa gerekir. İşaretlemek
-                resmî uygunluk veya vize onayı anlamına gelmez.
-              </Text>
-            </View>
+            <ChecklistSummary
+              complete={documents.filter((d) => ready.includes(d.id)).length}
+              total={documents.length}
+              onOptions={() => setOptions(true)}
+            />
           )}
           <Message text={error} />
           {mode === "guide" && (
@@ -325,20 +319,56 @@ export function CountryGuide({
               </GuideSection>
             </>
           )}
-          <View style={[styles.card, { backgroundColor: "#EDF3FC" }]}>
-            <Text style={styles.pillText}>Resmî kaynaklar</Text>
-            <Text style={styles.muted}>
-              Ülkeye özgü talimatlar ve ortak Schengen koşulları ayrı
-              kaynaklardır. Bağlantılar 22/10/2026 tarihinde kontrol edildi; bu,
-              belgelerin yayın tarihi değildir.
-            </Text>
-            {guide.sources.map((s) => (
-              <View key={s.id}>
-                <Text style={[styles.muted, { fontSize: 11 }]}>{s.scope}</Text>
-                <OfficialLink url={s.url} label={s.name} />
+          {mode === "guide" && (
+            <GuideSection title="Resmî kaynaklar">
+              {" "}
+              <View style={[styles.card, { backgroundColor: "#EDF3FC" }]}>
+                <Text style={styles.muted}>
+                  Ülkeye özgü talimatlar ve ortak Schengen koşulları ayrı
+                  kaynaklardır. Bağlantılar 22/10/2026 tarihinde kontrol edildi;
+                  bu, belgelerin yayın tarihi değildir.
+                </Text>
+                {guide.sources.map((s) => (
+                  <View key={s.id}>
+                    <Text style={[styles.muted, { fontSize: 11 }]}>
+                      {s.scope}
+                    </Text>
+                    <OfficialLink url={s.url} label={s.name} />
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
+            </GuideSection>
+          )}
+          <Sheet
+            visible={options}
+            onClose={() => setOptions(false)}
+            title="Liste bilgisi"
+          >
+            <Text style={styles.pillText}>
+              {guide.name} · Turistik vize belgeleri
+            </Text>
+            <Text style={styles.muted}>{guide.scope}</Text>
+            <Text style={styles.muted}>
+              Durumuna bağlı belgeler yalnız sana uygunsa gerekir. İşaretlemek
+              resmî uygunluk veya vize onayı anlamına gelmez.
+            </Text>
+            <View style={[styles.card, { backgroundColor: "#EDF3FC" }]}>
+              <Text style={styles.pillText}>Resmî kaynaklar</Text>
+              <Text style={styles.muted}>
+                Ülkeye özgü talimatlar ve ortak Schengen koşulları ayrı
+                kaynaklardır. Bağlantılar 22/10/2026 tarihinde kontrol edildi;
+                bu, belgelerin yayın tarihi değildir.
+              </Text>
+              {guide.sources.map((s) => (
+                <View key={s.id}>
+                  <Text style={[styles.muted, { fontSize: 11 }]}>
+                    {s.scope}
+                  </Text>
+                  <OfficialLink url={s.url} label={s.name} />
+                </View>
+              ))}
+            </View>
+          </Sheet>
         </View>
       }
     />

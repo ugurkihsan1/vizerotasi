@@ -6,7 +6,6 @@ import { useAuth } from "../lib/auth";
 import { db } from "../lib/supabase";
 import { styles, colors } from "./ui";
 import { Avatar } from "./PostCard";
-import { DestinationPhoto } from "./DestinationPhoto";
 export function HomeWelcome() {
   const { profile, session } = useAuth();
   return (
@@ -100,32 +99,6 @@ export function OwnSubmissionNotice() {
         </Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color="#986D29" />
-    </Pressable>
-  );
-}
-export function SpainFeature() {
-  return (
-    <Pressable
-      accessibilityRole="link"
-      accessibilityLabel="İspanya’nın 13 maddelik belge rehberini incele"
-      onPress={() => router.push("/country/spain?tab=Belgeler")}
-      style={[
-        styles.card,
-        { padding: 0, overflow: "hidden", flexDirection: "row", gap: 0 },
-      ]}
-    >
-      <View style={{ width: 112, backgroundColor: "#F5CEAB" }}>
-        <DestinationPhoto id="spain" height={96} />
-      </View>
-      <View style={{ flex: 1, padding: 15, gap: 6, justifyContent: "center" }}>
-        <Text style={[styles.heading, { fontSize: 16 }]}>İspanya rehberi</Text>
-        <Text style={[styles.muted, { fontSize: 12, lineHeight: 18 }]}>
-          13 belge · BLS İstanbul
-        </Text>
-        <Text style={{ fontSize: 12, color: colors.blue, fontWeight: "700" }}>
-          Belgeleri aç →
-        </Text>
-      </View>
     </Pressable>
   );
 }

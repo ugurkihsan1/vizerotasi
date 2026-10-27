@@ -1,3 +1,4 @@
+import { ChecklistSummary } from "./ChecklistSummary";
 import { SourceDocumentWarning, DocumentWarnings } from "./DocumentWarnings";
 import { CommunityTips } from "./CommunityTips";
 import { spainDocumentTopics } from "../lib/guide-topics";
@@ -82,7 +83,15 @@ function DocumentAccordion({
   const sections = sectionsFor(doc, employment);
   return (
     <View
-      style={[styles.card, { padding: open ? 16 : 10, gap: open ? 14 : 4 }]}
+      style={[
+        styles.card,
+        {
+          borderRadius: 16,
+          padding: open ? 14 : 10,
+          gap: open ? 12 : 4,
+          borderColor: checked ? "#C7DFD2" : "#E9EDE8",
+        },
+      ]}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <Pressable
@@ -99,14 +108,11 @@ function DocumentAccordion({
             gap: 10,
           }}
         >
-          <Text style={{ fontWeight: "700", color: colors.blue, width: 22 }}>
-            {doc.sort_order}
-          </Text>
           <View style={{ flex: 1, gap: 3 }}>
             <Text style={styles.pillText}>{doc.title}</Text>
-            <Text style={styles.muted}>
-              {doc.requirement === "conditional" ? "Duruma bağlı" : "Zorunlu"}
-            </Text>
+            {doc.requirement === "conditional" && (
+              <Text style={[styles.muted, { fontSize: 11 }]}>Duruma bağlı</Text>
+            )}
           </View>
           <Ionicons
             name={open ? "chevron-up" : "chevron-down"}
@@ -242,6 +248,7 @@ export function SpainDocuments({ header }: { header: React.ReactElement }) {
   const [ready, setReady] = useState<string[]>([]);
   const [employment, setEmployment] = useState("");
   const [select, setSelect] = useState(false);
+  const [options, setOptions] = useState(false);
   const [under18, setUnder18] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -288,82 +295,66 @@ export function SpainDocuments({ header }: { header: React.ReactElement }) {
         ListHeaderComponent={
           <View style={{ gap: 16, paddingBottom: 16 }}>
             {header}
-            <Text style={styles.heading}>
-              İspanya C Tipi Turistik Vize – Gerekli Belgeler
-            </Text>
-            <Text style={styles.muted}>
-              BLS International İspanya İstanbul Vize Başvuru Merkezi evrak
-              listesi esas alınarak, kaynak dokümandaki sırayla hazırlanmıştır.
-            </Text>
-            <View style={styles.card}>
-              <Text style={styles.pillText}>
-                {completed} / 13 belge işaretlendi
-              </Text>
-              <View
-                accessibilityRole="progressbar"
-                accessibilityLabel="Belge hazırlık ilerlemesi"
-                accessibilityValue={{ min: 0, max: 13, now: completed }}
-                aria-valuemin={0}
-                aria-valuemax={13}
-                aria-valuenow={completed}
-                style={{
-                  height: 7,
-                  backgroundColor: "#E3EAF4",
-                  borderRadius: 4,
-                }}
-              >
-                <View
-                  style={{
-                    height: 7,
-                    width: `${(completed / 13) * 100}%`,
-                    backgroundColor: colors.green,
-                    borderRadius: 4,
-                  }}
-                />
-              </View>
-              <Text style={styles.muted}>
-                “Hazırladım” işaretleri koşulların sağlandığı veya başvurunun
-                kabul edileceği anlamına gelmez.
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Çalışma durumunu seç"
-                onPress={() => setSelect(true)}
-                style={{
-                  minHeight: 44,
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Text style={styles.text}>
-                  Çalışma durumu:{" "}
-                  {employmentOptions.find(([v]) => v === employment)?.[1]}
-                </Text>
-                <Ionicons name="chevron-down" size={18} color={colors.muted} />
-              </Pressable>
-              <View style={styles.row}>
-                <Switch
-                  accessibilityLabel="18 yaş altı başvuru hazırlıyorum"
-                  value={under18}
-                  onValueChange={setUnder18}
-                />
-                <Text style={[styles.muted, { flex: 1 }]}>
-                  18 yaş altı başvuru hazırlıyorum
-                </Text>
-              </View>
-              {under18 && (
-                <Text style={styles.muted}>
-                  12. maddedeki tercüme, apostil ve muvafakat koşullarını
-                  özellikle kontrol et.
-                </Text>
-              )}
-            </View>
+            <ChecklistSummary
+              complete={completed}
+              total={documents.length}
+              onOptions={() => setOptions(true)}
+              filterLabel={
+                employmentOptions.find(([v]) => v === employment)?.[1]
+              }
+            />
             <Message text={error} />
-            <SpainSource />
           </View>
         }
       />
+      <Sheet
+        visible={options}
+        onClose={() => setOptions(false)}
+        title="Liste seçenekleri"
+      >
+        <Text style={styles.pillText}>İspanya · Turistik vize</Text>
+        <Text style={styles.muted}>
+          “Hazırladım” işaretleri koşulların sağlandığı veya başvurunun kabul
+          edileceği anlamına gelmez.
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Çalışma durumunu seç"
+          onPress={() => {
+            setOptions(false);
+            setSelect(true);
+          }}
+          style={{
+            minHeight: 44,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Text style={styles.text}>
+            Çalışma durumu:{" "}
+            {employmentOptions.find(([v]) => v === employment)?.[1]}
+          </Text>
+          <Ionicons name="chevron-down" size={18} color={colors.muted} />
+        </Pressable>
+        <View style={styles.row}>
+          <Switch
+            accessibilityLabel="18 yaş altı başvuru hazırlıyorum"
+            value={under18}
+            onValueChange={setUnder18}
+          />
+          <Text style={[styles.muted, { flex: 1 }]}>
+            18 yaş altı başvuru hazırlıyorum
+          </Text>
+        </View>
+        {under18 && (
+          <Text style={styles.muted}>
+            12. maddedeki tercüme, apostil ve muvafakat koşullarını özellikle
+            kontrol et.
+          </Text>
+        )}
+        <SpainSource />
+      </Sheet>
       <Sheet
         visible={select}
         onClose={() => setSelect(false)}
@@ -451,7 +442,9 @@ function ScrollGuide({ header }: { header: React.ReactElement }) {
       ListHeaderComponent={
         <View style={{ gap: 16, paddingBottom: 16 }}>
           {header}
-          <SpainSource />
+          <GuideSection title="Resmî kaynaklar">
+            <SpainSource />
+          </GuideSection>
           <GuideSection
             title="Başvuru Süreci"
             notes={
