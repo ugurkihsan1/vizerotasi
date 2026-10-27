@@ -135,3 +135,9 @@ Yayın onayı ile belge doğrulaması ayrı durumlardır; onaylanan kullanıcı 
 ## Birleşik arama
 
 Keşfet araması öncelikle deneyim, kritik nokta ve soruları gösterir; içerik türleri, ülkeler, belgeler ve kişiler ayrı sekmelerden seçilir. Ülke adı/kodu ve tek kelimelik ülke başlangıcı tanınır. `Almanya sigorta`, Almanya ile sınırlandırılmış sigorta paylaşımlarını bulur; yalnız ülke adı aranınca o ülkenin paylaşımları gelir. Konu adları ve deneyim metadata’sı da aranır. Başlık/gövde araması alt dize eşleştirir; örneğin `sigorta`, `sigortası` içinde bulunur. Kelimeler AND, kelimenin aranacağı alanlar OR ile bağlanır; filtre sözdizimine kullanıcı noktalaması taşınmaz. Yalnız yayımlanmış gönderiler ve public profil/belge verileri aranır. Sonuçlar sayfalıdır; belgelerde ülke adı ve bayrağı her kartta gösterilir. Bu değişiklik için SQL migration gerekmez.
+
+## Sohbet odaları ve mesajlar
+
+Takip edilen ülke topluluklarında ortak oda, üyeler arasında davet kabulüne bağlı birebir ve en fazla 10 kişilik grup mesajlaşması eklidir. Üst menüdeki Mesajlar simgesi ve profil/ülke düğmeleri üzerinden açılır. Realtime metin mesajları, okunmamış/istek sayısı, özel odalarda görüldü, grup daveti/ayrılma, engelleme, mesaj kaldırma ve bildirilen tekil mesajın yönetim incelemesi bulunur. Özel sohbet geçmişi staff rolüne topluca açılmaz.
+
+Supabase SQL Editor’da [CHAT_UPGRADE.sql](docs/CHAT_UPGRADE.sql) dosyasının tamamını uygulayın. Yalnız temel topluluk şemasını gerektirir; tekrar çalıştırılabilir ve mevcut veriyi silmez. [Akış, erişim kuralları, sınırlar ve test kapsamı](docs/CHAT_TR.md). Uzak SQL yönetici erişimi bulunmadığı için bu çalışma sırasında uygulanmadı. Bu sürüm metin mesajlaşmasıdır; medya, arama ve arka plan push gönderimi eklenmedi.

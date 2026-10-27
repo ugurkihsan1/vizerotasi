@@ -1,3 +1,4 @@
+import { MessagesEntry } from "../../src/components/ChatEntry";
 import { Brand } from "../../src/components/Brand";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs, router } from "expo-router";
@@ -21,6 +22,7 @@ export default function TabLayout() {
           backgroundColor: "#FCFDF9",
         },
         tabBarLabelStyle: { fontSize: 10, fontWeight: "600" },
+        headerRight: () => <MessagesEntry />,
         headerStyle: { backgroundColor: "#FCFDF9" },
         headerShadowVisible: false,
         headerTitleStyle: { fontWeight: "800", color: colors.navy },

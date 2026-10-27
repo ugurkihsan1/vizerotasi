@@ -1,3 +1,4 @@
+import { CommunityChatEntry } from "../../src/components/ChatEntry";
 import { DocumentWarnings } from "../../src/components/DocumentWarnings";
 import { DestinationPhoto } from "../../src/components/DestinationPhoto";
 import { CountryGuide } from "../../src/components/CountryGuide";
@@ -168,6 +169,7 @@ export default function Country() {
         {country?.flag} {country?.name ?? "Ülke topluluğu"}
       </Text>
       <Follow id={id} />
+      <CommunityChatEntry countryId={id} name={country?.name ?? "Ülke"} />
       <View style={styles.row}>
         <Text style={styles.pillText}>
           {stats.data?.experiences ?? "—"} deneyim

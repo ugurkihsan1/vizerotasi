@@ -4,6 +4,7 @@ import { test, expect, type Page } from "@playwright/test";
 import levels from "../../src/content/community-levels.json";
 // Deterministic UI tests use transport fixtures only; the shipped app uses real Supabase.
 async function fixtures(page: Page, firstVisit = false) {
+  await page.routeWebSocket(/supabase\.co/, (socket) => socket.close());
   if (!firstVisit)
     await page.addInitScript(() =>
       localStorage.setItem("onboarding-planner-v1", "done"),
@@ -1617,4 +1618,409 @@ test("document search names every country and opens its own checklist", async ({
     .click();
   await expect(page).toHaveURL(/\/country\/france\?/);
   expect(new URL(page.url()).searchParams.get("tab")).toBe("Belgeler");
+});
+
+async function chatFixtures(
+  page: Page,
+  options: { kind?: "direct" | "group" | "community"; invited?: boolean } = {},
+) {
+  await member(page);
+  const own = "00000000-0000-0000-0000-000000000200",
+    peer = "00000000-0000-0000-0000-000000000300",
+    third = "00000000-0000-0000-0000-000000000301",
+    id = "00000000-0000-0000-0000-000000000900";
+  const profile = (who: string) => ({
+    id: who,
+    username: who === own ? "fixture_member" : who === peer ? "deniz" : "ece",
+    display_name: who === own ? "Test Yolcu" : who === peer ? "Deniz" : "Ece",
+    avatar_url: null,
+    role: "user",
+    membership_level: "Öncü Üye",
+    reputation: 0,
+  });
+  const state = {
+    kind: options.kind ?? ("direct" as "direct" | "group" | "community"),
+    invited: options.invited ?? false,
+    created: [] as Record<string, unknown>[],
+    sends: [] as Record<string, unknown>[],
+    messages: [] as Record<string, unknown>[],
+    failSend: false,
+    read: 0,
+    followed: false,
+  };
+  const room = () => ({
+    id,
+    kind: state.kind,
+    country_id: state.kind === "community" ? "spain" : null,
+    title:
+      state.kind === "group"
+        ? "Yol arkadaşları"
+        : state.kind === "community"
+          ? "İspanya topluluğu"
+          : "",
+    created_by: options.invited ? peer : own,
+    closed_at: null,
+  });
+  const members = () => [
+    {
+      user_id: own,
+      status: state.invited ? "invited" : "active",
+      invited_by: options.invited ? peer : own,
+      joined_at: "2026-10-27T09:00:00Z",
+      last_read_at: "2026-10-27T09:00:00Z",
+      profiles: profile(own),
+    },
+    ...(!state.invited && state.kind !== "community"
+      ? [
+          {
+            user_id: peer,
+            status: "active",
+            invited_by: own,
+            joined_at: "2026-10-27T09:00:00Z",
+            last_read_at: "2026-10-27T09:00:00Z",
+            profiles: profile(peer),
+          },
+        ]
+      : []),
+  ];
+  await page.route("https://*.supabase.co/rest/v1/profiles?**", (route) => {
+    const uid = new URL(route.request().url()).searchParams.get("id");
+    return route.fulfill({
+      json: uid?.startsWith("neq.")
+        ? [profile(peer), profile(third)]
+        : profile(uid?.slice(3) ?? own),
+    });
+  });
+  await page.route(
+    "https://*.supabase.co/rest/v1/followed_countries?**",
+    (route) =>
+      route.fulfill({ json: state.followed ? [{ country_id: "spain" }] : [] }),
+  );
+  await page.route("https://*.supabase.co/rest/v1/chat_rooms?**", (route) =>
+    route.fulfill({ json: room() }),
+  );
+  await page.route("https://*.supabase.co/rest/v1/chat_members?**", (route) =>
+    route.fulfill({ json: members() }),
+  );
+  await page.route("https://*.supabase.co/rest/v1/chat_messages?**", (route) =>
+    route.fulfill({ json: [...state.messages].reverse() }),
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/chat_unread_count",
+    (route) => route.fulfill({ json: 0 }),
+  );
+  await page.route("https://*.supabase.co/rest/v1/rpc/chat_inbox", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/chat_create_private",
+    (route) => {
+      const data = route.request().postDataJSON();
+      state.created.push(data);
+      state.kind = data.recipients.length > 1 ? "group" : "direct";
+      return route.fulfill({ json: id });
+    },
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/chat_open_community",
+    (route) => {
+      expect(route.request().postDataJSON()).toMatchObject({
+        target_country: "spain",
+        follow_country: true,
+      });
+      state.followed = true;
+      state.kind = "community";
+      return route.fulfill({ json: id });
+    },
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/chat_answer_invite",
+    (route) => {
+      state.invited = false;
+      return route.fulfill({ status: 204, body: "" });
+    },
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/chat_mark_read",
+    (route) => {
+      state.read++;
+      return route.fulfill({ status: 204, body: "" });
+    },
+  );
+  await page.route("https://*.supabase.co/rest/v1/rpc/chat_send", (route) => {
+    const data = route.request().postDataJSON();
+    state.sends.push(data);
+    if (state.failSend) {
+      state.failSend = false;
+      return route.fulfill({
+        status: 503,
+        json: { message: "Fixture temporary error" },
+      });
+    }
+    state.messages.push({
+      id: data.client_id,
+      room_id: id,
+      sender_id: own,
+      body: data.message_body,
+      created_at: new Date().toISOString(),
+      hidden_at: null,
+      profiles: profile(own),
+    });
+    return route.fulfill({ json: data.client_id });
+  });
+  return { state, own, peer, third, id, profile };
+}
+
+test("members create a direct chat and safely retry a failed message without changing its id", async ({
+  page,
+}) => {
+  const { state, peer } = await chatFixtures(page);
+  await page.goto("/messages");
+  await page
+    .getByRole("button", { name: "Yeni sohbet / Grup kur", exact: true })
+    .click();
+  await page.getByLabel("Kişi ara", { exact: true }).fill("deniz");
+  await page.getByRole("checkbox", { name: "@deniz", exact: true }).click();
+  await page.getByRole("button", { name: "Sohbeti aç", exact: true }).click();
+  await expect(page.getByLabel("Mesajın", { exact: true })).toBeVisible();
+  expect(state.created).toEqual([{ recipients: [peer], room_title: "" }]);
+  state.failSend = true;
+  await page
+    .getByLabel("Mesajın", { exact: true })
+    .fill("Merhaba, randevu hazırlığın nasıl gidiyor?");
+  await page.getByRole("button", { name: "Mesaj gönder", exact: true }).click();
+  await expect(
+    page.getByText(
+      "İşlem tamamlanamadı. Bağlantını kontrol edip tekrar dene.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Mesaj gönder", exact: true }).click();
+  await expect(
+    page.getByText("Merhaba, randevu hazırlığın nasıl gidiyor?", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(state.sends).toHaveLength(2);
+  expect(state.sends[0].client_id).toBe(state.sends[1].client_id);
+  expect(state.messages).toHaveLength(1);
+  await expect(page.getByLabel("Mesajın", { exact: true })).toHaveValue("");
+  await page.screenshot({ path: "/tmp/chat-direct-mobile.png" });
+});
+
+test("a private invitation hides all messages until explicitly accepted", async ({
+  page,
+}) => {
+  const { state, id, peer, profile } = await chatFixtures(page, {
+    invited: true,
+  });
+  state.messages.push({
+    id: "00000000-0000-0000-0000-000000000901",
+    room_id: id,
+    sender_id: peer,
+    body: "Kabulden sonra görülen özel mesaj",
+    created_at: "2026-10-27T09:05:00Z",
+    hidden_at: null,
+    profiles: profile(peer),
+  });
+  await page.goto(`/chat/${id}`);
+  await expect(
+    page.getByRole("button", { name: "Sohbet isteğini kabul et", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Kabulden sonra görülen özel mesaj", { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel("Mesajın", { exact: true })).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Sohbet isteğini kabul et", exact: true })
+    .click();
+  await expect(
+    page.getByText("Kabulden sonra görülen özel mesaj", { exact: true }),
+  ).toBeVisible();
+  await expect.poll(() => state.read).toBeGreaterThan(0);
+});
+
+test("members can select multiple people and create a named private group", async ({
+  page,
+}) => {
+  const { state, peer, third } = await chatFixtures(page);
+  await page.goto("/messages");
+  await page
+    .getByRole("button", { name: "Yeni sohbet / Grup kur", exact: true })
+    .click();
+  await page.getByLabel("Kişi ara", { exact: true }).fill("de");
+  await page.getByRole("checkbox", { name: "@deniz", exact: true }).click();
+  await page.getByRole("checkbox", { name: "@ece", exact: true }).click();
+  await page.getByLabel("Grup adı", { exact: true }).fill("Yol arkadaşları");
+  await page
+    .getByRole("button", { name: "Grup daveti gönder", exact: true })
+    .click();
+  await expect(page.getByLabel("Mesajın", { exact: true })).toBeVisible();
+  expect(state.created).toEqual([
+    { recipients: [peer, third], room_title: "Yol arkadaşları" },
+  ]);
+});
+
+test("country chat explains and confirms following before opening the community room", async ({
+  page,
+}) => {
+  const { state } = await chatFixtures(page, { kind: "community" });
+  await page.goto("/country/spain");
+  await page
+    .getByRole("button", { name: "Topluluk sohbeti", exact: true })
+    .click();
+  await expect(
+    page.getByText(/Katılınca ülkeyi takip edeceksin/),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Takip et ve sohbeti aç", exact: true })
+    .click();
+  await expect(page.getByLabel("Mesajın", { exact: true })).toBeVisible();
+  expect(state.followed).toBe(true);
+  await expect(
+    page.getByText("Takip eden üyelere açık topluluk odası", { exact: true }),
+  ).toBeVisible();
+  await page.screenshot({ path: "/tmp/chat-community-empty-mobile.png" });
+});
+
+test("chat participants can report a single message and block its sender", async ({
+  page,
+}) => {
+  const { state, id, peer, profile } = await chatFixtures(page);
+  const message = "00000000-0000-0000-0000-000000000902";
+  state.messages.push({
+    id: message,
+    room_id: id,
+    sender_id: peer,
+    body: "Bildirilecek test mesajı",
+    created_at: "2026-10-27T09:05:00Z",
+    hidden_at: null,
+    profiles: profile(peer),
+  });
+  let report: Record<string, unknown> | undefined,
+    block: Record<string, unknown> | undefined;
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/chat_report_message",
+    (route) => {
+      report = route.request().postDataJSON();
+      return route.fulfill({ status: 204, body: "" });
+    },
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/chat_block_user",
+    (route) => {
+      block = route.request().postDataJSON();
+      return route.fulfill({ status: 204, body: "" });
+    },
+  );
+  await page.goto(`/chat/${id}`);
+  await page
+    .getByRole("button", {
+      name: "deniz: Bildirilecek test mesajı",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByLabel("Bildirim gerekçesi", { exact: true })
+    .fill("Spam içeren mesaj");
+  await page
+    .getByRole("button", { name: "Mesajı yönetime bildir", exact: true })
+    .click();
+  await expect
+    .poll(() => report)
+    .toEqual({ target: message, report_reason: "Spam içeren mesaj" });
+  await page
+    .getByRole("button", {
+      name: "deniz: Bildirilecek test mesajı",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", { name: "Bu göndereni engelle", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Kişiyi engelle", exact: true })
+    .click();
+  await expect
+    .poll(() => block)
+    .toEqual({ target_user: peer, block_user: true });
+});
+
+test("staff reviews only the reported chat snapshot through the moderation screen", async ({
+  page,
+}) => {
+  await member(page);
+  let reviewed = false,
+    historyReads = 0;
+  const id = "00000000-0000-0000-0000-000000000903";
+  await page.route("https://*.supabase.co/rest/v1/profiles?**", (route) =>
+    route.fulfill({
+      json: {
+        id: "00000000-0000-0000-0000-000000000200",
+        username: "reviewer",
+        display_name: "Reviewer",
+        role: "moderator",
+        membership_level: "Öncü Üye",
+        reputation: 0,
+      },
+    }),
+  );
+  await page.route("https://*.supabase.co/rest/v1/chat_reports?**", (route) =>
+    route.fulfill({
+      json: reviewed
+        ? []
+        : [
+            {
+              id,
+              body_snapshot: "Yalnız bildirilen test mesajı",
+              reason: "Spam",
+              created_at: "2026-10-27T09:05:00Z",
+            },
+          ],
+    }),
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/chat_messages?**",
+    (route) => {
+      historyReads++;
+      return route.fulfill({ json: [] });
+    },
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/chat_review_report",
+    (route) => {
+      expect(route.request().postDataJSON()).toEqual({
+        target: id,
+        hide_message: true,
+      });
+      reviewed = true;
+      return route.fulfill({ status: 204, body: "" });
+    },
+  );
+  await page.goto("/moderation");
+  await page
+    .getByRole("button", {
+      name: "Bildirilen sohbet mesajlarını incele",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByText("Yalnız bildirilen test mesajı", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", {
+      name: "Mesajı kaldır ve bildirimi kapat",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Sohbet bildirim kararını kaydet",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByText("Bekleyen sohbet bildirimi yok.", { exact: true }),
+  ).toBeVisible();
+  expect(historyReads).toBe(0);
 });

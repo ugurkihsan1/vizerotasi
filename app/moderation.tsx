@@ -1,3 +1,4 @@
+import { ChatReports } from "../src/components/ChatReports";
 import { EvidencePanel, EvidenceQueue } from "../src/components/EvidencePanel";
 import { router } from "expo-router";
 import { ModerationReport } from "../src/components/ModerationReport";
@@ -114,6 +115,7 @@ export default function Moderation() {
             label="Belge notlarını incele"
             onPress={() => router.push("/document-notes")}
           />
+          <ChatReports />
           <EvidenceQueue />
           <Message text={error} />
         </View>

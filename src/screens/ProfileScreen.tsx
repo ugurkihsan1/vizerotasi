@@ -1,3 +1,5 @@
+import { useAuth } from "../lib/auth";
+import { chatError } from "../lib/chat";
 import { formatDate } from "../lib/dates";
 import { MemberBadge } from "../components/MemberBadge";
 import { ProfileComments } from "../components/ProfileComments";
@@ -11,7 +13,14 @@ import { db } from "../lib/supabase";
 import type { Profile } from "../lib/types";
 import { Feed } from "../components/Feed";
 import { Avatar } from "../components/PostCard";
-import { styles, Chip, colors } from "../components/ui";
+import {
+  styles,
+  Chip,
+  colors,
+  Button,
+  Message,
+  useGate,
+} from "../components/ui";
 export function ProfileScreen({
   profile,
   own = false,
@@ -20,6 +29,10 @@ export function ProfileScreen({
   own?: boolean;
 }) {
   const [tab, setTab] = useState("Paylaşımlar");
+  const { session } = useAuth();
+  const gate = useGate();
+  const [chatBusy, setChatBusy] = useState(false),
+    [chatNotice, setChatNotice] = useState("");
   const badges = useQuery({
     queryKey: ["badges", profile.id],
     queryFn: async () => {
@@ -145,6 +158,41 @@ export function ProfileScreen({
                 <Text style={styles.title}>{profile.display_name}</Text>
                 <Text style={styles.muted}>@{profile.username}</Text>
               </View>
+              {!own && session?.user.id !== profile.id && (
+                <>
+                  <Button
+                    label="Mesaj gönder"
+                    disabled={chatBusy}
+                    onPress={() =>
+                      gate.require(() => {
+                        setChatBusy(true);
+                        setChatNotice("");
+                        void Promise.resolve(
+                          db().rpc("chat_create_private", {
+                            recipients: [profile.id],
+                            room_title: "",
+                          }),
+                        )
+                          .then((r) => {
+                            if (r.error) throw r.error;
+                            router.push(`/chat/${r.data}`);
+                          })
+                          .catch((e) => setChatNotice(chatError(e)))
+                          .finally(() => setChatBusy(false));
+                      })
+                    }
+                  />
+                  <Message text={chatNotice} />
+                  {gate.view}
+                </>
+              )}
+              {own && (
+                <Button
+                  secondary
+                  label="Mesajlarım"
+                  onPress={() => router.push("/messages")}
+                />
+              )}
               <View style={styles.row}>
                 <MemberBadge
                   label={profile.membership_level}

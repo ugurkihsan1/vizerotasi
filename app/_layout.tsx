@@ -1,3 +1,4 @@
+import { ChatSync } from "../src/components/ChatEntry";
 import { View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
@@ -38,6 +39,7 @@ export default function Layout() {
         }}
       >
         <AuthProvider>
+          <ChatSync />
           <View
             style={{
               flex: 1,
@@ -54,6 +56,8 @@ export default function Layout() {
                 contentStyle: { backgroundColor: colors.bg },
               }}
             >
+              <Stack.Screen name="messages" options={{ title: "Mesajlar" }} />
+              <Stack.Screen name="chat/[id]" options={{ title: "Sohbet" }} />
               <Stack.Screen
                 name="photo-credits"
                 options={{ title: "Fotoğraf kaynakları" }}

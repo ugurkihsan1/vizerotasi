@@ -237,6 +237,7 @@ export function useToggle(
       cache.invalidateQueries({ queryKey: ["feed"] });
       cache.invalidateQueries({ queryKey: ["post"] });
       cache.invalidateQueries({ queryKey: ["follows"] });
+      cache.invalidateQueries({ queryKey: ["chat"] });
       cache.invalidateQueries({ queryKey: ["document-notes"] });
       cache.invalidateQueries({ queryKey: ["public-profile"] });
       cache.invalidateQueries({ queryKey: ["profile"] });
