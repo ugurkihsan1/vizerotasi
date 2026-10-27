@@ -2815,3 +2815,54 @@ test("the plane reaction becomes filled and respects reduced motion", async ({
   await page.getByRole("button", { name: "0 Faydalı", exact: true }).click();
   await expect(page.getByTestId("reaction-plane-filled")).toBeVisible();
 });
+
+test("dark profile actions remain outlined and the mobile feed uses consecutive rows", async ({
+  page,
+}) => {
+  await member(page);
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "app-appearance:v1",
+      JSON.stringify({ theme: "dark" }),
+    ),
+  );
+  await page.goto("/profile");
+  const messages = page.getByRole("button", {
+    name: "Mesajlarım",
+    exact: true,
+  });
+  await expect(messages).toBeVisible();
+  await expect(messages).toHaveCSS("border-top-width", "1px");
+  await expect(messages).toHaveCSS("border-top-color", "rgb(82, 103, 121)");
+  await expect(messages).toHaveCSS("background-color", "rgb(36, 53, 68)");
+  await page.screenshot({ path: "/tmp/timeline-dark-profile.png" });
+  await page.route("https://*.supabase.co/rest/v1/feed?**", (route) =>
+    route.fulfill({
+      json: ["question", "tip", "experience"].map((kind, i) => ({
+        id: `timeline-${i}`,
+        user_id: "00000000-0000-0000-0000-000000000200",
+        country_id: "spain",
+        kind,
+        title: `Mobil paylaşım ${i}`,
+        body: "Başvuru deneyimim ve paylaşmak istediğim bilgiler.",
+        status: "approved",
+        created_at: "2026-10-28T10:00:00Z",
+        helpful_count: 0,
+        comment_count: 0,
+        purpose: "Kültürel",
+      })),
+    }),
+  );
+  await page.goto("/");
+  const rows = page.getByTestId("timeline-post");
+  await expect(rows).toHaveCount(3);
+  await expect(rows.first()).toHaveCSS("border-radius", "0px");
+  await expect(rows.first()).toHaveCSS("border-bottom-width", "1px");
+  await expect(rows.first()).toHaveCSS("background-color", "rgb(15, 23, 32)");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({ path: "/tmp/timeline-dark-feed.png" });
+});

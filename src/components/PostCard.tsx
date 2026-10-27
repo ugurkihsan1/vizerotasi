@@ -113,7 +113,7 @@ export function Actions({ post }: { post: Post }) {
           }}
         >
           <PlaneReaction active={vote.active} />
-          <Text style={styles.muted}>{post.helpful_count} Faydalı</Text>
+          <Text style={styles.muted}>{post.helpful_count}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -127,7 +127,7 @@ export function Actions({ post }: { post: Post }) {
           }}
         >
           <Ionicons name="chatbubble-outline" size={20} color={colors.muted} />
-          <Text style={styles.muted}>{post.comment_count} Yanıt</Text>
+          <Text style={styles.muted}>{post.comment_count}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -184,6 +184,7 @@ export function PostCard({
   const days = processingDays(post.application_date, post.decision_date);
   return (
     <View
+      testID={detail ? "post-detail" : "timeline-post"}
       style={[
         styles.card,
         {
@@ -205,14 +206,16 @@ export function PostCard({
         post.kind === "question" && {
           borderColor: themeColor("#DDE6E9", "border"),
         },
+        !detail && styles.timeline,
+        !detail && { padding: 0, gap: 0 },
       ]}
     >
       {post.kind === "experience" && post.result && (
         <View
           style={{
             paddingHorizontal: 20,
-            paddingVertical: 13,
-            minHeight: 46,
+            paddingVertical: detail ? 13 : 6,
+            minHeight: detail ? 46 : 30,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
@@ -252,7 +255,40 @@ export function PostCard({
           )}
         </View>
       )}
-      <View style={{ padding: detail ? 20 : 18, gap: detail ? 14 : 12 }}>
+      <View style={{ padding: detail ? 20 : 16, gap: detail ? 14 : 8 }}>
+        {!detail && (
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={`${author?.username ?? "Üye"} profilini aç`}
+            onPress={() => author && router.push(`/profile/${author.username}`)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              paddingTop: 3,
+            }}
+          >
+            <Avatar
+              name={author?.display_name ?? "Üye"}
+              url={author?.avatar_url}
+              size={26}
+            />
+            <Text
+              style={{
+                flex: 1,
+                fontSize: textSize(12),
+                fontWeight: "600",
+                color: colors.navy,
+              }}
+              numberOfLines={1}
+            >
+              {author?.username ?? "Topluluk üyesi"}
+            </Text>
+            <Text style={{ fontSize: textSize(11), color: colors.muted }}>
+              {formatDate(post.created_at)}
+            </Text>
+          </Pressable>
+        )}
         <View style={[styles.row, { justifyContent: "space-between" }]}>
           <Pressable
             accessibilityRole="link"
@@ -325,15 +361,15 @@ export function PostCard({
           accessibilityRole="link"
           accessibilityLabel={post.title}
           onPress={() => !detail && router.push(postPath(post))}
-          style={{ gap: 12 }}
+          style={{ gap: 8 }}
         >
           <Text
             numberOfLines={detail ? undefined : 2}
             style={[
               styles.heading,
               {
-                fontSize: detail ? textSize(22) : textSize(20),
-                lineHeight: 27,
+                fontSize: detail ? textSize(22) : textSize(17),
+                lineHeight: textSize(detail ? 29 : 24),
                 letterSpacing: -0.35,
               },
             ]}
@@ -413,45 +449,12 @@ export function PostCard({
               <VerificationLabel postId={post.id} compact />
             ))}
         </Pressable>
-        {!detail && (
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel={`${author?.username ?? "Üye"} profilini aç`}
-            onPress={() => author && router.push(`/profile/${author.username}`)}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 8,
-              paddingTop: 3,
-            }}
-          >
-            <Avatar
-              name={author?.display_name ?? "Üye"}
-              url={author?.avatar_url}
-              size={26}
-            />
-            <Text
-              style={{
-                flex: 1,
-                fontSize: textSize(12),
-                fontWeight: "600",
-                color: colors.navy,
-              }}
-              numberOfLines={1}
-            >
-              {author?.username ?? "Topluluk üyesi"}
-            </Text>
-            <Text style={{ fontSize: textSize(11), color: colors.muted }}>
-              {formatDate(post.created_at)}
-            </Text>
-          </Pressable>
-        )}
         {post.status === "approved" && (
           <View
             style={{
-              borderTopWidth: 1,
+              borderTopWidth: detail ? 1 : 0,
               borderTopColor: themeColor("#EDF0EC", "border"),
-              paddingTop: 8,
+              paddingTop: detail ? 8 : 0,
             }}
           >
             <Actions post={post} />
