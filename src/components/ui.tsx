@@ -26,7 +26,7 @@ export const colors = {
 };
 export const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 20, gap: 16 },
+  content: { padding: 16, gap: 12 },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -209,9 +209,32 @@ export function Sheet({
             gap: 16,
           }}
         >
+          <View
+            style={{
+              width: 36,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: "#CED8D2",
+              alignSelf: "center",
+            }}
+          />
           <View style={styles.row}>
             <Text style={[styles.heading, { flex: 1 }]}>{title}</Text>
-            <Button label="Kapat" secondary onPress={onClose} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Kapat"
+              onPress={onClose}
+              style={{
+                width: 44,
+                height: 44,
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 22,
+                backgroundColor: "#EAF0ED",
+              }}
+            >
+              <Ionicons name="close" size={22} color={colors.navy} />
+            </Pressable>
           </View>
           <ScrollView
             contentContainerStyle={{ gap: 14 }}

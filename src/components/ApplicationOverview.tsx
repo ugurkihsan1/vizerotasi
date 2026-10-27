@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useCallback } from "react";
 import { Text, View, Pressable } from "react-native";
 import { useFocusEffect, router } from "expo-router";
@@ -8,7 +9,7 @@ import { useCountries, useFollows, useDocuments } from "../lib/data";
 import { getCountryGuide, mergeCountryDocuments } from "../lib/country-guides";
 import { mergeSpainDocuments } from "../lib/spain";
 import { CountryFlag } from "./CountryFlag";
-import { styles, colors, Button } from "./ui";
+import { styles, colors } from "./ui";
 export function ApplicationOverview() {
   const { session } = useAuth();
   const countries = useCountries(),
@@ -72,72 +73,101 @@ export function ApplicationOverview() {
     }, [hasCountry, refreshChecklist]),
   );
   const complete = all.filter((d) => checklist.data?.includes(d.id)).length;
-  const followed =
-    countries.data?.filter((c) => follows.data?.includes(c.id)) ?? [];
-  if (!country && !followed.length) return null;
+  if (!country) return null;
+  const openDocuments = () =>
+    router.push({
+      pathname: "/country/[id]",
+      params: { id: country.id, tab: "Belgeler" },
+    });
+  const status =
+    (
+      {
+        booked: "Randevu alındı",
+        appointment: "Randevu hazırlığı",
+        travel: "Seyahat planı",
+      } as Record<string, string>
+    )[plan.data?.status ?? ""] ?? "Başvuru hazırlığı";
   return (
-    <View
-      style={[
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Belgelerime devam et · ${country.name} · ${complete}/${all.length} belge hazır`}
+      onPress={openDocuments}
+      style={({ pressed }) => [
         styles.card,
-        { padding: 16, gap: 12, backgroundColor: "#EDF3ED" },
+        {
+          padding: 16,
+          gap: 12,
+          backgroundColor: "#EDF3ED",
+          opacity: pressed ? 0.8 : 1,
+        },
       ]}
     >
-      <Text style={styles.heading}>Senin başvuru rotan</Text>
-      {country && (
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <View
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 16,
+            backgroundColor: "#FFF",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <CountryFlag
+            code={country.code}
+            emoji={country.flag}
+            name={country.name}
+          />
+        </View>
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={styles.heading}>{country.name}</Text>
+          <Text style={styles.muted}>{status}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={21} color={colors.blue} />
+      </View>
+      {!!all.length && (
         <>
-          <View style={styles.row}>
-            <CountryFlag
-              code={country.code}
-              emoji={country.flag}
-              name={country.name}
+          <View
+            style={{
+              height: 5,
+              borderRadius: 3,
+              backgroundColor: "#D8E4DD",
+              overflow: "hidden",
+            }}
+            accessibilityRole="progressbar"
+            accessibilityLabel="Belge hazırlığı"
+            aria-valuemin={0}
+            aria-valuemax={all.length}
+            aria-valuenow={complete}
+            accessibilityValue={{ min: 0, max: all.length, now: complete }}
+          >
+            <View
+              style={{
+                height: 5,
+                width: `${(complete / all.length) * 100}%`,
+                backgroundColor: colors.blue,
+                borderRadius: 3,
+              }}
             />
-            <Text style={styles.pillText}>{country.name}</Text>
+          </View>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              gap: 8,
+            }}
+          >
             <Text style={styles.muted}>
-              {(
-                {
-                  booked: "Randevu alındı",
-                  appointment: "Randevu hazırlığı",
-                  travel: "Seyahat planı",
-                } as Record<string, string>
-              )[plan.data?.status ?? ""] ?? "Takip ettiğin ülke"}
+              {complete}/{all.length} belge hazır
+            </Text>
+            <Text
+              style={{ fontSize: 13, fontWeight: "700", color: colors.blue }}
+            >
+              Belgelerim
             </Text>
           </View>
-          {!!all.length && (
-            <Text style={styles.text}>
-              {complete} / {all.length} belge hazır işaretlendi ·{" "}
-              {all.length - complete} belge kontrol bekliyor
-            </Text>
-          )}
-          <Button
-            label="Belgelerime devam et"
-            onPress={() =>
-              router.push({
-                pathname: "/country/[id]",
-                params: { id: country.id, tab: "Belgeler" },
-              })
-            }
-          />
         </>
       )}
-      {!!followed.length && (
-        <View style={styles.row}>
-          <Text style={styles.muted}>Takip ettiğin ülkeler:</Text>
-          {followed.slice(0, 4).map((c) => (
-            <Pressable
-              key={c.id}
-              accessibilityRole="link"
-              accessibilityLabel={`${c.name} topluluğunu aç`}
-              onPress={() => router.push(`/country/${c.id}`)}
-              style={{ minHeight: 44, justifyContent: "center" }}
-            >
-              <Text style={{ color: colors.blue, fontSize: 12 }}>{c.name}</Text>
-            </Pressable>
-          ))}
-          {followed.length > 4 && (
-            <Text style={styles.muted}>+{followed.length - 4}</Text>
-          )}
-        </View>
-      )}
-    </View>
+    </Pressable>
   );
 }

@@ -15,18 +15,18 @@ export function CountryStory({
       accessibilityRole="link"
       accessibilityLabel={`${country.name} topluluğu${followed ? ", takip ediliyor" : ""}`}
       onPress={() => router.push(`/country/${country.id}`)}
-      style={{ width: 104, gap: 8 }}
+      style={{ width: 80, gap: 6 }}
     >
       <View
         style={{
-          borderRadius: 18,
+          borderRadius: 24,
           overflow: "hidden",
           backgroundColor: "#EAF0ED",
           borderWidth: followed ? 2 : 0,
           borderColor: colors.blue,
         }}
       >
-        <DestinationPhoto id={country.id} height={74} />
+        <DestinationPhoto id={country.id} height={76} />
       </View>
       <View
         style={{
@@ -36,7 +36,10 @@ export function CountryStory({
           gap: 5,
         }}
       >
-        <Text style={{ fontSize: 12, fontWeight: "600", color: colors.navy }}>
+        <Text
+          numberOfLines={1}
+          style={{ fontSize: 12, fontWeight: "600", color: colors.navy }}
+        >
           {country.name}
         </Text>
         {followed && (

@@ -93,7 +93,7 @@ export function Feed({
   }, [query.data, newest, follows]);
   const primary = !country && !author && !saved;
   const top = (
-    <View style={{ gap: 18, paddingBottom: 16 }}>
+    <View style={{ gap: 12, paddingBottom: 12 }}>
       {header}
       {primary && (
         <View style={{ gap: 18 }}>
@@ -107,10 +107,15 @@ export function Feed({
               alignItems: "center",
             }}
           >
-            <Text style={styles.heading}>Rotanı keşfet</Text>
-            <Text style={{ fontSize: 11, color: colors.muted }}>
-              ÜLKE TOPLULUKLARI
-            </Text>
+            <Text style={styles.heading}>Ülkeler</Text>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Tüm ülkeleri keşfet"
+              onPress={() => router.push("/discover")}
+              style={{ minHeight: 44, justifyContent: "center" }}
+            >
+              <Ionicons name="arrow-forward" size={20} color={colors.blue} />
+            </Pressable>
           </View>
           <ScrollView
             horizontal
@@ -132,31 +137,6 @@ export function Feed({
                 />
               ))}
           </ScrollView>
-        </View>
-      )}
-      {primary && !header && (
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Text style={styles.heading}>Topluluğun akışı</Text>
-          <View
-            style={{
-              backgroundColor: "#E8EFEB",
-              paddingHorizontal: 9,
-              paddingVertical: 4,
-              borderRadius: 8,
-            }}
-          >
-            <Text
-              style={{ fontSize: 10, fontWeight: "600", color: colors.blue }}
-            >
-              SANA ÖZEL
-            </Text>
-          </View>
         </View>
       )}
       {!author && !saved && (
@@ -233,7 +213,7 @@ export function Feed({
     <>
       <FlatList
         style={styles.page}
-        contentContainerStyle={{ padding: 20, paddingBottom: 40, gap: 16 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 32, gap: 12 }}
         data={posts}
         keyExtractor={(p) => p.id}
         renderItem={({ item }) => <PostCard post={item} />}

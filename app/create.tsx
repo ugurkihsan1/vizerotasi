@@ -430,11 +430,8 @@ export default function Create() {
   if (!kind)
     return (
       <View style={styles.content}>
-        <Text style={styles.title}>Senin deneyimin, birinin ilk adımı.</Text>
-        <Text style={styles.muted}>
-          Paylaşmak istediğin içerikle başla. Yayın öncesinde her gönderi
-          incelenir.
-        </Text>
+        <Text style={styles.title}>Ne paylaşmak istersin?</Text>
+        <Text style={styles.muted}>Paylaşımın yayın öncesi incelenir.</Text>
         {(
           [
             ["experience", "✦ Vize deneyimi paylaş"],

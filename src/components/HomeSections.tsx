@@ -19,22 +19,11 @@ export function HomeWelcome() {
       }}
     >
       <View style={{ flex: 1, gap: 5 }}>
-        <Text
-          style={{
-            fontSize: 10,
-            fontWeight: "700",
-            letterSpacing: 1.5,
-            color: colors.blue,
-          }}
-        >
-          DENEYİMLERLE YOLUNU BUL
-        </Text>
         <Text style={[styles.title, { fontSize: 25 }]}>
           {profile
             ? `Merhaba, ${profile.display_name.split(" ")[0]} 👋`
             : "Bir sonraki rotan burada."}
         </Text>
-        <Text style={styles.muted}>Aynı yoldan geçenlerden, sana.</Text>
       </View>
       {session && (
         <Pressable
@@ -126,27 +115,15 @@ export function SpainFeature() {
       ]}
     >
       <View style={{ width: 112, backgroundColor: "#F5CEAB" }}>
-        <DestinationPhoto id="spain" height={128} />
+        <DestinationPhoto id="spain" height={96} />
       </View>
       <View style={{ flex: 1, padding: 15, gap: 6, justifyContent: "center" }}>
-        <Text
-          style={{
-            fontSize: 9,
-            fontWeight: "700",
-            letterSpacing: 1.2,
-            color: "#A4663F",
-          }}
-        >
-          BAŞVURUNA HAZIRLAN
-        </Text>
-        <Text style={[styles.heading, { fontSize: 16 }]}>
-          İspanya, adım adım.
-        </Text>
+        <Text style={[styles.heading, { fontSize: 16 }]}>İspanya rehberi</Text>
         <Text style={[styles.muted, { fontSize: 12, lineHeight: 18 }]}>
-          BLS İstanbul kaynağından 13 maddelik belge kontrol listesi.
+          13 belge · BLS İstanbul
         </Text>
         <Text style={{ fontSize: 12, color: colors.blue, fontWeight: "700" }}>
-          Rehbere göz at →
+          Belgeleri aç →
         </Text>
       </View>
     </Pressable>
@@ -165,8 +142,7 @@ export function CommunityNote() {
     >
       <Ionicons name="shield-checkmark-outline" size={19} color={colors.blue} />
       <Text style={[styles.muted, { flex: 1, fontSize: 12, lineHeight: 19 }]}>
-        Her paylaşım yayın öncesi incelenir. Gerçek deneyimler yol gösterir;
-        karar için güncel resmî kaynakları kontrol et.
+        Topluluk deneyimleri resmî bilgi değildir.
       </Text>
     </View>
   );
@@ -189,12 +165,11 @@ export function CommunityEmpty() {
           <Ionicons name="chatbubbles-outline" size={20} color={colors.blue} />
         </View>
         <Text style={[styles.heading, { fontSize: 16, flex: 1 }]}>
-          Her rota bir deneyimle başlar.
+          İlk deneyim senden olsun
         </Text>
       </View>
       <Text style={[styles.muted, { fontSize: 12 }]}>
-        İlk paylaşımlar incelemeden geçiyor. Bu sırada ülke topluluklarını ve
-        başvuru rehberini keşfedebilirsin.
+        Deneyimin başka birinin yolunu kolaylaştırabilir.
       </Text>
       <Pressable
         accessibilityRole="button"

@@ -163,13 +163,19 @@ export default function Country() {
           backgroundColor: "#DFE9E2",
         }}
       >
-        <DestinationPhoto id={id} height={130} />
+        <DestinationPhoto id={id} height={120} />
       </View>
       <Text style={styles.title}>
         {country?.flag} {country?.name ?? "Ülke topluluğu"}
       </Text>
-      <Follow id={id} />
-      <CommunityChatEntry countryId={id} name={country?.name ?? "Ülke"} />
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <View style={{ flex: 1 }}>
+          <Follow id={id} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <CommunityChatEntry countryId={id} name={country?.name ?? "Ülke"} />
+        </View>
+      </View>
       <View style={styles.row}>
         <Text style={styles.pillText}>
           {stats.data?.experiences ?? "—"} deneyim
@@ -181,14 +187,11 @@ export default function Country() {
           · {stats.data?.tips ?? "—"} kritik bilgi
         </Text>
       </View>
-      <View style={styles.row}>
+      {stats.data?.average_days != null && (
         <Text style={styles.muted}>
-          ⏱ Topluluğa göre {stats.data?.average_days ?? "—"} gün
+          Ortalama sonuç: {stats.data.average_days} gün · Topluluk deneyimleri
         </Text>
-        <Text style={styles.muted}>
-          🔥 Son 7 gün: {stats.data?.recent ?? 0} paylaşım
-        </Text>
-      </View>
+      )}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

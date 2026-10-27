@@ -41,7 +41,7 @@ test("guest gets a guided feed with advanced filters hidden until requested", as
   await fixtures(page);
   await page.addInitScript(() => localStorage.setItem("onboarding-v1", "done"));
   await page.goto("/");
-  await expect(page.getByText("Her rota bir deneyimle başlar.")).toBeVisible();
+  await expect(page.getByText("İlk deneyim senden olsun")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "İlk Schengen", exact: true }),
   ).not.toBeVisible();
@@ -934,7 +934,7 @@ test("first visit asks about plans and booked applicants can open a persistent d
     ),
   ).toEqual({ status: "booked", country_id: "spain" });
   await page.goto("/");
-  await expect(page.getByText("Her rota bir deneyimle başlar.")).toBeVisible();
+  await expect(page.getByText("İlk deneyim senden olsun")).toBeVisible();
   await expect(
     page.getByRole("radio", { name: "Randevumu aldım", exact: true }),
   ).toHaveCount(0);
@@ -1002,7 +1002,7 @@ test("visitors can skip planning or explore without a plan and are not asked aga
     page.getByRole("radio", { name: "Randevumu aldım", exact: true }),
   ).toHaveCount(0);
   await page.reload();
-  await expect(page.getByText("Her rota bir deneyimle başlar.")).toBeVisible();
+  await expect(page.getByText("İlk deneyim senden olsun")).toBeVisible();
   await expect(
     page.getByRole("radio", { name: "Randevumu aldım", exact: true }),
   ).toHaveCount(0);
@@ -1362,21 +1362,24 @@ test("home keeps the community feed and adds the visitor's plan and real checkli
     { id: spainFixture.documents[0].id },
   );
   await page.goto("/");
-  await expect(
-    page.getByText("Senin başvuru rotan", { exact: true }),
-  ).toBeVisible();
   await expect(page.getByText("Randevu alındı", { exact: true })).toBeVisible();
   await expect(
-    page.getByText(
-      "1 / 13 belge hazır işaretlendi · 12 belge kontrol bekliyor",
-      { exact: true },
-    ),
+    page.getByText("1/13 belge hazır", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("Topluluğun akışı", { exact: true }),
+    page.getByRole("progressbar", { name: "Belge hazırlığı" }),
+  ).toHaveAttribute("aria-valuenow", "1");
+  await expect(
+    page.getByText("Takip ettiğin ülkeler:", { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("tab", { name: "Deneyimler", exact: true }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Belgelerime devam et", exact: true })
+    .getByRole("button", {
+      name: "Belgelerime devam et · İspanya · 1/13 belge hazır",
+      exact: true,
+    })
     .click();
   await expect(
     page.getByRole("checkbox", { name: "Pasaport: Hazırladım", exact: true }),

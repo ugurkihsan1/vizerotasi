@@ -104,25 +104,9 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
     !search || scope === "Ülkeler" || (scope === "Tümü" && matched.length > 0);
   const header = (
     <View style={{ gap: 18, paddingBottom: 14 }}>
-      <View style={{ gap: 5 }}>
-        <Text
-          style={{
-            fontSize: 10,
-            fontWeight: "700",
-            letterSpacing: 1.4,
-            color: colors.blue,
-          }}
-        >
-          MERAK ETTİĞİN HER ŞEY
-        </Text>
-        <Text style={styles.title}>Senin rotan hangisi?</Text>
-        <Text style={styles.muted}>
-          Ülke, deneyim, kritik nokta ve soruları birlikte ara.
-        </Text>
-      </View>
       <Field
         label="Ülke, belge, deneyim veya soru ara"
-        placeholder="Örn. sigorta, Almanya, Almanya sigorta…"
+        placeholder="Ülke, konu veya kişi ara"
         value={text}
         maxLength={240}
         onChangeText={setText}
@@ -281,12 +265,6 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
                 : `${scope} için sonuçlar`
               : "Son paylaşımlar"}
           </Text>
-          {search && scope === "Tümü" && (
-            <Text style={styles.muted}>
-              Deneyimler, kritik noktalar ve sorular. Belge açıklamaları için
-              Belgeler sekmesini seç.
-            </Text>
-          )}
         </>
       )}
     </View>
@@ -294,7 +272,7 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
   return (
     <FlatList
       style={styles.page}
-      contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 40 }}
+      contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
       keyboardShouldPersistTaps="handled"
       data={auxiliary || !validSearch ? [] : posts}
       keyExtractor={(p) => p.id}

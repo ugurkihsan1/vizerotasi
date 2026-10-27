@@ -31,7 +31,7 @@ function NotificationRow({
       }}
       style={[styles.card, !n.read_at && { backgroundColor: "#EAF1FF" }]}
     >
-      <Text style={styles.heading}>
+      <Text style={[styles.text, { fontWeight: "600" }]}>
         {!n.read_at ? "• " : ""}
         {n.message}
       </Text>
@@ -63,10 +63,6 @@ export default function Notifications() {
       keyExtractor={(n) => n.id}
       ListHeaderComponent={
         <View style={{ gap: 7, paddingBottom: 10 }}>
-          <Text style={styles.title}>Topluluktan sana.</Text>
-          <Text style={styles.muted}>
-            Yanıtların, onayların ve yeni gelişmelerin tek yerde.
-          </Text>
           <Message text={error} />
         </View>
       }

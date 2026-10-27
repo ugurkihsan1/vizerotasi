@@ -69,7 +69,7 @@ export function ProfileScreen({
           <View style={[styles.card, { padding: 0, overflow: "hidden" }]}>
             <View
               style={{
-                height: 86,
+                height: 64,
                 backgroundColor: colors.navy,
                 overflow: "hidden",
               }}
@@ -98,18 +98,6 @@ export function ProfileScreen({
                   top: -96,
                 }}
               />
-              <Text
-                style={{
-                  position: "absolute",
-                  right: 22,
-                  bottom: 16,
-                  fontSize: 10,
-                  color: "#B2C9BF",
-                  letterSpacing: 1.8,
-                }}
-              >
-                HER DENEYİM BİR ROTA
-              </Text>
             </View>
             <View style={{ padding: 20, paddingTop: 0, gap: 13 }}>
               <View
@@ -210,10 +198,7 @@ export function ProfileScreen({
                   </Text>
                 )}
               </View>
-              <Text style={styles.text}>
-                {profile.bio ||
-                  "Bir deneyim, başka birinin yolunu kolaylaştırır."}
-              </Text>
+              {!!profile.bio && <Text style={styles.text}>{profile.bio}</Text>}
               <View
                 style={{
                   flexDirection: "row",
@@ -265,9 +250,6 @@ export function ProfileScreen({
               <Ionicons name="ribbon-outline" size={26} color={colors.blue} />
               <View style={{ flex: 1, gap: 3 }}>
                 <Text style={styles.pillText}>Rozetlerim ve ilerlemem</Text>
-                <Text style={styles.muted}>
-                  Gezgin’den Büyükelçi’ye uzanan rotan
-                </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.muted} />
             </Pressable>
@@ -317,9 +299,6 @@ export function ProfileScreen({
                 />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.pillText}>Moderasyon kuyruğu</Text>
-                  <Text style={styles.muted}>
-                    Bekleyen paylaşımları incele ve yayınla
-                  </Text>
                 </View>
                 <Ionicons
                   name="chevron-forward"
