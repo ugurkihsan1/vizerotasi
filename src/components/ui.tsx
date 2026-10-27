@@ -55,7 +55,7 @@ const createStyles = () =>
     },
     title: {
       fontSize: textSize(27),
-      lineHeight: 34,
+      lineHeight: textSize(34),
       letterSpacing: -0.8,
       fontWeight: "800",
       color: colors.navy,
@@ -66,8 +66,16 @@ const createStyles = () =>
       fontWeight: "700",
       color: colors.navy,
     },
-    text: { fontSize: textSize(15), lineHeight: 23, color: colors.text },
-    muted: { fontSize: textSize(13), lineHeight: 20, color: colors.muted },
+    text: {
+      fontSize: textSize(15),
+      lineHeight: textSize(23),
+      color: colors.text,
+    },
+    muted: {
+      fontSize: textSize(13),
+      lineHeight: textSize(20),
+      color: colors.muted,
+    },
     card: {
       backgroundColor: themeColor("#FFF", "surface"),
       borderRadius: 22,
@@ -79,6 +87,17 @@ const createStyles = () =>
       shadowOpacity: 0.035,
       shadowRadius: 12,
       elevation: 1,
+    },
+    timeline: {
+      backgroundColor: isDark() ? "#0F1720" : "#FFFFFF",
+      borderRadius: 0,
+      borderWidth: 0,
+      borderBottomWidth: 1,
+      borderColor: themeColor("#DFE5E8", "border"),
+      padding: 16,
+      gap: 10,
+      shadowOpacity: 0,
+      elevation: 0,
     },
     input: {
       backgroundColor: themeColor("#FFF", "surface"),
@@ -137,8 +156,16 @@ export function Button({
         paddingHorizontal: 18,
         paddingVertical: 12,
         borderRadius: 14,
+        borderWidth: 1,
+        borderColor: secondary
+          ? isDark()
+            ? "#526779"
+            : "#CFDBD5"
+          : "transparent",
         backgroundColor: secondary
-          ? themeColor("#EAF0ED", "surface")
+          ? isDark()
+            ? "#243544"
+            : "#EAF0ED"
           : themeColor("#24766C", "surface"),
         opacity: disabled ? 0.45 : pressed ? 0.75 : 1,
       })}
@@ -177,8 +204,16 @@ export function Chip({
         {
           minHeight: 44,
           justifyContent: "center",
+          borderWidth: 1,
+          borderColor: isDark()
+            ? active
+              ? "#61C6A7"
+              : "#405363"
+            : "transparent",
           backgroundColor: active
-            ? themeColor("#182E43", "surface")
+            ? isDark()
+              ? "#285447"
+              : "#182E43"
             : themeColor("#E8EEF7", "surface"),
         },
       ]}
