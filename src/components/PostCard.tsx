@@ -168,7 +168,7 @@ export function ShareButton({ post }: { post: Post }) {
       secondary
       onPress={() => {
         void Share.share({
-          message: `${post.title} — Vize Rotası\n${Platform.OS === "web" ? window.location.origin + webPath(postPath(post)) : "https://ugurkihsan1.github.io/vizerotasi" + postPath(post)}`,
+          message: `${post.title} — Vizesel\n${Platform.OS === "web" ? window.location.origin + webPath(postPath(post)) : "https://ugurkihsan1.github.io/vizerotasi" + postPath(post)}`,
         }).catch(() => {});
       }}
     />

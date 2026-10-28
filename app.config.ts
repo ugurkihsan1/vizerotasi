@@ -2,7 +2,7 @@ import type { ExpoConfig, ConfigContext } from "expo/config";
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: config.name ?? "Vize Rotası",
+  name: config.name ?? "Vizesel",
   slug: config.slug ?? "vizerotasi",
   experiments: {
     ...config.experiments,

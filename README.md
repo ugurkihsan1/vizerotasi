@@ -1,4 +1,6 @@
-# Vize Rotası
+# Vizesel
+
+Marka ve e-posta geçişi: [Vizesel kurulum adımları](docs/VIZESEL_GECIS_TR.md). Uygulamanın görünen adı güncellendi; özel e-posta için alan adı/DNS ve Supabase SMTP ayarları ayrıca tamamlanmalıdır.
 
 Türkiye’den Schengen başvurusu yapanlar için Türkçe sosyal topluluk uygulaması. Expo SDK 58, React Native, Expo Router, TypeScript, Supabase ve TanStack Query kullanır. İçerikler gerçek Supabase tablolarından gelir; bağlantı yokken sahte deneyimler veya sayaçlar üretilmez.
 
