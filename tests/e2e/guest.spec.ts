@@ -695,7 +695,7 @@ test("experience accepts optional narrative, visa history and invitation notes w
     .getByLabel("Kısa bir başlık", { exact: true })
     .fill("Kültürel etkinlik başvurum");
   await expect(
-    page.getByLabel("Başvuru sürecinde neler yaşadın? (isteğe bağlı)", {
+    page.getByLabel("Başvuru sürecinle ilgili ne paylaşmak istersin?", {
       exact: true,
     }),
   ).toBeVisible();

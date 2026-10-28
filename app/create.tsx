@@ -220,7 +220,7 @@ export default function Create() {
                     ? "Örn. İstanbul’daki başvurumda sigorta poliçesinin ıslak imzalı nüshası istendi. Başvuru tarihim…"
                     : kind === "question"
                       ? "Örn. İlk kez başvuracağım. Seyahat tarihlerim… Merak ettiğim konu…"
-                      : "Örn. Randevumu… tarihinde aldım. Evrak tesliminde… Sonucu… öğrendim."
+                      : "Örn. Belgeleri hazırlarken… Başvuruda dikkatimi çeken…"
                 : name === "advice"
                   ? "Örn. Başvurmadan önce mutlaka… kontrol edin."
                   : name === "city"
@@ -995,7 +995,7 @@ export default function Create() {
             {text(
               "body",
               kind === "experience"
-                ? "Başvuru sürecinde neler yaşadın? (isteğe bağlı)"
+                ? "Başvuru sürecinle ilgili ne paylaşmak istersin?"
                 : "Detaylar",
               true,
             )}
@@ -1011,7 +1011,11 @@ export default function Create() {
               }
             />
             {kind === "experience" &&
-              text("advice", "Başvuracak birine özellikle ne söylersin?", true)}
+              text(
+                "advice",
+                "Başvuracak birine ne tavsiye edersin? (isteğe bağlı)",
+                true,
+              )}
           </>
         )}
         {(kind === "tip" || (kind === "experience" && step === 3)) && (
