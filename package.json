@@ -54,7 +54,9 @@
     "export": "expo export --platform web",
     "test:e2e": "playwright test",
     "format": "prettier --write app src tests *.ts *.mts *.js *.json README.md",
-    "check": "npm run typecheck && npm run lint && npm test"
+    "check": "npm run typecheck && npm run lint && npm test",
+    "export:pages": "EXPO_NO_TELEMETRY=1 EXPO_OFFLINE=1 EXPO_PUBLIC_WEB_BASE_PATH=/vizerotasi expo export --platform web --max-workers 2 --output-dir dist-pages && node scripts/prepare-pages.mjs",
+    "deploy:pages": "npm run export:pages && node scripts/publish-pages.mjs"
   },
   "private": true,
   "engines": {

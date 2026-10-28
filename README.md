@@ -2,6 +2,10 @@
 
 Türkiye’den Schengen başvurusu yapanlar için Türkçe sosyal topluluk uygulaması. Expo SDK 58, React Native, Expo Router, TypeScript, Supabase ve TanStack Query kullanır. İçerikler gerçek Supabase tablolarından gelir; bağlantı yokken sahte deneyimler veya sayaçlar üretilmez.
 
+## Ücretsiz web önizlemesi
+
+GitHub Pages kurulumu ve sonraki yayınlar: [GITHUB_PAGES_TR.md](docs/GITHUB_PAGES_TR.md).
+
 ## Çalıştırma
 
 Node 24 ve npm gerekir. Proje kökünde:

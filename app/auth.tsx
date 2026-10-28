@@ -1,3 +1,4 @@
+import { webPath } from "../src/lib/web-path";
 import { useAppearance, themeColor, textSize } from "../src/lib/appearance";
 import { Image } from "expo-image";
 import { useQueryClient } from "@tanstack/react-query";
@@ -109,7 +110,7 @@ export default function Auth() {
   };
   const redirect = () =>
     Platform.OS === "web"
-      ? `${window.location.origin}/auth`
+      ? `${window.location.origin}${webPath("/auth")}`
       : Linking.createURL("/auth");
   async function submit(v: AuthValues) {
     if (!configured) {

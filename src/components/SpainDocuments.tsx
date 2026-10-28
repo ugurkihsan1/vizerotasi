@@ -1,3 +1,4 @@
+import { webPath } from "../lib/web-path";
 import { CriticalNotice } from "./CriticalNotice";
 import { formatDate } from "../lib/dates";
 import { useAppearance, themeColor, textSize } from "../lib/appearance";
@@ -64,8 +65,8 @@ export function SpainSource() {
           const path = spainSource.pdf_path;
           void Linking.openURL(
             Platform.OS === "web"
-              ? `${window.location.origin}${path}`
-              : `https://delicate-scone-eeabc7.netlify.app${path}`,
+              ? `${window.location.origin}${webPath(path)}`
+              : `https://ugurkihsan1.github.io/vizerotasi${path}`,
           ).catch(() => setError("Kaynak PDF açılamadı."));
         }}
       >

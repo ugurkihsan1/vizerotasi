@@ -1,6 +1,8 @@
+import { webPath } from "../src/lib/web-path";
+import * as Linking from "expo-linking";
 import { pendingCleanup, cleanupEvidence } from "../src/lib/content-cleanup";
 import { useState } from "react";
-import { ScrollView, Text, View, Switch } from "react-native";
+import { ScrollView, Text, View, Switch, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { pickAvatar, uploadAvatar } from "../src/lib/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -186,7 +188,14 @@ function SettingsBody() {
             onPress={() => {
               if (!session?.user.email) return;
               void db()
-                .auth.resetPasswordForEmail(session.user.email)
+                .auth.resetPasswordForEmail(session.user.email, {
+                  redirectTo:
+                    Platform.OS === "web"
+                      ? `${window.location.origin}${webPath("/auth")}?recovery=1`
+                      : Linking.createURL("/auth", {
+                          queryParams: { recovery: "1" },
+                        }),
+                })
                 .then((r) =>
                   setMessage(
                     r.error
