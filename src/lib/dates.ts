@@ -48,3 +48,17 @@ export function formatDateTime(value: string): string {
   if (!Number.isFinite(date.getTime())) return "—";
   return `${formatDate(value)} ${new Intl.DateTimeFormat("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" }).format(date)}`;
 }
+
+/** Compact relative age for public posts; calendar dates remain available elsewhere. */
+export function relativePostTime(value: string, now = Date.now()): string {
+  const timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp)) return "—";
+  const seconds = Math.max(0, Math.floor((now - timestamp) / 1000));
+  if (seconds < 60) return "şimdi";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} dk`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} sa`;
+  const days = Math.floor(seconds / 86400);
+  if (days < 30) return `${days} gün`;
+  if (days < 365) return `${Math.floor(days / 30)} ay`;
+  return `${Math.floor(days / 365)} yıl`;
+}

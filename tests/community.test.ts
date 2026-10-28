@@ -1553,3 +1553,31 @@ it("corrects only the identified old Spain fee topic and preserves its actual te
     (await root("select category_id from posts where id=$1", [other])).rows[0],
   ).toMatchObject({ category_id: "doc-form" });
 });
+
+it("stores reported processing days without fabricated dates and exposes them through the RLS feed", async () => {
+  const author = await user();
+  const source = await post(author, "norway");
+  await root("update posts set processing_days=24 where id=$1", [source]);
+  const r = await as(
+    author,
+    "select processing_days,application_date,decision_date from feed where id=$1",
+    [source],
+  );
+  expect(r.rows[0]).toMatchObject({
+    processing_days: 24,
+    application_date: null,
+    decision_date: null,
+  });
+  await as(
+    author,
+    "insert into posts(user_id,country_id,kind,title,body,processing_days,result,city,first_schengen,employment_status,financing) values($1,'norway','experience','Days only fixture','A new experience without invented dates.',12,'approved','İstanbul',true,'Çalışan','Kendim')",
+    [author],
+  );
+  await expect(
+    as(
+      author,
+      "insert into posts(user_id,country_id,kind,title,body,processing_days,result,city,first_schengen,employment_status,financing) values($1,'norway','experience','Invalid days fixture','A deliberately invalid processing duration.',-1,'approved','İstanbul',true,'Çalışan','Kendim')",
+      [author],
+    ),
+  ).rejects.toThrow();
+});

@@ -40,7 +40,17 @@ export const experienceSchema = z
     invitation: z.boolean(),
     invitation_notes: z.string().max(2000).default(""),
     previous_visas: z.array(previousVisaSchema).max(10).default([]),
-    application_date: z.iso.date("Geçerli bir gün/ay/yıl tarihi gir."),
+    application_date: z.union([
+      z.iso.date("Geçerli bir gün/ay/yıl tarihi gir."),
+      z.literal(""),
+    ]),
+    processing_days: z
+      .number()
+      .int()
+      .min(0)
+      .max(36500, "Geçerli bir sonuçlanma süresi gir.")
+      .nullable()
+      .optional(),
     appointment_date: z.union([z.iso.date(), z.literal("")]),
     passport_date: z.union([z.iso.date(), z.literal("")]),
     decision_date: z.union([z.iso.date(), z.literal("")]),
@@ -53,10 +63,16 @@ export const experienceSchema = z
       .max(1825, "Verilen vize süresi en fazla 5 yıl olabilir."),
     entries: z.enum(["single", "double", "multi"]),
   })
-  .refine((x) => !x.decision_date || x.decision_date >= x.application_date, {
-    path: ["decision_date"],
-    message: "Sonuç tarihi başvurudan önce olamaz.",
-  });
+  .refine(
+    (x) =>
+      !x.decision_date ||
+      !x.application_date ||
+      x.decision_date >= x.application_date,
+    {
+      path: ["decision_date"],
+      message: "Sonuç tarihi başvurudan önce olamaz.",
+    },
+  );
 export type ExperienceInput = z.infer<typeof experienceSchema>;
 export const shortPostSchema = z.object({
   country_id: z.string().min(1, "Ülke seç."),

@@ -22,6 +22,7 @@ export function DeleteContent({
   useAppearance();
 
   const { session } = useAuth();
+  const [menu, setMenu] = useState(false);
   const [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -74,8 +75,10 @@ export function DeleteContent({
       {isComment || compact ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={isComment ? "Yorumu sil" : "Paylaşımı sil"}
-          onPress={() => setOpen(true)}
+          accessibilityLabel={
+            isComment ? "Yorum seçenekleri" : "Paylaşım seçenekleri"
+          }
+          onPress={() => setMenu(true)}
           style={{
             width: 44,
             height: 44,
@@ -83,11 +86,25 @@ export function DeleteContent({
             justifyContent: "center",
           }}
         >
-          <Ionicons name="trash-outline" size={19} color={colors.muted} />
+          <Ionicons name="ellipsis-horizontal" size={19} color={colors.muted} />
         </Pressable>
       ) : (
-        <Button secondary label="Paylaşımı sil" onPress={() => setOpen(true)} />
+        <Button secondary label="Paylaşımı sil" onPress={() => setMenu(true)} />
       )}
+      <Sheet
+        visible={menu}
+        onClose={() => setMenu(false)}
+        title={isComment ? "Yorum seçenekleri" : "Paylaşım seçenekleri"}
+      >
+        <Button
+          secondary
+          label={isComment ? "Yorumu sil" : "Paylaşımı sil"}
+          onPress={() => {
+            setMenu(false);
+            setOpen(true);
+          }}
+        />
+      </Sheet>
       <Sheet
         visible={open}
         onClose={() => !busy && setOpen(false)}

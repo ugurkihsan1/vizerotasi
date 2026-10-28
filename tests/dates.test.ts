@@ -28,3 +28,13 @@ it("shows date-only values and Istanbul timestamps in day/month/year order", asy
   expect(formatDateTime("2026-10-21T22:05:00Z")).toBe("22/10/2026 01:05");
   expect(formatDate(null)).toBe("—");
 });
+
+it("shows relative post age without rounding forward or displaying invalid dates", async () => {
+  const { relativePostTime } = await import("../src/lib/dates");
+  const now = Date.parse("2026-10-28T12:00:00Z");
+  expect(relativePostTime("2026-10-28T09:00:00Z", now)).toBe("3 sa");
+  expect(relativePostTime("2026-10-26T12:00:00Z", now)).toBe("2 gün");
+  expect(relativePostTime("2026-10-28T11:55:00Z", now)).toBe("5 dk");
+  expect(relativePostTime("2026-10-28T12:01:00Z", now)).toBe("şimdi");
+  expect(relativePostTime("invalid", now)).toBe("—");
+});

@@ -129,6 +129,7 @@ export default function Create() {
         invitation_notes: "",
         previous_visas: [],
         application_date: "",
+        processing_days: null,
         appointment_date: "",
         passport_date: "",
         decision_date: "",
@@ -138,6 +139,7 @@ export default function Create() {
         entries: "single",
       },
     });
+  const result = useWatch({ control, name: "result" });
   const firstSchengen = useWatch({ control, name: "first_schengen" });
   const selectedCountry = useWatch({ control, name: "country_id" });
   const history = useFieldArray({ control, name: "previous_visas" });
@@ -319,6 +321,14 @@ export default function Create() {
   async function submit() {
     setMessage("");
     const v = getValues();
+    if (
+      kind === "experience" &&
+      v.result !== "waiting" &&
+      v.processing_days === null
+    ) {
+      setMessage("Kaç günde sonuçlandığını yaz.");
+      return;
+    }
     if (kind === "tip" && categoryRoot === "documents" && !selectedDocument) {
       setMessage("Seçtiğin ülkenin listesinden bir belge seç.");
       return;
@@ -365,9 +375,13 @@ export default function Create() {
           ? {
               ...v,
               previous_visas: v.first_schengen ? [] : v.previous_visas,
-              appointment_date: v.appointment_date || null,
-              passport_date: v.passport_date || null,
-              decision_date: v.decision_date || null,
+              processing_days:
+                v.result === "waiting" ? null : v.processing_days,
+              application_date: null,
+              requested_days: null,
+              appointment_date: null,
+              passport_date: null,
+              decision_date: null,
               granted_days: v.result === "approved" ? v.granted_days : null,
               entries: v.result === "approved" ? v.entries : null,
             }
@@ -415,7 +429,10 @@ export default function Create() {
         createdPost || uploadedEvidence.current.size
           ? "Paylaşımın kaydedildi. Bazı belgeler yüklenemedi; tekrar göndererek yüklemeyi tamamlayabilir veya belgeleri kaldırarak devam edebilirsin. " +
               friendlyError(e)
-          : friendlyError(e),
+          : (e as { code?: string }).code === "PGRST204" &&
+              kind === "experience"
+            ? "Sonuç süresini kaydetmek için veritabanı güncellemesi gerekiyor."
+            : friendlyError(e),
       );
     } finally {
       setBusy(false);
@@ -591,7 +608,7 @@ export default function Create() {
   const steps: FieldPath<ExperienceInput>[][] = [
     ["country_id", "city", "center", "visa_type", "purpose"],
     ["employment_status", "financing"],
-    ["application_date", "requested_days"],
+    [],
     ["title", "body"],
   ];
   return (
@@ -735,10 +752,6 @@ export default function Create() {
         )}
         {kind === "experience" && step === 2 && (
           <>
-            {date("application_date", "Başvuru tarihi")}
-            {date("appointment_date", "Randevu tarihi (isteğe bağlı)")}
-            {date("decision_date", "Sonuç tarihi (isteğe bağlı)")}
-            {date("passport_date", "Pasaport teslim tarihi (isteğe bağlı)")}
             <Controller
               control={control}
               name="result"
@@ -761,11 +774,24 @@ export default function Create() {
                 </View>
               )}
             />
-            {text(
-              "requested_days",
-              "İstenen seyahat süresi (gün)",
-              false,
-              true,
+            {result !== "waiting" && (
+              <Controller
+                control={control}
+                name="processing_days"
+                render={({ field: { value, onChange } }) => (
+                  <Field
+                    label="Kaç günde sonuçlandı?"
+                    placeholder="Örn. 15"
+                    keyboardType="number-pad"
+                    maxLength={5}
+                    value={value === null ? "" : String(value)}
+                    onChangeText={(input) => {
+                      const digits = input.replace(/[^0-9]/g, "");
+                      onChange(digits === "" ? null : Number(digits));
+                    }}
+                  />
+                )}
+              />
             )}
             <View style={{ gap: 8 }}>
               <Field
@@ -1017,6 +1043,12 @@ export default function Create() {
               onPress={() => {
                 void trigger(steps[step]).then((ok) => {
                   if (!getValues("country_id")) setMessage("Ülke seç.");
+                  else if (
+                    step === 2 &&
+                    getValues("result") !== "waiting" &&
+                    getValues("processing_days") === null
+                  )
+                    setMessage("Kaç günde sonuçlandığını yaz.");
                   else if (ok) {
                     setMessage("");
                     setStep(step + 1);

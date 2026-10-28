@@ -654,7 +654,7 @@ test("document subtypes submit a precise country-guide category", async ({
   });
 });
 
-test("experience accepts optional narrative, visa history and invitation notes with segmented dates", async ({
+test("experience accepts optional narrative, visa history and invitation notes without calendar dates", async ({
   page,
 }) => {
   await member(page);
@@ -664,7 +664,9 @@ test("experience accepts optional narrative, visa history and invitation notes w
     await route.fulfill({ status: 201, body: "" });
   });
   await page.goto("/create?country=spain");
-  await page.getByRole("button", { name: /Vize deneyimi paylaş/ }).click();
+  await page
+    .getByRole("button", { name: "Vize başvurusu deneyimi", exact: true })
+    .click();
   await page.getByLabel("Başvuru şehri", { exact: true }).fill("İstanbul");
   await page.getByLabel("Başvuru merkezi", { exact: true }).fill("BLS");
   await page
@@ -685,15 +687,9 @@ test("experience accepts optional narrative, visa history and invitation notes w
     .getByLabel("Davetiye durumunu açıkla (isteğe bağlı)", { exact: true })
     .fill("Kültür etkinliği davetiyem e-posta ile geldi.");
   await page.getByRole("button", { name: "Devam", exact: true }).click();
-  await page.getByLabel("Başvuru tarihi · gün", { exact: true }).fill("01");
   await expect(
-    page.getByLabel("Başvuru tarihi · ay", { exact: true }),
-  ).toBeFocused();
-  await page.keyboard.type("10");
-  await expect(
-    page.getByLabel("Başvuru tarihi · yıl", { exact: true }),
-  ).toBeFocused();
-  await page.keyboard.type("2026");
+    page.getByLabel("Başvuru tarihi · gün", { exact: true }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Devam", exact: true }).click();
   await page
     .getByLabel("Kısa bir başlık", { exact: true })
@@ -711,7 +707,8 @@ test("experience accepts optional narrative, visa history and invitation notes w
   ).toBeVisible();
   expect(submitted).toMatchObject({
     body: "",
-    application_date: "2026-10-01",
+    application_date: null,
+    processing_days: null,
     purpose: "Kültürel etkinlik",
     first_schengen: false,
     previous_visas: [
@@ -768,7 +765,7 @@ test("experience result wraps the card top and Germany uses a rendered flag", as
     cardBox = await card.boundingBox();
   expect(Math.abs(capBox!.width - cardBox!.width)).toBeLessThan(3);
   await page.screenshot({ path: "/tmp/forms-card-mobile.png" });
-  await expect(page.getByText("22/10/2026", { exact: false })).toBeVisible();
+  await expect(page.getByText("22/10/2026", { exact: false })).toHaveCount(0);
 });
 
 test("signup photo stays local through email confirmation and uploads only after login", async ({
@@ -2653,6 +2650,9 @@ test("own posts and comments can be deleted only after confirmation and purpose 
   await expect(
     page.getByText("Kültürel etkinlik", { exact: true }),
   ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Yorum seçenekleri", exact: true })
+    .click();
   await page.getByRole("button", { name: "Yorumu sil", exact: true }).click();
   expect(comment).toBe(true);
   await page
@@ -2661,6 +2661,9 @@ test("own posts and comments can be deleted only after confirmation and purpose 
   await expect(page.getByText("Kendi yorumum.", { exact: true })).toHaveCount(
     0,
   );
+  await page
+    .getByRole("button", { name: "Paylaşım seçenekleri", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "Paylaşımı sil", exact: true })
     .click();
@@ -3239,16 +3242,13 @@ test("profile tabs preserve scroll position and compact dates keep keyboard prog
   await page.getByLabel("Başvuru merkezi", { exact: true }).fill("BLS");
   await page.getByRole("button", { name: "Devam", exact: true }).click();
   await page.getByRole("button", { name: "Devam", exact: true }).click();
-  const day = page.getByLabel("Başvuru tarihi · gün", { exact: true });
-  await expect(day).toHaveCSS("width", "43px");
-  await day.fill("28");
   await expect(
-    page.getByLabel("Başvuru tarihi · ay", { exact: true }),
-  ).toBeFocused();
+    page.getByLabel("Başvuru tarihi · gün", { exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "✓ Onaylandı", exact: true }).click();
   await expect(
-    page.getByLabel("Başvuru tarihi · ay", { exact: true }),
-  ).toHaveCSS("outline-style", "none");
-  await page.screenshot({ path: "/tmp/social-date-final.png" });
+    page.getByLabel("Kaç günde sonuçlandı?", { exact: true }),
+  ).toBeVisible();
 });
 
 test("sharing offers four distinct paths and general stories omit visa fields", async ({
@@ -3744,7 +3744,7 @@ test("app admins can open deletion for a private community without fetching its 
 });
 
 for (const theme of ["light", "dark"] as const) {
-  test(`rejected experience has red accents and its purpose beside employment in ${theme} mode`, async ({
+  test(`rejected experience has red accents and employment beside the author in ${theme} mode`, async ({
     page,
   }) => {
     await fixtures(page);
@@ -3803,11 +3803,10 @@ for (const theme of ["light", "dark"] as const) {
       "background-color",
       theme === "dark" ? "rgb(43, 32, 39)" : "rgb(255, 243, 241)",
     );
-    const purpose = card.getByText("· Kültürel etkinlik", { exact: true });
-    const student = card.getByText("· Öğrenci", { exact: true });
-    const p = await purpose.boundingBox(),
-      s = await student.boundingBox();
-    expect(Math.abs(p!.y - s!.y)).toBeLessThan(3);
+    const purpose = card.getByText("Kültürel etkinlik", { exact: true });
+    await expect(
+      card.getByRole("link", { name: "Üye profilini aç" }),
+    ).toContainText("İstanbul · Öğrenci");
     const red = theme === "dark" ? "rgb(241, 151, 162)" : "rgb(158, 48, 65)";
     await expect(purpose).toHaveCSS("color", red);
     await expect(card.getByText("Vize deneyimi", { exact: true })).toHaveCSS(
@@ -4493,10 +4492,11 @@ test("visa validity accepts years and preserves the selected unit across steps",
   await page.getByLabel("Başvuru merkezi", { exact: true }).fill("BLS");
   await page.getByRole("button", { name: "Devam", exact: true }).click();
   await page.getByRole("button", { name: "Devam", exact: true }).click();
-  await page.getByLabel("Başvuru tarihi · gün", { exact: true }).fill("01");
-  await page.getByLabel("Başvuru tarihi · ay", { exact: true }).fill("10");
-  await page.getByLabel("Başvuru tarihi · yıl", { exact: true }).fill("2026");
+  await expect(
+    page.getByLabel("Başvuru tarihi · gün", { exact: true }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "✓ Onaylandı", exact: true }).click();
+  await page.getByLabel("Kaç günde sonuçlandı?", { exact: true }).fill("24");
   await page
     .getByLabel("Verilen vize süresi (onaylandıysa)", { exact: true })
     .fill("3");
@@ -4517,4 +4517,12 @@ test("visa validity accepts years and preserves the selected unit across steps",
     .getByRole("button", { name: "İncelemeye gönder", exact: true })
     .click();
   await expect.poll(() => submitted?.granted_days).toBe(1095);
+  expect(submitted).toMatchObject({
+    processing_days: 24,
+    application_date: null,
+    decision_date: null,
+    appointment_date: null,
+    passport_date: null,
+    requested_days: null,
+  });
 });

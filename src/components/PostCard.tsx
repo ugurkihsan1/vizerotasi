@@ -8,7 +8,7 @@ import { PlaneReaction } from "./PlaneReaction";
 import { VerificationLabel } from "./VerificationLabel";
 import { Ionicons } from "@expo/vector-icons";
 import { CountryFlag } from "./CountryFlag";
-import { processingDays, formatDate } from "../lib/dates";
+import { processingDays, relativePostTime } from "../lib/dates";
 import { Text, View, Pressable, Share, Platform } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -194,7 +194,9 @@ export function PostCard({
   const { data: countries } = useCountries();
   const { data: author } = useProfile(post.user_id);
   const country = countries?.find((x) => x.id === post.country_id);
-  const days = processingDays(post.application_date, post.decision_date);
+  const days =
+    post.processing_days ??
+    processingDays(post.application_date, post.decision_date);
   const outcome = post.kind === "experience" ? post.result : null;
   const rejected = outcome === "rejected";
   const tone = rejected
@@ -335,36 +337,45 @@ export function PostCard({
               <Text style={styles.pillText}>{country?.name ?? "Ülke"}</Text>
             </View>
           </Pressable>
-          <Text
-            style={[
-              styles.muted,
-              {
-                color: tone
-                  ? accent
-                  : post.kind === "general"
-                    ? themeColor("#8050AD", "text")
-                    : post.kind === "question"
-                      ? themeColor("#3476B5", "text")
-                      : accent,
-                fontSize: textSize(11),
-                backgroundColor: tone
-                  ? toneCap
-                  : post.kind === "general"
-                    ? themeColor("#EBDFF7", "surface")
-                    : post.kind === "question"
-                      ? themeColor("#E2EEFA", "surface")
-                      : themeColor("#EDF3F0", "surface"),
-                paddingHorizontal: 9,
-                paddingVertical: 3,
-                borderRadius: 7,
-              },
-            ]}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+              marginLeft: "auto",
+            }}
           >
-            {kindLabels[post.kind]}
-          </Text>
-          {session?.user.id === post.user_id && (
-            <DeleteContent id={post.id} compact redirect={detail} />
-          )}
+            <Text
+              style={[
+                styles.muted,
+                {
+                  color: tone
+                    ? accent
+                    : post.kind === "general"
+                      ? themeColor("#8050AD", "text")
+                      : post.kind === "question"
+                        ? themeColor("#3476B5", "text")
+                        : accent,
+                  fontSize: textSize(11),
+                  backgroundColor: tone
+                    ? toneCap
+                    : post.kind === "general"
+                      ? themeColor("#EBDFF7", "surface")
+                      : post.kind === "question"
+                        ? themeColor("#E2EEFA", "surface")
+                        : themeColor("#EDF3F0", "surface"),
+                  paddingHorizontal: 9,
+                  paddingVertical: 3,
+                  borderRadius: 7,
+                },
+              ]}
+            >
+              {kindLabels[post.kind]}
+            </Text>
+            {session?.user.id === post.user_id && (
+              <DeleteContent id={post.id} compact redirect={detail} />
+            )}
+          </View>
         </View>
         {detail && (
           <Pressable
@@ -380,9 +391,21 @@ export function PostCard({
             <View>
               <Text style={styles.pillText}>
                 {author?.username ?? "Topluluk üyesi"}
+                <Text
+                  style={{
+                    color: colors.muted,
+                    fontWeight: "400",
+                    fontSize: textSize(12),
+                  }}
+                >
+                  {[post.city, post.employment_status]
+                    .filter(Boolean)
+                    .map((label) => ` · ${label}`)
+                    .join("")}
+                </Text>
               </Text>
               <Text style={styles.muted}>
-                {author?.membership_level} · {formatDate(post.created_at)}
+                {author?.membership_level} · {relativePostTime(post.created_at)}
               </Text>
             </View>
           </Pressable>
@@ -450,17 +473,6 @@ export function PostCard({
                     </Text>
                   </View>
                 )}
-              {[post.city, post.employment_status]
-                .filter(Boolean)
-                .map((label, i) => (
-                  <Text
-                    key={i}
-                    style={{ fontSize: textSize(12), color: colors.muted }}
-                  >
-                    {i > 0 ? "· " : ""}
-                    {label}
-                  </Text>
-                ))}
               {!!post.purpose && (
                 <Text
                   style={{
@@ -469,7 +481,6 @@ export function PostCard({
                     fontWeight: "600",
                   }}
                 >
-                  {post.city || post.employment_status ? "· " : ""}
                   {post.purpose}
                 </Text>
               )}
@@ -539,9 +550,21 @@ export function PostCard({
               numberOfLines={1}
             >
               {author?.username ?? "Topluluk üyesi"}
+              <Text
+                style={{
+                  color: colors.muted,
+                  fontWeight: "400",
+                  fontSize: textSize(11),
+                }}
+              >
+                {[post.city, post.employment_status]
+                  .filter(Boolean)
+                  .map((label) => ` · ${label}`)
+                  .join("")}
+              </Text>
             </Text>
             <Text style={{ fontSize: textSize(11), color: colors.muted }}>
-              {formatDate(post.created_at)}
+              {relativePostTime(post.created_at)}
             </Text>
           </Pressable>
         )}

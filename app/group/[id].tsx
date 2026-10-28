@@ -17,7 +17,7 @@ import {
   type GroupMember,
   type SharingGroup,
 } from "../../src/lib/groups";
-import { formatDateTime } from "../../src/lib/dates";
+import { formatDateTime, relativePostTime } from "../../src/lib/dates";
 import { Avatar } from "../../src/components/PostCard";
 import {
   styles,
@@ -59,7 +59,7 @@ function GroupPostCard({
         <View style={{ flex: 1 }}>
           <Text style={styles.pillText}>{post.author.display_name}</Text>
           <Text style={[styles.muted, { fontSize: textSize(11) }]}>
-            {formatDateTime(post.created_at)}
+            {relativePostTime(post.created_at)}
           </Text>
         </View>
         {(group.is_manager || session?.user.id === post.user_id) && (

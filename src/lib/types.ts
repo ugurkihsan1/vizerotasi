@@ -52,6 +52,7 @@ export interface Post {
   first_schengen: boolean | null;
   employment_status: string | null;
   financing: string | null;
+  processing_days?: number | null;
   application_date: string | null;
   decision_date: string | null;
   appointment_date: string | null;
