@@ -280,6 +280,7 @@ export default function Country() {
           </Text>
         )}
       <ScrollTabs
+        plain
         labels={
           id === "spain"
             ? [

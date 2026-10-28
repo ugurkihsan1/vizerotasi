@@ -1,58 +1,43 @@
 import { expect, it } from "vitest";
 import {
-  buddyExamples,
   buddyPeriods,
+  buddyMonth,
   defaultBuddyPlan,
-  matchBuddies,
-  sameBuddyCity,
+  buddyPlanError,
+  buddyPlanFromRow,
 } from "../src/lib/application-buddies";
-it("prioritizes the application city and period without forcing the same destination", () => {
+it("never assumes a user's application or destination city", () => {
   const plan = defaultBuddyPlan("germany");
-  const matched = matchBuddies(buddyExamples("germany"), plan);
-  expect(matched.slice(0, 2).map((person) => person.destination)).toEqual([
-    "Münih",
-    "Berlin",
-  ]);
-  expect(
-    matched
-      .slice(0, 2)
-      .every((person) => person.samePlace && person.samePeriod),
-  ).toBe(true);
-  expect(plan.visible).toBe(false);
+  expect(plan.applicationCity).toBe("");
+  expect(plan.destination).toBe("");
+  expect(buddyPlanError(plan)).toBe("Başvuru yerini yaz.");
 });
-it("filters destinations only when requested and never mixes countries", () => {
-  const plan = defaultBuddyPlan("germany");
-  const people = [...buddyExamples("germany"), ...buddyExamples("spain")];
-  expect(
-    matchBuddies(people, plan).every(
-      (person) => person.countryId === "germany",
-    ),
-  ).toBe(true);
-  const filtered = matchBuddies(
-    people,
-    { ...plan, destination: "  MÜNİH " },
-    { destination: true, period: true },
+it("validates the application period and accepts actual database plans", () => {
+  const plan = buddyPlanFromRow({
+    user_id: "member",
+    country_id: "germany",
+    application_city: "İstanbul",
+    destination_city: "Berlin",
+    application_month: buddyPeriods()[0] + "-01",
+    purpose: "Kültürel etkinlik",
+    stage: "documents",
+  });
+  expect(buddyPlanError(plan)).toBe("");
+  expect(buddyPlanError({ ...plan, period: "2000-01" })).toBe(
+    "Başvuru dönemini güncelle.",
   );
-  expect(filtered).toHaveLength(3);
-  expect(
-    filtered.every(
-      (person) =>
-        person.destination === "Münih" && person.period === plan.period,
-    ),
-  ).toBe(true);
-  expect(
-    matchBuddies(
-      people,
-      { ...plan, destination: "Bonn" },
-      { destination: true },
-    ),
-  ).toHaveLength(0);
+  expect(buddyPlanError({ ...plan, destination: " " })).toBe(
+    "Gidilecek şehri yaz.",
+  );
+  expect(buddyPlanError({ ...plan, purpose: "Unrecognized" })).toBe(
+    "Amaç ve aşama seç.",
+  );
 });
-it("handles month/year rollover and familiar Turkish spelling without matching blank cities", () => {
+it("includes the current month and handles year rollover without guessing exact dates", () => {
   expect(buddyPeriods(new Date("2026-12-20T12:00:00Z")).slice(0, 2)).toEqual([
+    "2026-12",
     "2027-01",
-    "2027-02",
   ]);
-  expect(sameBuddyCity("Istanbul", "İstanbul")).toBe(true);
-  expect(sameBuddyCity("", "")).toBe(false);
+  expect(buddyMonth("2026-11-01")).toBe("Kasım 2026");
+  expect(buddyMonth("2026-99")).toBe("Dönem seç");
 });

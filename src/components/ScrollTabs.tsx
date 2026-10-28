@@ -1,16 +1,18 @@
-import { useAppearance } from "../lib/appearance";
+import { useAppearance, textSize } from "../lib/appearance";
 import { useEffect, useRef, type ComponentRef } from "react";
-import { ScrollView, View } from "react-native";
-import { Chip } from "./ui";
+import { ScrollView, View, Pressable, Text } from "react-native";
+import { Chip, colors } from "./ui";
 /** Keep the selected tab visible when a page opens directly into a later tab. */
 export function ScrollTabs({
   labels,
   value,
   onChange,
+  plain = false,
 }: {
   labels: string[];
   value: string;
   onChange: (label: string) => void;
+  plain?: boolean;
 }) {
   useAppearance();
 
@@ -32,7 +34,7 @@ export function ScrollTabs({
       horizontal
       showsHorizontalScrollIndicator={false}
       onContentSizeChange={() => reveal(value)}
-      contentContainerStyle={{ gap: 8 }}
+      contentContainerStyle={{ gap: plain ? 18 : 8 }}
     >
       {labels.map((label) => (
         <View
@@ -42,11 +44,37 @@ export function ScrollTabs({
             if (label === value) reveal(label);
           }}
         >
-          <Chip
-            label={label}
-            active={value === label}
-            onPress={() => onChange(label)}
-          />
+          {plain ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={label}
+              accessibilityState={{ selected: value === label }}
+              aria-pressed={value === label}
+              onPress={() => onChange(label)}
+              style={{
+                minHeight: 44,
+                justifyContent: "center",
+                borderBottomWidth: value === label ? 2 : 0,
+                borderBottomColor: colors.navy,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: textSize(14),
+                  fontWeight: value === label ? "700" : "500",
+                  color: value === label ? colors.navy : colors.muted,
+                }}
+              >
+                {label}
+              </Text>
+            </Pressable>
+          ) : (
+            <Chip
+              label={label}
+              active={value === label}
+              onPress={() => onChange(label)}
+            />
+          )}
         </View>
       ))}
     </ScrollView>

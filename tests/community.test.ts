@@ -1581,3 +1581,157 @@ it("stores reported processing days without fabricated dates and exposes them th
     ),
   ).rejects.toThrow();
 });
+
+async function buddyCountry() {
+  const id = `buddy-${randomUUID()}`;
+  await root(
+    "insert into countries(id,name,code,flag) values($1,'Buddy test country',$2,'🏳️')",
+    [id, id],
+  );
+  return id;
+}
+async function buddyPlan(
+  owner: string,
+  country: string,
+  city = "İstanbul",
+  destination = "Münih",
+  offset = 0,
+) {
+  return as(
+    owner,
+    "select save_buddy_plan($1,$2,$3,(date_trunc('month',current_date)+make_interval(months=>$4::integer))::date,'Turistik','appointment_search')",
+    [country, city, destination, offset],
+  );
+}
+async function buddies(
+  viewer: string,
+  country: string,
+  destination: string | null = null,
+  size = 20,
+  offset = 0,
+) {
+  return as(
+    viewer,
+    "select * from find_application_buddies($1,null,$2,null,$3,$4)",
+    [country, destination, size, offset],
+  );
+}
+it("only explicit authenticated participation creates a plan and owners cannot modify another person's plan", async () => {
+  const country = await buddyCountry(),
+    a = await user(),
+    b = await user();
+  await expect(
+    as(null, "select * from find_application_buddies($1)", [country]),
+  ).rejects.toThrow();
+  expect((await buddies(a, country)).rows).toHaveLength(0);
+  await buddyPlan(a, country);
+  await buddyPlan(b, country, "Ankara", "Berlin");
+  await expect(
+    as(
+      a,
+      "insert into application_buddy_plans(user_id,country_id,application_city,destination_city,application_month,purpose,stage) values($1,$2,'Ankara','Berlin',date_trunc('month',current_date)::date,'Turistik','submitted')",
+      [b, country],
+    ),
+  ).rejects.toThrow();
+  expect(
+    (
+      await as(
+        a,
+        "select user_id from application_buddy_plans where country_id=$1",
+        [country],
+      )
+    ).rows,
+  ).toEqual([{ user_id: a }]);
+  expect(
+    (
+      await as(
+        a,
+        "delete from application_buddy_plans where user_id=$1 and country_id=$2 returning user_id",
+        [b, country],
+      )
+    ).rows,
+  ).toHaveLength(0);
+  await as(
+    a,
+    "delete from application_buddy_plans where user_id=$1 and country_id=$2",
+    [a, country],
+  );
+  expect((await buddies(b, country)).rows).toHaveLength(0);
+  expect((await buddies(a, country)).rows).toHaveLength(1);
+});
+it("ranks before pagination and keeps Berlin and Munich applicants together unless a destination filter is selected", async () => {
+  const country = await buddyCountry(),
+    viewer = await user(),
+    munich = await user(),
+    berlin = await user(),
+    otherPlace = await user();
+  await buddyPlan(viewer, country);
+  await buddyPlan(otherPlace, country, "Ankara", "Münih");
+  await buddyPlan(munich, country);
+  await buddyPlan(berlin, country, "İstanbul", "Berlin");
+  const rows = (await buddies(viewer, country)).rows as {
+    user_id: string;
+    destination_city: string;
+    total_count: number;
+  }[];
+  expect(new Set(rows.slice(0, 2).map((p) => p.user_id))).toEqual(
+    new Set([munich, berlin]),
+  );
+  expect(rows.every((p) => Number(p.total_count) === 3)).toBe(true);
+  expect((await buddies(viewer, country, null, 1, 1)).rows[0]).toMatchObject({
+    user_id: rows[1].user_id,
+  });
+  expect((await buddies(viewer, country, "  MÜNİH ")).rows).toHaveLength(2);
+  await as(viewer, "select chat_block_user($1,true)", [berlin]);
+  expect(
+    (await buddies(viewer, country)).rows.map(
+      (p) => (p as { user_id: string }).user_id,
+    ),
+  ).not.toContain(berlin);
+  await as(otherPlace, "select chat_block_user($1,true)", [viewer]);
+  expect(
+    (await buddies(viewer, country)).rows.map(
+      (p) => (p as { user_id: string }).user_id,
+    ),
+  ).not.toContain(otherPlace);
+});
+it("expires past application periods without deleting the owner's record and validates updates", async () => {
+  const country = await buddyCountry(),
+    a = await user(),
+    viewer = await user();
+  await buddyPlan(a, country);
+  await root(
+    "update application_buddy_plans set application_month=(date_trunc('month',current_date)-interval '1 month')::date where user_id=$1 and country_id=$2",
+    [a, country],
+  );
+  expect((await buddies(viewer, country)).rows).toHaveLength(0);
+  expect(
+    (
+      await as(
+        a,
+        "select user_id from application_buddy_plans where country_id=$1",
+        [country],
+      )
+    ).rows,
+  ).toHaveLength(1);
+  await expect(
+    buddyPlan(a, country, "İstanbul", "Münih", -1),
+  ).rejects.toThrow();
+  await expect(
+    buddyPlan(a, country, "İstanbul", "Münih", 13),
+  ).rejects.toThrow();
+  await buddyPlan(a, country, "İzmir", "Berlin", 1);
+  expect((await buddies(viewer, country)).rows[0]).toMatchObject({
+    application_city: "İzmir",
+    destination_city: "Berlin",
+  });
+});
+it("can reapply the buddy migration without changing existing opt-in records", async () => {
+  const before = await root(
+    "select count(*) as n from application_buddy_plans",
+  );
+  await pg.exec(readFileSync("docs/APPLICATION_BUDDIES_UPGRADE.sql", "utf8"));
+  expect(
+    (await root("select count(*) as n from application_buddy_plans")).rows,
+  ).toEqual(before.rows);
+});
