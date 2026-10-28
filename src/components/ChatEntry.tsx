@@ -1,5 +1,5 @@
 import { useAppearance, textSize, themeColor } from "../lib/appearance";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -63,10 +63,12 @@ export function CommunityChatEntry({
   countryId,
   name,
   label = "Topluluk sohbeti",
+  children,
 }: {
   countryId: string;
   name: string;
   label?: string;
+  children?: ReactNode;
 }) {
   useAppearance();
 
@@ -98,17 +100,39 @@ export function CommunityChatEntry({
   }
   return (
     <View style={{ gap: 8 }}>
-      <Button
-        secondary
-        disabled={busy}
-        label={label}
-        onPress={() =>
-          gate.require(() => {
-            if (session && follows.data?.includes(countryId)) void open();
-            else setConfirm(true);
-          })
-        }
-      />
+      {children ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          disabled={busy}
+          onPress={() =>
+            gate.require(() => {
+              if (session && follows.data?.includes(countryId)) void open();
+              else setConfirm(true);
+            })
+          }
+          style={{
+            alignItems: "center",
+            gap: 6,
+            minWidth: 64,
+            opacity: busy ? 0.5 : 1,
+          }}
+        >
+          {children}
+        </Pressable>
+      ) : (
+        <Button
+          secondary
+          disabled={busy}
+          label={label}
+          onPress={() =>
+            gate.require(() => {
+              if (session && follows.data?.includes(countryId)) void open();
+              else setConfirm(true);
+            })
+          }
+        />
+      )}
       <Message text={error} />
       {gate.view}
       <Sheet
@@ -129,5 +153,70 @@ export function CommunityChatEntry({
         <Message text={error} />
       </Sheet>
     </View>
+  );
+}
+
+export function ProfileMessagesButton() {
+  useAppearance();
+  const unread = useChatUnread();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Mesajlarım"
+      accessibilityHint={
+        unread.data ? `${unread.data} okunmamış mesaj` : undefined
+      }
+      onPress={() => router.push("/messages")}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        minHeight: 46,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: themeColor("#E4E4E4", "border"),
+        backgroundColor: themeColor("#F5F5F5", "surface"),
+        opacity: pressed ? 0.65 : 1,
+      })}
+    >
+      <Ionicons
+        name="chatbubble-ellipses-outline"
+        size={19}
+        color={colors.navy}
+      />
+      <Text
+        style={{
+          color: colors.navy,
+          fontWeight: "600",
+          fontSize: textSize(13),
+        }}
+      >
+        Mesajlarım
+      </Text>
+      {!!unread.data && (
+        <View
+          style={{
+            minWidth: 19,
+            height: 19,
+            borderRadius: 10,
+            paddingHorizontal: 5,
+            backgroundColor: colors.navy,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text
+            style={{
+              color: colors.bg,
+              fontSize: textSize(10),
+              fontWeight: "700",
+            }}
+          >
+            {unread.data > 99 ? "99+" : unread.data}
+          </Text>
+        </View>
+      )}
+    </Pressable>
   );
 }

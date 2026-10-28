@@ -1,3 +1,4 @@
+import { ProfileMessagesButton } from "../components/ChatEntry";
 import { ProfileConnections } from "../components/ProfileConnections";
 import { useSocialProfile } from "../lib/social";
 import { useAppearance, themeColor, textSize } from "../lib/appearance";
@@ -240,11 +241,7 @@ export function ProfileScreen({
                 own={own}
                 action={
                   own ? (
-                    <Button
-                      secondary
-                      label="Mesajlarım"
-                      onPress={() => router.push("/messages")}
-                    />
+                    <ProfileMessagesButton />
                   ) : (
                     <Button
                       secondary

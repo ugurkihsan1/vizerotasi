@@ -4059,3 +4059,163 @@ test("light mode is monochrome and profile keeps badges inside the summary with 
     "rgb(255, 255, 255)",
   );
 });
+
+for (const theme of ["light", "dark"] as const) {
+  test(`inbox shows real member avatars and separates unread conversations from requests in ${theme} mode`, async ({
+    page,
+  }) => {
+    const { id, own, peer } = await chatFixtures(page);
+    await page.addInitScript(
+      (theme) =>
+        localStorage.setItem(
+          "app-appearance:v1",
+          JSON.stringify({
+            theme,
+            reducedMotion: true,
+            haptics: false,
+            largeText: false,
+          }),
+        ),
+      theme,
+    );
+    const group = "00000000-0000-0000-0000-000000000941",
+      invite = "00000000-0000-0000-0000-000000000942",
+      country = "00000000-0000-0000-0000-000000000943";
+    const photo = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#d5e4e5"/><circle cx="40" cy="29" r="13" fill="#688384"/><path d="M14 80V70a26 26 0 0 1 52 0v10" fill="#688384"/></svg>')}`;
+    const now = new Date().toISOString();
+    await page.route("https://*.supabase.co/rest/v1/rpc/chat_inbox", (route) =>
+      route.fulfill({
+        json: [
+          {
+            id,
+            kind: "direct",
+            title: "Deniz Yolcu · @denizyolcu",
+            status: "active",
+            last_body: "Tamam, belgelerimi hazırlayıp haber vereceğim.",
+            last_at: now,
+            unread_count: 2,
+            closed_at: null,
+          },
+          {
+            id: group,
+            kind: "group",
+            title: "İspanya hazırlık",
+            status: "active",
+            last_body: "Herkese iyi yolculuklar!",
+            last_at: now,
+            unread_count: 0,
+            closed_at: null,
+          },
+          {
+            id: invite,
+            kind: "direct",
+            title: "Ece · @ece",
+            status: "invited",
+            last_body: "Private preview must stay hidden",
+            last_at: now,
+            unread_count: 4,
+            closed_at: null,
+          },
+          {
+            id: country,
+            kind: "community",
+            country_id: "spain",
+            title: "İspanya",
+            status: "active",
+            last_body: "Randevu tarihleri güncellendi.",
+            last_at: now,
+            unread_count: 1,
+            closed_at: null,
+          },
+        ],
+      }),
+    );
+    const reads: string[] = [];
+    await page.route(
+      "https://*.supabase.co/rest/v1/chat_members?**",
+      (route) => {
+        const url = new URL(route.request().url());
+        reads.push(url.searchParams.get("room_id") ?? "");
+        expect(url.searchParams.get("user_id")).toBe(`neq.${own}`);
+        expect(url.searchParams.get("room_id")).not.toContain(invite);
+        expect(url.searchParams.get("room_id")).not.toContain(country);
+        return route.fulfill({
+          json: [
+            {
+              room_id: id,
+              user_id: peer,
+              profiles: {
+                display_name: "Deniz Yolcu",
+                username: "denizyolcu",
+                avatar_url: photo,
+              },
+            },
+            {
+              room_id: group,
+              user_id: peer,
+              profiles: {
+                display_name: "Deniz Yolcu",
+                username: "denizyolcu",
+                avatar_url: photo,
+              },
+            },
+            {
+              room_id: group,
+              user_id: "00000000-0000-0000-0000-000000000301",
+              profiles: {
+                display_name: "Ayşe",
+                username: "ayse",
+                avatar_url: null,
+              },
+            },
+          ],
+        });
+      },
+    );
+    await page.goto("/messages");
+    const direct = page.getByRole("link", {
+      name: "Deniz Yolcu · @denizyolcu",
+      exact: true,
+    });
+    await expect(
+      direct.getByRole("img", { name: "Deniz Yolcu", exact: true }),
+    ).toBeVisible();
+    await expect(
+      direct.getByLabel("2 okunmamış mesaj", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Private preview must stay hidden", { exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByLabel("4 okunmamış mesaj", { exact: true }),
+    ).toHaveCount(0);
+    expect(reads.length).toBeGreaterThan(0);
+    await page.screenshot({ path: `/tmp/inbox-polished-${theme}.png` });
+    await page.getByRole("tab", { name: "Okunmamış", exact: true }).click();
+    await expect(
+      page.getByRole("link", { name: "İspanya hazırlık", exact: true }),
+    ).toHaveCount(0);
+    await expect(direct).toBeVisible();
+    await page.getByRole("tab", { name: "İstekler", exact: true }).click();
+    await expect(direct).toHaveCount(0);
+    await expect(
+      page.getByRole("link", {
+        name: "Ece · @ece · Sohbet isteği",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await page.getByRole("tab", { name: "Tümü", exact: true }).click();
+    await page.getByLabel("Sohbet ara", { exact: true }).fill("denizyolcu");
+    await expect(direct).toBeVisible();
+    // The same person participates in this group, so member-name search finds it too.
+    await expect(
+      page.getByRole("link", { name: "İspanya hazırlık", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", {
+        name: "Ece · @ece · Sohbet isteği",
+        exact: true,
+      }),
+    ).toHaveCount(0);
+  });
+}
