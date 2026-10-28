@@ -1,5 +1,12 @@
-import { useState, useRef } from "react";
-import { Pressable, Text, Share, Platform } from "react-native";
+import { useState, useRef, useEffect } from "react";
+import {
+  Pressable,
+  Text,
+  Share,
+  Platform,
+  TextInput,
+  View,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { randomUUID } from "expo-crypto";
 import { router } from "expo-router";
@@ -10,16 +17,32 @@ import { db } from "../lib/supabase";
 import { webPath } from "../lib/web-path";
 import { useAppearance } from "../lib/appearance";
 import { Button, Sheet, Message, styles, colors, useGate } from "./ui";
+import { searchWords } from "../lib/search";
 import type { Post } from "../lib/types";
 export function SendPost({ post }: { post: Post }) {
   useAppearance();
   const [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
+    [search, setSearch] = useState(""),
     [error, setError] = useState("");
   const { session } = useAuth(),
     gate = useGate(),
     cache = useQueryClient(),
     inbox = useChatInbox(open);
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = inbox;
+  // Search all inbox pages, including conversations beyond the first thirty.
+  useEffect(() => {
+    if (open && search.trim() && hasNextPage && !isFetchingNextPage)
+      void fetchNextPage();
+  }, [open, search, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  const rooms = (inbox.data?.pages.flat() ?? []).filter(
+    (r) => r.status === "active" && r.kind !== "community" && !r.closed_at,
+  );
+  const matches = rooms.filter((r) =>
+    searchWords(search).every((word) =>
+      r.title.toLocaleLowerCase("tr").includes(word),
+    ),
+  );
   const path = `/${post.kind === "experience" ? "experience" : post.kind === "question" ? "question" : "tip"}/${post.id}`;
   const link =
     Platform.OS === "web"
@@ -56,6 +79,7 @@ export function SendPost({ post }: { post: Post }) {
         accessibilityLabel="Paylaşımı gönder"
         onPress={() => {
           setError("");
+          setSearch("");
           setOpen(true);
         }}
         style={{
@@ -92,21 +116,78 @@ export function SendPost({ post }: { post: Post }) {
             }}
           />
         )}
-        {inbox.data?.pages
-          .flat()
-          .filter(
-            (r) =>
-              r.status === "active" && r.kind !== "community" && !r.closed_at,
-          )
-          .map((r) => (
-            <Button
-              key={r.id}
-              secondary
-              disabled={busy}
-              label={r.title}
-              onPress={() => void send(r.id)}
+        {session && (
+          <View
+            style={[
+              styles.input,
+              { flexDirection: "row", alignItems: "center", gap: 10 },
+            ]}
+          >
+            <Ionicons name="search-outline" size={20} color={colors.muted} />
+            <TextInput
+              accessibilityLabel="Göndermek için kişi veya sohbet ara"
+              placeholder="Kişi veya sohbet ara"
+              placeholderTextColor={colors.muted}
+              value={search}
+              onChangeText={setSearch}
+              autoCapitalize="none"
+              style={{ flex: 1, color: colors.text, minHeight: 40 }}
             />
-          ))}
+            {!!search && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Aramayı temizle"
+                onPress={() => setSearch("")}
+                style={{ padding: 10 }}
+              >
+                <Ionicons name="close-circle" size={20} color={colors.muted} />
+              </Pressable>
+            )}
+          </View>
+        )}
+        {matches.map((r) => (
+          <Pressable
+            key={r.id}
+            accessibilityRole="button"
+            accessibilityLabel={`${r.title} sohbetine gönder`}
+            disabled={busy}
+            onPress={() => void send(r.id)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              paddingVertical: 12,
+              opacity: busy ? 0.5 : 1,
+            }}
+          >
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: colors.bg,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons
+                name={r.kind === "group" ? "people-outline" : "person-outline"}
+                size={22}
+                color={colors.blue}
+              />
+            </View>
+            <Text
+              style={[styles.text, { flex: 1, fontWeight: "600" }]}
+              numberOfLines={1}
+            >
+              {r.title}
+            </Text>
+            <Ionicons name="send-outline" size={20} color={colors.blue} />
+          </Pressable>
+        ))}
+        {!!search.trim() && !matches.length && !inbox.isFetching && (
+          <Text style={styles.muted}>Sohbet bulunamadı.</Text>
+        )}
         {session &&
           !inbox.isPending &&
           !inbox.data?.pages

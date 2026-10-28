@@ -514,6 +514,12 @@ it("publishes ordinary comments and replies immediately, with notifications and 
   const author = await user(),
     reader = await user(),
     admin = await user(40, "admin");
+  const follower = await user();
+  await as(
+    follower,
+    "insert into followed_countries(user_id,country_id) values($1,'norway')",
+    [follower],
+  );
   const source = await post(author, "norway", "question");
   const r = await as(
     reader,
@@ -549,6 +555,22 @@ it("publishes ordinary comments and replies immediately, with notifications and 
     [author, source, c.id],
   );
   expect(reply.rows[0]).toMatchObject({ status: "approved" });
+  expect(
+    (
+      await as(
+        reader,
+        "select id from notifications where post_id=$1 and message like '%yanıt%'",
+        [source],
+      )
+    ).rows,
+  ).toHaveLength(1);
+  expect(
+    (
+      await as(follower, "select id from notifications where post_id=$1", [
+        source,
+      ])
+    ).rows,
+  ).toHaveLength(0);
   const pending = await as(
     reader,
     "insert into posts(user_id,country_id,kind,title,body) values($1,'norway','question','A pending question','This question must still wait for approval.') returning id,status",

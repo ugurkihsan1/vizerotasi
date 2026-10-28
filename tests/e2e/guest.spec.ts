@@ -3054,7 +3054,18 @@ test("posts can be sent from their action row to an existing private chat", asyn
   await page
     .getByRole("button", { name: "Paylaşımı gönder", exact: true })
     .click();
-  await page.getByRole("button", { name: "Deniz", exact: true }).click();
+  const recipientSearch = page.getByLabel(
+    "Göndermek için kişi veya sohbet ara",
+    { exact: true },
+  );
+  await recipientSearch.fill("Olmayan kişi");
+  await expect(
+    page.getByText("Sohbet bulunamadı.", { exact: true }),
+  ).toBeVisible();
+  await recipientSearch.fill("deniz");
+  await page
+    .getByRole("button", { name: "Deniz sohbetine gönder", exact: true })
+    .click();
   await expect(page).toHaveURL(new RegExp(`/chat/${id}$`));
   await expect(
     page.getByRole("link", { name: "Gönderilen paylaşımı aç", exact: true }),
@@ -3305,4 +3316,70 @@ test("sharing offers four distinct paths and general stories omit visa fields", 
   });
   expect(submitted).not.toHaveProperty("result");
   expect(submitted).not.toHaveProperty("application_date");
+});
+
+test("discover includes matching people in All results", async ({ page }) => {
+  await fixtures(page);
+  await page.route("https://*.supabase.co/rest/v1/profiles?**", (route) => {
+    expect(new URL(route.request().url()).searchParams.get("or")).toContain(
+      "deniz",
+    );
+    return route.fulfill({
+      json: [
+        {
+          id: "00000000-0000-0000-0000-000000000988",
+          username: "denizyolcu",
+          display_name: "Deniz Yolcu",
+          avatar_url: null,
+        },
+      ],
+    });
+  });
+  await page.goto("/discover?q=Deniz");
+  await expect(
+    page.getByRole("button", {
+      name: "@denizyolcu · Deniz Yolcu",
+      exact: true,
+    }),
+  ).toBeVisible();
+});
+
+test("notifications highlight unread replies and filter them on mobile", async ({
+  page,
+}) => {
+  await chatFixtures(page);
+  await page.route("https://*.supabase.co/rest/v1/notifications?**", (route) =>
+    route.fulfill({
+      json: [
+        {
+          id: "notice-reply",
+          message: "Gönderine veya yorumuna yeni bir yanıt geldi.",
+          post_id: null,
+          read_at: null,
+          created_at: "2026-10-28T10:00:00Z",
+        },
+        {
+          id: "notice-badge",
+          message: "Yeni rozetin: Gezgin",
+          post_id: null,
+          read_at: "2026-10-28T11:00:00Z",
+          created_at: "2026-10-28T09:00:00Z",
+        },
+      ],
+    }),
+  );
+  await page.goto("/notifications");
+  await expect(
+    page.getByText("Yeni rozetin: Gezgin", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Yanıtlar", exact: true }).click();
+  await expect(
+    page.getByText("Yeni rozetin: Gezgin", { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText("Gönderine veya yorumuna yeni bir yanıt geldi.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.screenshot({ path: "/tmp/notifications-mobile.png" });
 });

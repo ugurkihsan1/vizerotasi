@@ -261,9 +261,9 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
       )}
       {search &&
         validSearch &&
-        (scope === "Belgeler" || scope === "Kişiler") && (
+        (scope === "Tümü" || scope === "Belgeler" || scope === "Kişiler") && (
           <SearchMatches
-            search={scope === "Kişiler" ? search : plan.terms.join(" ")}
+            search={scope === "Belgeler" ? plan.terms.join(" ") : search}
             countryIds={plan.countryIds}
             mode={scope === "Belgeler" ? "documents" : "people"}
           />
