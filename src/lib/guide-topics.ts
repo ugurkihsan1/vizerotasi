@@ -1,5 +1,10 @@
-import { getCountryGuide } from "./country-guides";
-import { spainDocuments } from "./spain";
+import type { Document } from "./types";
+import {
+  getCountryGuide,
+  mergeCountryDocuments,
+  countryGuides,
+} from "./country-guides";
+import { mergeSpainDocuments } from "./spain";
 // A critical post keeps its original category; the guide reads that same post.
 // Country-specific placement never changes the official document requirements.
 export const spainDocumentTopics: Record<number, string[]> = {
@@ -28,8 +33,11 @@ export const guideTopicLabels: Record<string, string> = {
   rejection: "Ret",
   passport: "Pasaport",
   other: "Diğer",
+  "visa-fee": "Vize ücreti",
 };
 export function criticalTipPlacement(country: string, category: string) {
+  if (category === "visa-fee")
+    return `${getCountryGuide(country)?.name ?? (country === "spain" ? "İspanya" : "Seçtiğin ülke")} → Belgeler → Vize ücreti bölümünde topluluk notu olarak görünür.`;
   if (country !== "spain") {
     const guide = getCountryGuide(country);
     if (!guide) return "Seçtiğin ülkenin Önemli bilgi bölümünde yayınlanır.";
@@ -74,6 +82,7 @@ export function criticalTipPlacement(country: string, category: string) {
 export const criticalTopics = [
   { id: "appointment", name: "Randevu" },
   { id: "documents", name: "Belgeler" },
+  { id: "visa-fee", name: "Vize ücreti" },
   { id: "invitation", name: "Davet mektubu" },
   { id: "rejection", name: "Ret / İtiraz" },
   { id: "other", name: "Diğer" },
@@ -109,38 +118,61 @@ Object.assign(
   guideTopicLabels,
   Object.fromEntries(newDocumentCategories.map((x) => [x.id, x.name])),
 );
-export function documentOptions(country: string) {
-  const guide = getCountryGuide(country);
-  const options =
-    country === "spain"
-      ? spainDocuments.map((d) => ({
-          id: spainDocumentTopics[d.sort_order]?.[0] ?? "documents",
-          name: d.title,
-        }))
-      : (guide?.documents ?? []).map((d) => ({
-          id: documentCategoryByKey[d.key] ?? "documents",
-          name: d.title,
-        }));
-  if (country === "spain")
-    options.push(
-      { id: "doc-form", name: "Başvuru formu" },
-      { id: "student", name: "Öğrenci belgesi" },
-      { id: "sponsor", name: "Sponsor belgeleri" },
-    );
-  return [
-    ...options.filter((o, i, a) => a.findIndex((x) => x.id === o.id) === i),
-    { id: "documents", name: "Genel belge bilgisi" },
-  ];
+export const documentTopicId = (id: string) => `document-${id}`;
+export function countryDocumentList(country: string, rows: Document[] = []) {
+  const ownRows = rows.filter((row) => row.country_id === country);
+  return country === "spain"
+    ? mergeSpainDocuments(ownRows)
+    : mergeCountryDocuments(country, ownRows);
 }
-export function documentTopics(key: string, legacy: string[] = []) {
+export function documentOptions(country: string, rows: Document[] = []) {
+  if (!country) return [];
+  return countryDocumentList(country, rows).map((doc) => {
+    const metadata = doc as Document & {
+      key?: string;
+      topic_ids?: string[];
+      sort_order?: number;
+    };
+    const legacyCategories =
+      country === "spain"
+        ? (spainDocumentTopics[metadata.sort_order ?? 0] ?? [])
+        : documentTopics(metadata.key ?? "", metadata.topic_ids ?? []);
+    return {
+      id: documentTopicId(doc.id),
+      documentId: doc.id,
+      name: doc.title,
+      legacyCategories,
+    };
+  });
+}
+// One previously published Spain fee note was explicitly filed as a form note.
+// Keep its original live post visible in the right place until the SQL correction is applied.
+export const legacySpainFeePost = "0542061e-8117-444f-9c79-2d7755095dd4";
+export function documentTopics(
+  key: string,
+  legacy: string[] = [],
+  documentId?: string,
+) {
   // A known checklist item owns exactly one category; legacy broad finance/sponsor
   // aliases must not route a note beneath multiple unrelated documents.
-  return documentCategoryByKey[key]
+  const topics = documentCategoryByKey[key]
     ? [documentCategoryByKey[key]]
-    : [...new Set(legacy)];
+    : legacy;
+  return [
+    ...new Set([
+      ...(documentId ? [documentTopicId(documentId)] : []),
+      ...topics,
+    ]),
+  ];
 }
-export function selectedDocumentPlacement(country: string, category: string) {
-  const option = documentOptions(country).find((o) => o.id === category);
+export function selectedDocumentPlacement(
+  country: string,
+  category: string,
+  rows: Document[] = [],
+) {
+  const option = documentOptions(country, rows).find(
+    (o) => o.id === category || o.legacyCategories.includes(category),
+  );
   if (!option || category === "documents")
     return country === "spain"
       ? "İspanya rehberindeki Başvuru Süreci bölümünde topluluk notu olarak görünür."
@@ -151,4 +183,10 @@ export function selectedDocumentPlacement(country: string, category: string) {
     getCountryGuide(country)?.name ??
     (country === "spain" ? "İspanya" : "Seçtiğin ülke");
   return `${label} belge listesindeki “${option.name}” maddesinde topluluk notu olarak görünür.`;
+}
+
+// Keep category-aware search working for notes linked to exact checklist items.
+for (const country of ["spain", ...countryGuides.map((guide) => guide.id)]) {
+  for (const option of documentOptions(country))
+    guideTopicLabels[option.id] = option.name;
 }

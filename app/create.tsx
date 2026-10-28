@@ -26,7 +26,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { db, configured } from "../src/lib/supabase";
 import { useAuth } from "../src/lib/auth";
-import { useCountries, friendlyError } from "../src/lib/data";
+import { useCountries, useDocuments, friendlyError } from "../src/lib/data";
 import {
   experienceSchema,
   shortPostSchema,
@@ -78,7 +78,9 @@ export default function Create() {
   const uploadedEvidence = useRef(new Set<string>());
   const [uploadedUris, setUploadedUris] = useState<string[]>([]);
   const [category, setCategory] = useState(
-    params.category && guideTopicLabels[params.category]
+    params.category &&
+      (guideTopicLabels[params.category] ||
+        params.category.startsWith("document-"))
       ? params.category
       : "other",
   );
@@ -132,10 +134,21 @@ export default function Create() {
   const firstSchengen = useWatch({ control, name: "first_schengen" });
   const selectedCountry = useWatch({ control, name: "country_id" });
   const history = useFieldArray({ control, name: "previous_visas" });
-  const documentChoices = documentOptions(selectedCountry);
+  const countryDocuments = useDocuments(selectedCountry);
+  const documentChoices = documentOptions(
+    selectedCountry,
+    countryDocuments.data ?? [],
+  );
+  const selectedDocument = documentChoices.find(
+    (doc) => doc.id === category || doc.legacyCategories.includes(category),
+  );
   const placement =
     categoryRoot === "documents"
-      ? selectedDocumentPlacement(selectedCountry, category)
+      ? selectedDocumentPlacement(
+          selectedCountry,
+          selectedDocument?.id ?? category,
+          countryDocuments.data ?? [],
+        )
       : criticalTipPlacement(selectedCountry, category);
   const date = (name: FieldPath<ExperienceInput>, label: string) => (
     <Controller
@@ -299,10 +312,31 @@ export default function Create() {
   async function submit() {
     setMessage("");
     const v = getValues();
+    if (kind === "tip" && categoryRoot === "documents" && !selectedDocument) {
+      setMessage("Seçtiğin ülkenin listesinden bir belge seç.");
+      return;
+    }
+    if (
+      kind === "tip" &&
+      category === "visa-fee" &&
+      categories.isSuccess &&
+      !categories.data.some((topic) => topic.id === "visa-fee")
+    ) {
+      setMessage(
+        "Vize ücreti paylaşımı şu anda kullanılamıyor. Biraz sonra yeniden dene.",
+      );
+      return;
+    }
+    const postCategory =
+      kind === "tip" && categoryRoot === "documents" && selectedDocument
+        ? categories.data?.some((c) => c.id === selectedDocument.id)
+          ? selectedDocument.id
+          : (selectedDocument.legacyCategories[0] ?? selectedDocument.id)
+        : category;
     const parsed =
       kind === "experience"
         ? experienceSchema.safeParse(v)
-        : shortPostSchema.safeParse({ ...v, category_id: category });
+        : shortPostSchema.safeParse({ ...v, category_id: postCategory });
     if (!parsed.success) {
       setMessage(parsed.error.issues.map((x) => x.message).join("\n"));
       return;
@@ -334,7 +368,8 @@ export default function Create() {
               country_id: v.country_id,
               title: v.title,
               body: v.body,
-              category_id: kind === "general" ? "general-experience" : category,
+              category_id:
+                kind === "general" ? "general-experience" : postCategory,
             };
       let id = createdPost;
       if (!id) {
@@ -769,6 +804,7 @@ export default function Create() {
                     : (categories.data?.filter(
                         (c) =>
                           !c.id.startsWith("doc-") &&
+                          !c.id.startsWith("document-") &&
                           c.id !== "general-experience",
                       ) ?? [])
                   ).map((c) => (
@@ -801,8 +837,7 @@ export default function Create() {
                       label={
                         category === "documents"
                           ? "Belge türünü seç"
-                          : (documentChoices.find((d) => d.id === category)
-                              ?.name ?? "Belge türünü seç")
+                          : (selectedDocument?.name ?? "Belge türünü seç")
                       }
                       onPress={() => setPickDocument(true)}
                     />
@@ -822,7 +857,9 @@ export default function Create() {
                             key={d.id}
                             accessibilityRole="radio"
                             accessibilityLabel={d.name}
-                            accessibilityState={{ checked: category === d.id }}
+                            accessibilityState={{
+                              checked: selectedDocument?.id === d.id,
+                            }}
                             onPress={() => {
                               setCategory(d.id);
                               setPickDocument(false);
@@ -831,7 +868,7 @@ export default function Create() {
                           >
                             <Text style={styles.text}>
                               {d.name}
-                              {category === d.id ? " ✓" : ""}
+                              {selectedDocument?.id === d.id ? " ✓" : ""}
                             </Text>
                           </Pressable>
                         ))}
@@ -870,7 +907,7 @@ export default function Create() {
                             ]}
                           >
                             {value
-                              ? `${countries.data?.find((c) => c.id === value)?.name ?? "Ülke"} → ${categoryRoot === "documents" && category !== "documents" ? (documentChoices.find((d) => d.id === category)?.name ?? "Belge seç") : (guideTopicLabels[category] ?? "Başvuru Süreci")}`
+                              ? `${countries.data?.find((c) => c.id === value)?.name ?? "Ülke"} → ${categoryRoot === "documents" && category !== "documents" ? (selectedDocument?.name ?? "Belge seç") : (guideTopicLabels[category] ?? "Başvuru Süreci")}`
                               : "Ülke ve konu seç"}
                           </Text>
                           <HelpButton

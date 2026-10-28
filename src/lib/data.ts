@@ -223,7 +223,7 @@ export function useNotifications() {
 export function useDocuments(country: string) {
   return useQuery({
     queryKey: ["documents", country],
-    enabled: configured,
+    enabled: configured && !!country,
     queryFn: async () => {
       const r = await db()
         .from("country_documents")

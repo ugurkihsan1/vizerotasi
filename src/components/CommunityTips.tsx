@@ -4,7 +4,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { View, Text, Pressable } from "react-native";
 import { router } from "expo-router";
 import { db, configured } from "../lib/supabase";
-import { guideTopicLabels } from "../lib/guide-topics";
+import { guideTopicLabels, legacySpainFeePost } from "../lib/guide-topics";
 import { CriticalNotice } from "./CriticalNotice";
 import { styles, colors, Button } from "./ui";
 
@@ -18,9 +18,11 @@ const PAGE_SIZE = 5;
 export function CommunityTips({
   country,
   categories,
+  topicLabel,
 }: {
   country: string;
   categories: string[];
+  topicLabel?: string;
 }) {
   useAppearance();
 
@@ -30,17 +32,26 @@ export function CommunityTips({
     enabled: configured && topics.length > 0,
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
-      const r = await db()
+      let request = db()
         .from("posts")
         .select("id,title,body,category_id")
         .eq("country_id", country)
         .eq("kind", "tip")
         .eq("status", "approved")
         .eq("is_sample", false)
-        .in("category_id", topics)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
         .range(pageParam, pageParam + PAGE_SIZE - 1);
+      if (country === "spain" && topics.includes("visa-fee"))
+        request = request.or(
+          `category_id.in.(${topics.join(",")}),and(id.eq.${legacySpainFeePost},category_id.eq.doc-form)`,
+        );
+      else {
+        request = request.in("category_id", topics);
+        if (country === "spain" && topics.includes("doc-form"))
+          request = request.neq("id", legacySpainFeePost);
+      }
+      const r = await request;
       if (r.error) throw r.error;
       return r.data as GuideTip[];
     },
@@ -58,7 +69,7 @@ export function CommunityTips({
           key={tip.id}
           title={tip.title}
           source="community"
-          topic={guideTopicLabels[tip.category_id] ?? tip.category_id}
+          topic={topicLabel ?? guideTopicLabels[tip.category_id] ?? "Belge"}
         >
           <VerificationLabel postId={tip.id} compact />
           <Text style={styles.text}>{tip.body}</Text>

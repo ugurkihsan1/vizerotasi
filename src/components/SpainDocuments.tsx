@@ -1,11 +1,12 @@
 import { webPath } from "../lib/web-path";
+import { VisaFeeSection } from "./VisaFeeSection";
 import { CriticalNotice } from "./CriticalNotice";
 import { formatDate } from "../lib/dates";
 import { useAppearance, themeColor, textSize } from "../lib/appearance";
 import { ChecklistSummary } from "./ChecklistSummary";
 import { SourceDocumentWarning, DocumentWarnings } from "./DocumentWarnings";
 import { CommunityTips } from "./CommunityTips";
-import { spainDocumentTopics } from "../lib/guide-topics";
+import { spainDocumentTopics, documentTopicId } from "../lib/guide-topics";
 import { useEffect, useState } from "react";
 import {
   View,
@@ -204,7 +205,11 @@ function DocumentAccordion({
       />
       <CommunityTips
         country="spain"
-        categories={spainDocumentTopics[doc.sort_order] ?? []}
+        categories={[
+          documentTopicId(doc.id),
+          ...(spainDocumentTopics[doc.sort_order] ?? []),
+        ]}
+        topicLabel={doc.title}
       />
       {open && (
         <View style={{ gap: 14 }}>
@@ -275,8 +280,7 @@ function DocumentAccordion({
               params: {
                 kind: "tip",
                 country: "spain",
-                category:
-                  spainDocumentTopics[doc.sort_order]?.[0] ?? "documents",
+                category: documentTopicId(doc.id),
               },
             });
           }}
@@ -361,6 +365,7 @@ export function SpainDocuments({ header }: { header: React.ReactElement }) {
                 employmentOptions.find(([v]) => v === employment)?.[1]
               }
             />
+            <VisaFeeSection country="spain" />
             <SpainAppointmentNotice />
             <Message text={error} />
           </View>
@@ -527,6 +532,7 @@ function ScrollGuide({ header }: { header: React.ReactElement }) {
               </Text>
             ))}
           </GuideSection>
+          <VisaFeeSection country="spain" />
           <GuideSection
             title="Randevu"
             notes={

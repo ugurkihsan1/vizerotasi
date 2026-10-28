@@ -1,3 +1,6 @@
+import { VisaFeeSection } from "../../src/components/VisaFeeSection";
+import { CommunityTips } from "../../src/components/CommunityTips";
+import { documentTopicId } from "../../src/lib/guide-topics";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppearance, themeColor } from "../../src/lib/appearance";
 import { CountryFlag } from "../../src/components/CountryFlag";
@@ -116,6 +119,11 @@ function DocumentRow({ doc }: { doc: Document }) {
           <Ionicons name="chevron-forward" size={18} color={colors.muted} />
         </Pressable>
       </View>
+      <CommunityTips
+        country={doc.country_id}
+        categories={[documentTopicId(doc.id)]}
+        topicLabel={doc.title}
+      />
       <Sheet visible={open} onClose={() => setOpen(false)} title={doc.title}>
         <Text style={styles.text}>{doc.body}</Text>
         <DocumentWarnings country={doc.country_id} documentId={doc.id} />
@@ -138,6 +146,21 @@ function DocumentRow({ doc }: { doc: Document }) {
               void save.toggle().catch(() => setError("Kaydedilemedi."));
             })
           }
+        />
+        <Button
+          secondary
+          label="Bu konuda önemli bilgi paylaş"
+          onPress={() => {
+            setOpen(false);
+            router.push({
+              pathname: "/create",
+              params: {
+                kind: "tip",
+                country: doc.country_id,
+                category: documentTopicId(doc.id),
+              },
+            });
+          }}
         />
         <Button
           label="Bu belge hakkındaki deneyimleri gör"
@@ -325,7 +348,12 @@ export default function Country() {
     <FlatList
       style={styles.page}
       contentContainerStyle={styles.content}
-      ListHeaderComponent={header}
+      ListHeaderComponent={
+        <View style={{ gap: 12 }}>
+          {header}
+          <VisaFeeSection country={id} />
+        </View>
+      }
       data={documents.data ?? []}
       keyExtractor={(x) => x.id}
       renderItem={({ item }) => <DocumentRow doc={item} />}

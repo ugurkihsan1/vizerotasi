@@ -1,4 +1,5 @@
 import { useAppearance, textSize, themeColor } from "../lib/appearance";
+import { VisaFeeSection } from "./VisaFeeSection";
 import { ChecklistSummary } from "./ChecklistSummary";
 import { formatDate } from "../lib/dates";
 import { useState, useEffect } from "react";
@@ -15,7 +16,7 @@ import { useDocuments, useCountries } from "../lib/data";
 import { useAuth } from "../lib/auth";
 import type { Document } from "../lib/types";
 import { styles, colors, Button, Message, Sheet } from "./ui";
-import { documentTopics } from "../lib/guide-topics";
+import { documentTopics, documentTopicId } from "../lib/guide-topics";
 import { GuideSection } from "./SpainDocuments";
 import { CommunityTips } from "./CommunityTips";
 import { DocumentWarnings } from "./DocumentWarnings";
@@ -122,7 +123,8 @@ function DocumentCard({
       )}
       <CommunityTips
         country={doc.country_id}
-        categories={documentTopics(doc.key ?? "", doc.topic_ids ?? [])}
+        categories={documentTopics(doc.key ?? "", doc.topic_ids ?? [], doc.id)}
+        topicLabel={doc.title}
       />
       <DocumentWarnings country={doc.country_id} documentId={doc.id} />
       {open && (
@@ -146,9 +148,7 @@ function DocumentCard({
                 params: {
                   kind: "tip",
                   country: doc.country_id,
-                  category:
-                    documentTopics(doc.key ?? "", doc.topic_ids ?? [])[0] ??
-                    "documents",
+                  category: documentTopicId(doc.id),
                 },
               })
             }
@@ -228,11 +228,14 @@ export function CountryGuide({
             <Text style={styles.muted}>{metadata?.summary || guide.scope}</Text>
           )}
           {mode === "documents" && (
-            <ChecklistSummary
-              complete={documents.filter((d) => ready.includes(d.id)).length}
-              total={documents.length}
-              onOptions={() => setOptions(true)}
-            />
+            <>
+              <ChecklistSummary
+                complete={documents.filter((d) => ready.includes(d.id)).length}
+                total={documents.length}
+                onOptions={() => setOptions(true)}
+              />
+              <VisaFeeSection country={country} />
+            </>
           )}
           <Message text={error} />
           {mode === "guide" && (
@@ -302,7 +305,16 @@ export function CountryGuide({
                   label="Avrupa Komisyonu süre bilgisi"
                 />
               </GuideSection>
-              <GuideSection title="Ücretler ve biyometri">
+              <GuideSection
+                title="Ücretler ve biyometri"
+                notes={
+                  <CommunityTips
+                    country={country}
+                    categories={["visa-fee"]}
+                    topicLabel="Vize ücreti"
+                  />
+                }
+              >
                 <Text style={styles.text}>
                   Avrupa Komisyonu genel tarifesinde yetişkin için 90 €, 6–12
                   yaş için 45 € vize harcı belirtilir. Yaşa, vatandaşlığa ve

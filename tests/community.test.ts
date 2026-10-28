@@ -1481,3 +1481,75 @@ it("deletes account-owned content and message report snapshots while preserving 
       .rows,
   ).toHaveLength(0);
 });
+
+it("binds new important notes to a real document from the same country and provisions document and fee topics", async () => {
+  const owner = await user();
+  const doc = randomUUID();
+  await root(
+    "insert into country_documents(id,country_id,title,body) values($1,'germany','A custom visa requirement','An official custom requirement.')",
+    [doc],
+  );
+  expect(
+    (
+      await root("select name from forum_categories where id=$1", [
+        `document-${doc}`,
+      ])
+    ).rows[0],
+  ).toMatchObject({ name: "A custom visa requirement" });
+  await expect(
+    as(
+      owner,
+      "insert into posts(user_id,country_id,kind,title,body,category_id) values($1,'spain','tip','A useful document note','This text relates to an important application document.',$2)",
+      [owner, `document-${doc}`],
+    ),
+  ).rejects.toThrow("Document must belong");
+  await as(
+    owner,
+    "insert into posts(user_id,country_id,kind,title,body,category_id) values($1,'germany','tip','A useful document note','This text relates to an important application document.',$2)",
+    [owner, `document-${doc}`],
+  );
+  await as(
+    owner,
+    "insert into posts(user_id,country_id,kind,title,body,category_id) values($1,'spain','tip','Cash payment at the visa center','This is my personal experience with paying visa fees.','visa-fee')",
+    [owner],
+  );
+  await root(
+    "update country_documents set title='Renamed custom requirement' where id=$1",
+    [doc],
+  );
+  expect(
+    (
+      await root("select name from forum_categories where id=$1", [
+        `document-${doc}`,
+      ])
+    ).rows[0],
+  ).toMatchObject({ name: "Renamed custom requirement" });
+});
+
+it("corrects only the identified old Spain fee topic and preserves its actual text", async () => {
+  const owner = await user();
+  const id = "0542061e-8117-444f-9c79-2d7755095dd4";
+  const title = "BLS başvuru ücretini nakit istiyor kart geçmiyor";
+  await root(
+    "insert into posts(id,user_id,country_id,kind,title,body,category_id,status) values($1,$2,'spain','tip',$3,'Retained personal fee experience.','doc-form','approved')",
+    [id, owner, title],
+  );
+  const other = randomUUID();
+  await root(
+    "insert into posts(id,user_id,country_id,kind,title,body,category_id,status) values($1,$2,'germany','tip',$3,'Different country application note.','doc-form','approved')",
+    [other, owner, title],
+  );
+  await pg.exec("reset role");
+  await pg.exec(readFileSync("docs/DOCUMENT_TOPICS_UPGRADE.sql", "utf8"));
+  expect(
+    (await root("select category_id,body,status from posts where id=$1", [id]))
+      .rows[0],
+  ).toMatchObject({
+    category_id: "visa-fee",
+    body: "Retained personal fee experience.",
+    status: "approved",
+  });
+  expect(
+    (await root("select category_id from posts where id=$1", [other])).rows[0],
+  ).toMatchObject({ category_id: "doc-form" });
+});

@@ -4219,3 +4219,141 @@ for (const theme of ["light", "dark"] as const) {
     ).toHaveCount(0);
   });
 }
+
+test("important information only offers the country's rendered documents and uses exact document topics", async ({
+  page,
+}) => {
+  await member(page);
+  const insurance = {
+    ...spainFixture.documents.find((d) => d.sort_order === 5)!,
+    title: "Sigorta belgesi (güncel liste)",
+  };
+  const topic = `document-${insurance.id}`;
+  await page.route(
+    "https://*.supabase.co/rest/v1/country_documents?**",
+    (route) =>
+      route.fulfill({
+        json: [
+          insurance,
+          {
+            id: "not-in-spain-checklist",
+            country_id: "spain",
+            title: "Listede gösterilmeyen ek belge",
+            body: "Not in the rendered Spain checklist.",
+          },
+        ],
+      }),
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/forum_categories?**",
+    (route) =>
+      route.fulfill({
+        json: [
+          { id: topic, name: insurance.title },
+          { id: "visa-fee", name: "Vize ücreti" },
+        ],
+      }),
+  );
+  let submitted: Record<string, unknown> | undefined;
+  await page.route("https://*.supabase.co/rest/v1/posts", (route) => {
+    submitted = route.request().postDataJSON();
+    return route.fulfill({ status: 201, body: "" });
+  });
+  await page.goto("/create?kind=tip&country=spain");
+  await page.getByRole("button", { name: "Belgeler", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Belge türünü seç", exact: true })
+    .click();
+  await expect(page.getByRole("radio")).toHaveCount(13);
+  await expect(
+    page.getByRole("radio", { name: "Genel belge bilgisi", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("radio", { name: "Başvuru formu", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("radio", {
+      name: "Listede gösterilmeyen ek belge",
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await page.getByRole("radio", { name: insurance.title, exact: true }).click();
+  await page
+    .getByLabel("Kısa bir başlık", { exact: true })
+    .fill("Güncel sigorta belgesi bilgisi");
+  await page
+    .getByLabel("Detaylar", { exact: true })
+    .fill(
+      "Sigorta belgesini başvuru merkezinin güncel listesine göre hazırladım.",
+    );
+  await page
+    .getByRole("button", { name: "İncelemeye gönder", exact: true })
+    .click();
+  await expect.poll(() => submitted?.category_id).toBe(topic);
+});
+
+test("visa fee notes appear in documents including the explicitly identified older BLS note", async ({
+  page,
+}) => {
+  await member(page);
+  const legacy = "0542061e-8117-444f-9c79-2d7755095dd4";
+  const title = "BLS başvuru ücretini nakit istiyor kart geçmiyor";
+  let submitted: Record<string, unknown> | undefined;
+  await page.route(
+    "https://*.supabase.co/rest/v1/forum_categories?**",
+    (route) =>
+      route.fulfill({ json: [{ id: "visa-fee", name: "Vize ücreti" }] }),
+  );
+  await page.route("https://*.supabase.co/rest/v1/posts**", (route) => {
+    if (route.request().method() === "POST") {
+      submitted = route.request().postDataJSON();
+      return route.fulfill({ status: 201, body: "" });
+    }
+    const url = new URL(route.request().url());
+    if (url.searchParams.get("or")?.includes(legacy)) {
+      expect(url.searchParams.get("country_id")).toBe("eq.spain");
+      expect(url.searchParams.get("status")).toBe("eq.approved");
+      return route.fulfill({
+        json: [
+          {
+            id: legacy,
+            title,
+            category_id: "doc-form",
+            body: "Başvurumda ödeme yöntemini bu şekilde deneyimledim.",
+          },
+        ],
+      });
+    }
+    return route.fulfill({ json: [] });
+  });
+  await page.goto("/country/spain?tab=Belgeler");
+  const fees = page
+    .getByRole("button", { name: "Vize ücreti", exact: true })
+    .locator("..");
+  await expect(
+    fees.getByRole("button", { name: title, exact: true }),
+  ).toBeVisible();
+  await page.screenshot({ path: "/tmp/visa-fee-community-note.png" });
+  await page.getByRole("button", { name: "Vize ücreti", exact: true }).click();
+  await page
+    .getByRole("button", {
+      name: "Vize ücreti hakkında önemli bilgi paylaş",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Vize ücreti", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page
+    .getByLabel("Kısa bir başlık", { exact: true })
+    .fill("Ücret ödeme yöntemi deneyimim");
+  await page
+    .getByLabel("Detaylar", { exact: true })
+    .fill(
+      "Başvuru sırasında ücretin ödenmesiyle ilgili deneyimimi paylaşıyorum.",
+    );
+  await page
+    .getByRole("button", { name: "İncelemeye gönder", exact: true })
+    .click();
+  await expect.poll(() => submitted?.category_id).toBe("visa-fee");
+});
