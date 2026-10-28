@@ -1,7 +1,7 @@
 import { webPath } from "../lib/web-path";
 import { SendPost } from "./SendPost";
 import { DeleteContent } from "./DeleteContent";
-import { themeColor, textSize, useAppearance } from "../lib/appearance";
+import { themeColor, textSize, useAppearance, isDark } from "../lib/appearance";
 
 import { PlaneReaction } from "./PlaneReaction";
 import { VerificationLabel } from "./VerificationLabel";
@@ -44,10 +44,12 @@ export function Avatar({
   name,
   url,
   size = 40,
+  accent,
 }: {
   name: string;
   url?: string | null;
   size?: number;
+  accent?: string;
 }) {
   useAppearance();
 
@@ -64,7 +66,7 @@ export function Avatar({
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: themeColor("#DCE9FC", "surface"),
+        backgroundColor: themeColor(accent ? "#FBE4E2" : "#DCE9FC", "surface"),
         alignItems: "center",
         justifyContent: "center",
       }}
@@ -72,7 +74,7 @@ export function Avatar({
       <Text
         style={{
           fontWeight: "800",
-          color: colors.blue,
+          color: accent ?? colors.blue,
           fontSize: size > textSize(50) ? textSize(24) : textSize(14),
         }}
       >
@@ -188,6 +190,8 @@ export function PostCard({
   const { data: author } = useProfile(post.user_id);
   const country = countries?.find((x) => x.id === post.country_id);
   const days = processingDays(post.application_date, post.decision_date);
+  const rejected = post.kind === "experience" && post.result === "rejected";
+  const accent = rejected ? (isDark() ? "#F197A2" : "#9E3041") : colors.blue;
   return (
     <View
       style={[
@@ -196,8 +200,11 @@ export function PostCard({
           padding: 0,
           gap: 0,
           overflow: "hidden",
-          backgroundColor:
-            post.kind === "general"
+          backgroundColor: rejected
+            ? isDark()
+              ? "#2B2027"
+              : "#FFF3F1"
+            : post.kind === "general"
               ? themeColor("#F4EFFB", "surface")
               : post.kind === "experience"
                 ? themeColor("#F0F7F2", "surface")
@@ -207,6 +214,7 @@ export function PostCard({
                     ? themeColor("#FFF5E7", "surface")
                     : themeColor("#FFFFFF", "surface"),
         },
+        rejected && { borderColor: isDark() ? "#66404C" : "#EBC8C5" },
         post.kind === "tip" && {
           borderColor: themeColor("#EDDCC4", "border"),
         },
@@ -229,7 +237,9 @@ export function PostCard({
               post.result === "approved"
                 ? themeColor("#CDECD9", "surface")
                 : post.result === "rejected"
-                  ? themeColor("#F7D1CD", "surface")
+                  ? isDark()
+                    ? "#482832"
+                    : "#F7D1CD"
                   : themeColor("#FFE8A6", "surface"),
           }}
         >
@@ -241,7 +251,7 @@ export function PostCard({
                 post.result === "approved"
                   ? themeColor("#176744", "text")
                   : post.result === "rejected"
-                    ? themeColor("#A22E30", "text")
+                    ? accent
                     : themeColor("#866000", "text"),
             }}
           >
@@ -252,7 +262,7 @@ export function PostCard({
               style={{
                 fontSize: textSize(12),
                 fontWeight: "600",
-                color: colors.navy,
+                color: rejected ? accent : colors.navy,
               }}
             >
               {days} günde sonuçlandı
@@ -290,7 +300,7 @@ export function PostCard({
                       ? themeColor("#A76A1B", "text")
                       : post.kind === "question"
                         ? themeColor("#3476B5", "text")
-                        : colors.blue,
+                        : accent,
                 fontSize: textSize(11),
                 backgroundColor:
                   post.kind === "general"
@@ -299,7 +309,11 @@ export function PostCard({
                       ? themeColor("#F9EAD2", "surface")
                       : post.kind === "question"
                         ? themeColor("#E2EEFA", "surface")
-                        : themeColor("#EDF3F0", "surface"),
+                        : rejected
+                          ? isDark()
+                            ? "#482832"
+                            : "#FBE3DF"
+                          : themeColor("#EDF3F0", "surface"),
                 paddingHorizontal: 9,
                 paddingVertical: 3,
                 borderRadius: 7,
@@ -321,6 +335,7 @@ export function PostCard({
             <Avatar
               name={author?.display_name ?? "Üye"}
               url={author?.avatar_url}
+              accent={rejected ? accent : undefined}
             />
             <View>
               <Text style={styles.pillText}>
@@ -404,13 +419,25 @@ export function PostCard({
                     {label}
                   </Text>
                 ))}
+              {!!post.purpose && (
+                <Text
+                  style={{
+                    fontSize: textSize(12),
+                    color: accent,
+                    fontWeight: "600",
+                  }}
+                >
+                  {post.city || post.employment_status ? "· " : ""}
+                  {post.purpose}
+                </Text>
+              )}
             </View>
           )}
-          {post.kind === "experience" && !!post.purpose && (
+          {detail && post.kind === "experience" && !!post.purpose && (
             <Text
               style={[
                 styles.pillText,
-                { fontSize: textSize(12), color: colors.blue },
+                { fontSize: textSize(12), color: accent },
               ]}
             >
               {post.purpose}
@@ -429,7 +456,11 @@ export function PostCard({
                   : "Resmî kaynak referansı"}
               </Text>
             ) : (
-              <VerificationLabel postId={post.id} compact />
+              <VerificationLabel
+                postId={post.id}
+                compact
+                color={rejected ? accent : undefined}
+              />
             ))}
         </Pressable>
         {!detail && (
@@ -448,6 +479,7 @@ export function PostCard({
               name={author?.display_name ?? "Üye"}
               url={author?.avatar_url}
               size={26}
+              accent={rejected ? accent : undefined}
             />
             <Text
               style={{

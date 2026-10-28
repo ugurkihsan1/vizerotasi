@@ -154,9 +154,11 @@ export default function GroupRoute() {
 export function GroupScreen({
   id,
   top,
+  onDeleted,
 }: {
   id: string;
   top?: React.ReactNode;
+  onDeleted?: () => void;
 }) {
   useAppearance();
 
@@ -176,7 +178,8 @@ export function GroupScreen({
   const [manage, setManage] = useState(false),
     [comments, setComments] = useState<GroupPost | null>(null),
     [deleting, setDeleting] = useState<GroupPost | null>(null),
-    [leave, setLeave] = useState(false);
+    [leave, setLeave] = useState(false),
+    [deleteGroup, setDeleteGroup] = useState(false);
   const refresh = q.refetch,
     refreshFeed = feed.refetch;
   useFocusEffect(
@@ -235,6 +238,11 @@ export function GroupScreen({
         <Button label="Yeniden dene" onPress={() => void q.refetch()} />
       </View>
     );
+  const canDelete =
+    !!session &&
+    (g.owner_id === session.user.id ||
+      g.is_manager ||
+      profile?.role === "admin");
   const ownerPower =
     g.owner_id === session?.user.id ||
     (g.is_system &&
@@ -284,7 +292,7 @@ export function GroupScreen({
                   {g.member_count} üye · Yönetici onaylı
                 </Text>
               </View>
-              {canRead && (
+              {(canRead || canDelete) && (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Grup bilgisi ve yönetimi"
@@ -494,7 +502,7 @@ export function GroupScreen({
         />
       </Sheet>
       <Sheet
-        visible={manage && canRead}
+        visible={manage && (canRead || canDelete)}
         title="Grup bilgisi"
         onClose={() => setManage(false)}
       >
@@ -513,21 +521,83 @@ export function GroupScreen({
           />
         )}
         <Message text={error} />
-        {g.owner_id !== session?.user.id && !(g.is_system && ownerPower) && (
-          <Button
-            secondary
-            label="Gruptan ayrıl"
+        {canRead &&
+          g.owner_id !== session?.user.id &&
+          !(g.is_system && ownerPower) && (
+            <Button
+              secondary
+              label="Gruptan ayrıl"
+              onPress={() => {
+                setManage(false);
+                setLeave(true);
+              }}
+            />
+          )}
+        {canDelete && (
+          <Pressable
+            accessibilityRole="button"
             onPress={() => {
+              setError("");
               setManage(false);
-              setLeave(true);
+              setDeleteGroup(true);
             }}
-          />
+            style={{ minHeight: 48, justifyContent: "center" }}
+          >
+            <Text style={{ color: colors.red, fontWeight: "700" }}>
+              Topluluğu sil
+            </Text>
+          </Pressable>
         )}
         {g.owner_id === session?.user.id && (
           <Text style={styles.muted}>
             Ayrılmak için önce bir üyeye sahipliği devret.
           </Text>
         )}
+      </Sheet>
+      <Sheet
+        visible={deleteGroup && canDelete}
+        title="Topluluğu sil"
+        onClose={() => !busy && setDeleteGroup(false)}
+      >
+        <Text style={styles.text}>
+          {g.name} topluluğu, paylaşımları ve yorumları kalıcı olarak silinecek.
+          Bu işlem geri alınamaz.
+        </Text>
+        <Message text={error} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Topluluğu kalıcı olarak sil"
+          disabled={busy}
+          onPress={() => {
+            void act("sharing_remove_group", { target: id }).then((ok) => {
+              if (!ok) return;
+              cache.removeQueries({
+                queryKey: ["groups", session?.user.id, id],
+              });
+              setDeleteGroup(false);
+              if (onDeleted) onDeleted();
+              else router.replace("/");
+            });
+          }}
+          style={{
+            minHeight: 48,
+            borderRadius: 14,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: themeColor("#FBE4E2", "surface"),
+            opacity: busy ? 0.5 : 1,
+          }}
+        >
+          <Text style={{ color: colors.red, fontWeight: "700" }}>
+            {busy ? "Siliniyor…" : "Topluluğu kalıcı olarak sil"}
+          </Text>
+        </Pressable>
+        <Button
+          secondary
+          label="Vazgeç"
+          disabled={busy}
+          onPress={() => setDeleteGroup(false)}
+        />
       </Sheet>
       {comments && canRead && (
         <GroupComments

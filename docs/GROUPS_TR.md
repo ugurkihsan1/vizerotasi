@@ -13,3 +13,9 @@ Supabase Dashboard → SQL Editor → New query: `docs/GROUPS_UPGRADE.sql` dosya
 - Tüm içerik yazmaları yetkili RPC ile yapılır; doğrudan tablo yazmaları kapalıdır. Sunucu üyelik ve yetkiyi tekrar denetler; grup kilidi onay/çıkarma/yazma yarışlarını sıraya alır. Tekrar gönderme aynı istemci kimliğiyle çoğalmaz. Yeni grup: 5/gün; gönderi: 30/saat; yorum: 60/saat. Dizin en fazla 200 yeni grubu listeler; doğrudan grup bağlantısı daha eski grupları da açar. Gönderiler ve üye/yorum listeleri sayfalanır.
 
 SQL yerel PostgreSQL uyumlu test ortamında yetki, onay, içerik gizliliği, yönetici devri ve yinelenen gönderimler ile doğrulanır. Bu dosya uzak projede SQL çalıştırıldığı anlamına gelmez.
+
+## Topluluk silme
+
+Mevcut kurulumda yalnız [GROUP_DELETION_UPGRADE.sql](GROUP_DELETION_UPGRADE.sql) dosyasını SQL Editor’da çalıştır. Bu SQL hiçbir grubu otomatik silmez; onaylı silme yetkisini ekler. Uzak yönetim erişimi olmadığı için bu güncelleme burada uygulanmadı. Edge Function veya yeni gizli anahtar gerekmez.
+
+Kurucu, aktif grup yöneticileri ve uygulama adminleri grup menüsünden Topluluğu sil → Topluluğu kalıcı olarak sil ile kaldırabilir. Üyelikler, grup paylaşımları, yorumları ve beğenileri birlikte silinir. Uygulama admininin bu yetkisi özel grupların içeriklerini okuma izni vermez. Silme sonrası ana akışa dönülür ve sekme kaldırılır. Erasmus dahil sistem topluluğunu da yetkili yönetici silebilir; eski ilk kurulum/seed SQL’ini tekrar çalıştırmak Erasmus’u yeniden ekleyebilir.

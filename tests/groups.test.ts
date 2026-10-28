@@ -47,6 +47,7 @@ alter default privileges in schema public grant usage,select on sequences to ano
     readFileSync("supabase/migrations/202610220001_community.sql", "utf8"),
   );
   await pg.exec(readFileSync("docs/GROUPS_UPGRADE.sql", "utf8"));
+  await pg.exec(readFileSync("docs/GROUP_DELETION_UPGRADE.sql", "utf8"));
 });
 afterAll(async () => {
   await pg.close();
@@ -279,5 +280,74 @@ it("limits repeated group creation and disallows direct forged writes", async ()
       "insert into sharing_group_posts(group_id,user_id,body) select id,$1,'forged' from sharing_groups limit 1",
       [owner],
     ),
+  ).rejects.toThrow();
+});
+
+it("only owners, active group managers and app admins can delete groups and their content", async () => {
+  const owner = await user(),
+    manager = await user(),
+    member = await user(),
+    outsider = await user(),
+    admin = await user("admin");
+  const group = await create(owner),
+    untouched = await create(outsider);
+  await join(owner, manager, group);
+  await join(owner, member, group);
+  await as(owner, "select sharing_manage($1,$2,'manager')", [group, manager]);
+  const p = await publish(member, group);
+  await as(member, "select sharing_comment($1,'Useful group reply',$2)", [
+    p,
+    randomUUID(),
+  ]);
+  await as(member, "select sharing_like($1,true)", [p]);
+  await expect(
+    as(null, "select sharing_remove_group($1)", [group]),
+  ).rejects.toThrow();
+  await expect(
+    as(member, "select sharing_remove_group($1)", [group]),
+  ).rejects.toThrow();
+  await expect(
+    as(outsider, "select sharing_remove_group($1)", [group]),
+  ).rejects.toThrow();
+  await as(manager, "select sharing_remove_group($1)", [group]);
+  for (const table of [
+    "sharing_groups",
+    "sharing_group_members",
+    "sharing_group_posts",
+  ])
+    expect(
+      (
+        await root(
+          `select * from ${table} where ${table === "sharing_groups" ? "id" : "group_id"}=$1`,
+          [group],
+        )
+      ).rows,
+    ).toHaveLength(0);
+  for (const table of ["sharing_group_comments", "sharing_group_likes"])
+    expect(
+      (await root(`select * from ${table} where post_id=$1`, [p])).rows,
+    ).toHaveLength(0);
+  expect(
+    (await root("select id from sharing_groups where id=$1", [untouched])).rows,
+  ).toHaveLength(1);
+  const ownGroup = await create(owner);
+  await as(owner, "select sharing_remove_group($1)", [ownGroup]);
+  const adminTarget = await create(owner);
+  await publish(owner, adminTarget);
+  // Delete permission does not expose a private group's feed to a non-member admin.
+  await expect(
+    as(admin, "select sharing_feed($1)", [adminTarget]),
+  ).rejects.toThrow();
+  await as(admin, "select sharing_remove_group($1)", [adminTarget]);
+  expect(
+    (await root("select id from sharing_groups where id=$1", [adminTarget]))
+      .rows,
+  ).toHaveLength(0);
+  const revoked = await create(owner);
+  await join(owner, manager, revoked);
+  await as(owner, "select sharing_manage($1,$2,'manager')", [revoked, manager]);
+  await as(owner, "select sharing_manage($1,$2,'remove')", [revoked, manager]);
+  await expect(
+    as(manager, "select sharing_remove_group($1)", [revoked]),
   ).rejects.toThrow();
 });

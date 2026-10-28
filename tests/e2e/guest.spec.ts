@@ -3659,3 +3659,171 @@ test("an unavailable account deletion backend never pretends the account was del
   ).toBeVisible();
   await expect(page).toHaveURL(/\/settings$/);
 });
+
+test("group managers can confirm deletion from the inline feed without leaving a ghost community tab", async ({
+  page,
+}) => {
+  await member(page);
+  const state = await sharingFixtures(page, "active", true);
+  let removals = 0;
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/sharing_remove_group",
+    (route) => {
+      expect(route.request().postDataJSON()).toEqual({
+        target: erasmusGroupId,
+      });
+      removals++;
+      state.groups.splice(0, state.groups.length);
+      return route.fulfill({ json: null });
+    },
+  );
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Erasmus", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Grup bilgisi ve yönetimi", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Topluluğu sil", exact: true })
+    .click();
+  await expect(
+    page.getByText(
+      /Erasmus topluluğu, paylaşımları ve yorumları kalıcı olarak silinecek/,
+    ),
+  ).toBeVisible();
+  expect(removals).toBe(0);
+  await page
+    .getByRole("button", { name: "Topluluğu kalıcı olarak sil", exact: true })
+    .click();
+  await expect.poll(() => removals).toBe(1);
+  await expect(
+    page.getByRole("tab", { name: "Tümü", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(
+    page.getByRole("tab", { name: "Erasmus", exact: true }),
+  ).toHaveCount(0);
+});
+
+test("ordinary group members do not see group deletion", async ({ page }) => {
+  await member(page);
+  await sharingFixtures(page, "active", false);
+  await page.goto(`/group/${erasmusGroupId}`);
+  await page
+    .getByRole("button", { name: "Grup bilgisi ve yönetimi", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Gruptan ayrıl", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Topluluğu sil", exact: true }),
+  ).toHaveCount(0);
+});
+
+test("app admins can open deletion for a private community without fetching its feed", async ({
+  page,
+}) => {
+  await member(page);
+  const state = await sharingFixtures(page, null, false);
+  await page.route("https://*.supabase.co/rest/v1/profiles?**", (route) =>
+    route.fulfill({
+      json: {
+        id: "00000000-0000-0000-0000-000000000200",
+        username: "fixture_admin",
+        display_name: "Admin",
+        role: "admin",
+      },
+    }),
+  );
+  await page.goto(`/group/${erasmusGroupId}`);
+  await page
+    .getByRole("button", { name: "Grup bilgisi ve yönetimi", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Topluluğu sil", exact: true }),
+  ).toBeVisible();
+  expect(state.requests).not.toContain("sharing_feed");
+});
+
+for (const theme of ["light", "dark"] as const) {
+  test(`rejected experience has red accents and its purpose beside employment in ${theme} mode`, async ({
+    page,
+  }) => {
+    await fixtures(page);
+    await page.addInitScript(
+      (theme) =>
+        localStorage.setItem(
+          "app-appearance:v1",
+          JSON.stringify({
+            theme,
+            reducedMotion: true,
+            haptics: false,
+            largeText: false,
+          }),
+        ),
+      theme,
+    );
+    const base = {
+      user_id: "00000000-0000-0000-0000-000000000300",
+      country_id: "spain",
+      kind: "experience",
+      body: "Kültürel etkinlik için başvuru deneyimim.",
+      status: "approved",
+      created_at: "2026-10-28T10:00:00Z",
+      helpful_count: 0,
+      comment_count: 0,
+      application_date: "2026-10-01",
+      decision_date: "2026-10-25",
+      city: "İstanbul",
+      employment_status: "Öğrenci",
+      purpose: "Kültürel etkinlik",
+      source_type: "submission",
+    };
+    await page.route("https://*.supabase.co/rest/v1/feed?**", (route) =>
+      route.fulfill({
+        json: [
+          {
+            ...base,
+            id: "00000000-0000-0000-0000-000000000991",
+            title: "Ret başvuru deneyimim",
+            result: "rejected",
+          },
+          {
+            ...base,
+            id: "00000000-0000-0000-0000-000000000992",
+            title: "Onay başvuru deneyimim",
+            result: "approved",
+          },
+        ],
+      }),
+    );
+    await page.goto("/");
+    const card = page
+      .getByText("✕ Reddedildi", { exact: true })
+      .locator("../..");
+    await expect(card).toHaveCSS(
+      "background-color",
+      theme === "dark" ? "rgb(43, 32, 39)" : "rgb(255, 243, 241)",
+    );
+    const purpose = card.getByText("· Kültürel etkinlik", { exact: true });
+    const student = card.getByText("· Öğrenci", { exact: true });
+    const p = await purpose.boundingBox(),
+      s = await student.boundingBox();
+    expect(Math.abs(p!.y - s!.y)).toBeLessThan(3);
+    const red = theme === "dark" ? "rgb(241, 151, 162)" : "rgb(158, 48, 65)";
+    await expect(purpose).toHaveCSS("color", red);
+    await expect(card.getByText("Vize deneyimi", { exact: true })).toHaveCSS(
+      "color",
+      red,
+    );
+    await expect(
+      card.getByText("Kullanıcı deneyimi", { exact: true }),
+    ).toHaveCSS("color", red);
+    const approved = page
+      .getByText("✓ Onaylandı", { exact: true })
+      .locator("../..");
+    await expect(approved).not.toHaveCSS(
+      "background-color",
+      await card.evaluate((el) => getComputedStyle(el).backgroundColor),
+    );
+    await page.screenshot({ path: `/tmp/rejected-card-${theme}.png` });
+  });
+}

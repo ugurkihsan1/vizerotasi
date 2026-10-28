@@ -5,9 +5,11 @@ import { styles } from "./ui";
 export function VerificationLabel({
   postId,
   compact = false,
+  color,
 }: {
   postId: string;
   compact?: boolean;
+  color?: string;
 }) {
   useAppearance();
 
@@ -17,7 +19,7 @@ export function VerificationLabel({
     return (
       <Text
         style={{
-          color: themeColor("#24766C", "text"),
+          color: color ?? themeColor("#24766C", "text"),
           fontSize: textSize(10),
           lineHeight: 16,
         }}

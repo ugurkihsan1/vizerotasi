@@ -21,8 +21,8 @@ export default function Home() {
       g.my_status === "active" ||
       g.my_status === "pending",
   );
-  const available = followedGroups?.length
-    ? followedGroups
+  const available = groups.data
+    ? (followedGroups ?? [])
     : [{ id: ERASMUS_GROUP, name: "Erasmus" }];
   const tabs = (
     <ScrollView
@@ -94,6 +94,7 @@ export default function Home() {
         />
       ) : (
         <GroupScreen
+          onDeleted={() => setScope("Tümü")}
           key={`${scope}:${session?.user.id ?? "guest"}`}
           id={scope}
           top={tabs}
