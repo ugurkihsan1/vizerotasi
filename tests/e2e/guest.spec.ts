@@ -3578,3 +3578,84 @@ test("signup has three compact steps, validates each and preserves values going 
     "Gezgin Yolcu",
   );
 });
+
+test("account deletion requires confirmation, handles the wrong password and only logs out on real success", async ({
+  page,
+}) => {
+  await chatFixtures(page);
+  let requests = 0,
+    accepted = false;
+  await page.route(
+    "https://*.supabase.co/functions/v1/delete-account",
+    (route) => {
+      requests++;
+      expect(route.request().postDataJSON()).toEqual({
+        password: accepted ? "correct-password" : "wrong-password",
+        confirmation: "SİL",
+      });
+      return route.fulfill({
+        status: accepted ? 200 : 403,
+        json: { code: accepted ? "deleted" : "invalid_password" },
+      });
+    },
+  );
+  await page.goto("/settings");
+  await page
+    .getByRole("button", { name: "Hesap ve güvenlik", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Hesabımı sil", exact: true }).click();
+  const remove = page.getByRole("button", {
+    name: "Hesabımı kalıcı olarak sil",
+    exact: true,
+  });
+  await expect(remove).toBeDisabled();
+  expect(requests).toBe(0);
+  await page
+    .getByLabel("Mevcut şifren", { exact: true })
+    .fill("wrong-password");
+  await page.getByLabel("Onaylamak için SİL yaz", { exact: true }).fill("SİL");
+  await remove.click();
+  await expect(
+    page.getByText("Şifren doğru değil. Kontrol edip yeniden dene.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/\/settings$/);
+  await page.screenshot({ path: "/tmp/account-deletion-mobile.png" });
+  accepted = true;
+  await page
+    .getByLabel("Mevcut şifren", { exact: true })
+    .fill("correct-password");
+  await remove.click();
+  await expect(page).toHaveURL(/\/auth$/);
+  expect(requests).toBe(2);
+});
+
+test("an unavailable account deletion backend never pretends the account was deleted", async ({
+  page,
+}) => {
+  await chatFixtures(page);
+  await page.route(
+    "https://*.supabase.co/functions/v1/delete-account",
+    (route) => route.fulfill({ status: 404, json: { code: "NOT_FOUND" } }),
+  );
+  await page.goto("/settings");
+  await page
+    .getByRole("button", { name: "Hesap ve güvenlik", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Hesabımı sil", exact: true }).click();
+  await page
+    .getByLabel("Mevcut şifren", { exact: true })
+    .fill("correct-password");
+  await page.getByLabel("Onaylamak için SİL yaz", { exact: true }).fill("SİL");
+  await page
+    .getByRole("button", { name: "Hesabımı kalıcı olarak sil", exact: true })
+    .click();
+  await expect(
+    page.getByText(
+      "Hesap silme şu anda kullanılamıyor. Biraz sonra yeniden dene.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/\/settings$/);
+});

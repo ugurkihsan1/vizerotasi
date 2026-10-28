@@ -1,3 +1,4 @@
+import { DeleteAccount } from "../src/components/DeleteAccount";
 import { Ionicons } from "@expo/vector-icons";
 import { webPath } from "../src/lib/web-path";
 import * as Linking from "expo-linking";
@@ -294,6 +295,7 @@ function SettingsBody() {
                   );
               }}
             />
+            <DeleteAccount />
           </SettingsSection>
         </>
       )}

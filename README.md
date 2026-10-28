@@ -159,3 +159,7 @@ Danimarka rehberi ve ülke topluluğu için [DENMARK_UPGRADE.sql](docs/DENMARK_U
 Ayarlar, silme ve yönetici ülke ekleme: [kurulum rehberi](docs/MOBILE_CONTROLS_TR.md). Yeni sunucu yetkileri için [MOBILE_CONTROLS_UPGRADE.sql](docs/MOBILE_CONTROLS_UPGRADE.sql) Supabase SQL Editor’da çalıştırılır. Tema ve diğer cihaz tercihleri SQL gerektirmez.
 
 Sosyal profiller, sohbet fotoğrafları ve son mobil düzenlemeler: [SOCIAL_MOBILE_TR.md](docs/SOCIAL_MOBILE_TR.md).
+
+## Hesap silme
+
+Ayarlar → Hesap ve güvenlik → Hesabımı sil: mevcut şifre ve açık onayla Auth hesabı, içerik ve dosya silme akışı hazır. Etkinleştirmek için [SQL ve Edge Function kurulumunu](docs/ACCOUNT_DELETION_TR.md) tamamlayın. Sunucu kurulmadan uygulama hesabı silinmiş gibi göstermez.

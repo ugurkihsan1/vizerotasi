@@ -1,4 +1,4 @@
-# Vize Rotası’nı App Store’a gönderme
+# Vizesel’nı App Store’a gönderme
 
 Bu proje Expo / React Native uygulamasıdır. Netlify adresini App Store’a yüklemek yerine, aynı projenin iOS uygulaması EAS Build ile derlenir. Bulutta derleme ve gönderim için Mac zorunlu değildir. Apple hesabı, imzalama, gerçek iPhone testi ve App Review bu ortamda yapılmadı.
 
@@ -6,7 +6,7 @@ Bu proje Expo / React Native uygulamasıdır. Netlify adresini App Store’a yü
 
 Apple’ın 1.2 ve 5.1.1 kurallarına göre bu sürüm henüz mağazaya hazır sayılmamalı:
 
-- Uygulama içinden hesap ve ilişkili kişisel verileri silme akışı henüz yok. Üyelik açıldığı için uygulamadan hesap silmeyi başlatabilmek gerekir; yalnız çıkış yapmak veya e-posta gönder demek yeterli değildir.
+- Uygulama içinden hesap silme akışı hazır; [hesap silme sunucu kurulumunu](ACCOUNT_DELETION_TR.md) tamamlayıp gerçek test hesabıyla doğrula. Uzak SQL ve Edge Function kurulmadan bu özellik etkin sayılmaz.
 - İçerik bildirme var; kullanıcı engelleme ve uygunsuz içerik filtresi ayrıca tamamlanmalı. Yorumların anında yayımlanması bunları kaldırma gerekçesi değildir. Moderasyon ve bildirimlerin zamanında incelenmesi gerekir.
 - Tam ve erişilebilir gizlilik politikası, kullanım koşulları ve gerçek destek iletişimi yayımlanmalı. Mevcut kısa ayarlar açıklaması tamamlanmış bir mağaza gizlilik politikası değildir. Gizlilik URL’si App Store Connect’e eklenmeli.
 - Supabase’te `docs/COUNTRIES_AND_COMMENTS_UPGRADE.sql` uygulanmalı. Önceki rozet özellikleri kullanılacaksa 004 topluluk güncellemesi de kurulmuş olmalı. E-posta doğrulama ve şifre sıfırlamanın gerçek cihazda çalıştığı kontrol edilmeli.
@@ -17,7 +17,7 @@ Bu eksikler giderilmeden yalnız IPA dosyasını yüklemek mağaza onayı anlam�
 
 1. [Apple Developer Program](https://developer.apple.com/programs/enroll/) üyeliğini tamamla. Ücretli üyelik gerekir; ülkeye ve kur türüne göre görünen güncel ücreti Apple’dan kontrol et. Şahıs hesabında mağazada geliştirici adı kişisel adın olabilir; kuruluşta şirket doğrulaması gerekir.
 2. [Expo](https://expo.dev/) hesabı oluştur.
-3. [App Store Connect](https://appstoreconnect.apple.com/)'te yeni iOS uygulaması aç: **Vize Rotası**, ana dil **Türkçe**, Bundle ID **com.vizerotasi.app**, kendin belirleyeceğin benzersiz SKU.
+3. [App Store Connect](https://appstoreconnect.apple.com/)'te yeni iOS uygulaması aç: **Vizesel**, ana dil **Türkçe**, Bundle ID **com.vizerotasi.app**, kendin belirleyeceğin benzersiz SKU.
 
 `com.vizerotasi.app` bu depoda hazırdır. Bu kimlik Apple hesabında müsait değilse ilk mağaza kaydından önce `app.json` içindeki `ios.bundleIdentifier` değerini değiştir. Başka birine ait Bundle ID’yi kullanma. Uygulamanın numeric Apple ID’si, daha sonra EAS gönderiminde istenen `ascAppId` değeridir; Bundle ID veya Apple kullanıcı e-postası değildir.
 

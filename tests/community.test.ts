@@ -92,7 +92,7 @@ async function gezginFixture() {
 beforeAll(async () => {
   pg = new PGlite();
   await pg.exec(`
- create role anon; create role authenticated; create schema auth; create schema storage;
+ create role anon; create role authenticated; create role service_role; create schema auth; create schema storage;
  create table auth.users(id uuid primary key,raw_user_meta_data jsonb);
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  grant usage on schema auth,public to anon,authenticated;
@@ -1324,4 +1324,160 @@ it("stores general stories independently of visa outcomes and application fields
     [owner],
   );
   expect(r.rows[0]).toMatchObject({ result: null, application_date: null });
+});
+
+it("restricts account deletion to the server, scopes file cleanup and prevents upload after deletion starts", async () => {
+  const owner = await user(),
+    other = await user();
+  const avatar = `${owner}/profile.jpg`,
+    unrelated = `${other}/profile.jpg`;
+  const chatPhoto = `${randomUUID()}/${owner}/${randomUUID()}.jpg`;
+  for (const [bucket, name] of [
+    ["avatars", avatar],
+    ["avatars", unrelated],
+    ["post-evidence", `${owner}/${randomUUID()}/proof.pdf`],
+    ["chat-media", chatPhoto],
+  ])
+    await root(
+      "insert into storage.objects(id,bucket_id,name) values($1,$2,$3)",
+      [randomUUID(), bucket, name],
+    );
+  await expect(
+    as(owner, "select begin_account_deletion($1)", [other]),
+  ).rejects.toThrow();
+  await expect(
+    as(owner, "select finish_account_deletion($1)", [owner]),
+  ).rejects.toThrow();
+  await expect(
+    as(null, "select account_deletion_files($1)", [owner]),
+  ).rejects.toThrow();
+  await root("select begin_account_deletion($1)", [owner]);
+  const files = (
+    await root("select * from account_deletion_files($1)", [owner])
+  ).rows as { bucket_id: string; object_name: string }[];
+  expect(files).toHaveLength(3);
+  expect(files.map((r) => r.object_name)).not.toContain(unrelated);
+  await expect(
+    as(
+      owner,
+      "insert into storage.objects(id,bucket_id,name) values($1,'avatars',$2)",
+      [randomUUID(), `${owner}/late.jpg`],
+    ),
+  ).rejects.toThrow();
+  await expect(
+    root("select finish_account_deletion($1)", [owner]),
+  ).rejects.toThrow("Account files remain");
+  expect(
+    (await root("select id from auth.users where id=$1", [owner])).rows,
+  ).toHaveLength(1);
+  // Fixture models successful Storage API deletion; production never deletes storage rows with SQL.
+  for (const file of files)
+    await root("delete from storage.objects where bucket_id=$1 and name=$2", [
+      file.bucket_id,
+      file.object_name,
+    ]);
+  await root("select finish_account_deletion($1)", [owner]);
+  expect(
+    (await root("select id from auth.users where id=$1", [owner])).rows,
+  ).toHaveLength(0);
+  expect(
+    (await root("select id from profiles where id=$1", [owner])).rows,
+  ).toHaveLength(0);
+  expect(
+    (await root("select name from storage.objects where name=$1", [unrelated]))
+      .rows,
+  ).toHaveLength(1);
+  // A previously issued JWT cannot recreate an orphan public avatar.
+  await expect(
+    as(
+      owner,
+      "insert into storage.objects(id,bucket_id,name) values($1,'avatars',$2)",
+      [randomUUID(), `${owner}/after.jpg`],
+    ),
+  ).rejects.toThrow();
+});
+
+it("deletes account-owned content and message report snapshots while preserving another author's content and moderation decisions", async () => {
+  const owner = await user(40, "admin"),
+    other = await user();
+  const ownPost = await post(owner),
+    otherPost = await post(other);
+  const ownComment = await comment(owner, otherPost);
+  await root("update posts set approved_by=$1 where id=$2", [owner, otherPost]);
+  await root(
+    "insert into moderation_actions(moderator_id,post_id,decision) values($1,$2,'approved')",
+    [owner, otherPost],
+  );
+  await root(
+    "insert into member_trust_adjustments(user_id,moderator_id,internal_note,points,reference) values($1,$2,'Confirmed inaccurate content',-25,$3)",
+    [other, owner, randomUUID()],
+  );
+  const room = randomUUID(),
+    msg = randomUUID();
+  await root(
+    "insert into chat_rooms(id,kind,direct_key,started_by) values($1,'direct',$2,$3)",
+    [room, `delete:${owner}:${other}`, owner],
+  );
+  await root(
+    "insert into chat_members(room_id,user_id,status) values($1,$2,'active'),($1,$3,'active')",
+    [room, owner, other],
+  );
+  await root(
+    "insert into chat_messages(id,room_id,sender_id,body) values($1,$2,$3,'Personal message')",
+    [msg, room, owner],
+  );
+  await root(
+    "insert into chat_messages(room_id,sender_id,body) values($1,$2,'Other member message')",
+    [room, other],
+  );
+  await root(
+    "insert into chat_reports(message_id,reporter_id,sender_id,body_snapshot,reason) values($1,$2,$3,'Personal message snapshot','Test report')",
+    [msg, other, owner],
+  );
+  await root(
+    "insert into user_follows(follower_id,following_id,status) values($1,$2,'accepted')",
+    [other, owner],
+  );
+  await root("select begin_account_deletion($1)", [owner]);
+  await root("select finish_account_deletion($1)", [owner]);
+  expect(
+    (await root("select id from posts where id=$1", [ownPost])).rows,
+  ).toHaveLength(0);
+  expect(
+    (await root("select id from comments where id=$1", [ownComment])).rows,
+  ).toHaveLength(0);
+  expect(
+    (await root("select approved_by from posts where id=$1", [otherPost]))
+      .rows[0],
+  ).toMatchObject({ approved_by: null });
+  expect(
+    (
+      await root(
+        "select moderator_id from moderation_actions where post_id=$1",
+        [otherPost],
+      )
+    ).rows[0],
+  ).toMatchObject({ moderator_id: null });
+  expect(
+    (
+      await root(
+        "select moderator_id,points from member_trust_adjustments where user_id=$1",
+        [other],
+      )
+    ).rows[0],
+  ).toMatchObject({ moderator_id: null, points: -25 });
+  expect(
+    (await root("select * from chat_reports where message_id=$1", [msg])).rows,
+  ).toHaveLength(0);
+  expect(
+    (await root("select * from chat_messages where sender_id=$1", [owner]))
+      .rows,
+  ).toHaveLength(0);
+  expect(
+    (await root("select * from chat_messages where room_id=$1", [room])).rows,
+  ).toHaveLength(1);
+  expect(
+    (await root("select * from user_follows where following_id=$1", [owner]))
+      .rows,
+  ).toHaveLength(0);
 });

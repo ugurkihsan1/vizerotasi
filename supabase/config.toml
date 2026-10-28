@@ -21,3 +21,7 @@ enable_confirmations = true
 [storage]
 enabled = true
 file_size_limit = "2MiB"
+
+[functions.delete-account]
+# Authorization is validated using Auth.getUser in the handler (also supports new JWT signing keys).
+verify_jwt = false
