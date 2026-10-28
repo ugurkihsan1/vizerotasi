@@ -283,9 +283,9 @@ export function PostCard({
       {post.kind === "experience" && post.result && (
         <View
           style={{
-            paddingHorizontal: 20,
-            paddingVertical: 13,
-            minHeight: 46,
+            paddingHorizontal: detail ? 20 : 14,
+            paddingVertical: detail ? 13 : 8,
+            minHeight: detail ? 46 : 34,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
@@ -315,7 +315,7 @@ export function PostCard({
           )}
         </View>
       )}
-      <View style={{ padding: detail ? 20 : 18, gap: detail ? 14 : 12 }}>
+      <View style={{ padding: detail ? 20 : 14, gap: detail ? 14 : 8 }}>
         <View style={[styles.row, { justifyContent: "space-between" }]}>
           <Pressable
             accessibilityRole="link"
@@ -398,15 +398,15 @@ export function PostCard({
           accessibilityRole="link"
           accessibilityLabel={post.title}
           onPress={() => !detail && router.push(postPath(post))}
-          style={{ gap: 12 }}
+          style={{ gap: detail ? 12 : 7 }}
         >
           <Text
             numberOfLines={detail ? undefined : 2}
             style={[
               styles.heading,
               {
-                fontSize: detail ? textSize(22) : textSize(20),
-                lineHeight: 27,
+                fontSize: detail ? textSize(22) : textSize(18),
+                lineHeight: detail ? 27 : 23,
                 letterSpacing: -0.35,
               },
             ]}
@@ -430,8 +430,8 @@ export function PostCard({
                       backgroundColor: isDark()
                         ? "#254533"
                         : themeColor("#EAF3ED", "status"),
-                      paddingHorizontal: 11,
-                      paddingVertical: 6,
+                      paddingHorizontal: 9,
+                      paddingVertical: 4,
                       borderRadius: 9,
                     }}
                   >
@@ -485,7 +485,13 @@ export function PostCard({
             </Text>
           )}
           {!!post.body && (
-            <Text style={styles.text} numberOfLines={detail ? undefined : 2}>
+            <Text
+              style={[
+                styles.text,
+                !detail && { fontSize: textSize(14), lineHeight: 20 },
+              ]}
+              numberOfLines={detail ? undefined : 2}
+            >
               {post.body}
             </Text>
           )}
@@ -513,13 +519,13 @@ export function PostCard({
               flexDirection: "row",
               alignItems: "center",
               gap: 8,
-              paddingTop: 3,
+              paddingTop: 1,
             }}
           >
             <Avatar
               name={author?.display_name ?? "Üye"}
               url={author?.avatar_url}
-              size={26}
+              size={24}
               accent={tone ? accent : undefined}
             />
             <Text
@@ -543,7 +549,7 @@ export function PostCard({
             style={{
               borderTopWidth: 1,
               borderTopColor: themeColor("#EDF0EC", "border"),
-              paddingTop: 8,
+              paddingTop: detail ? 8 : 2,
             }}
           >
             <Actions post={post} />
