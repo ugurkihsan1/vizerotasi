@@ -4730,3 +4730,237 @@ for (const mode of ["focus", "pagination"] as const) {
     }
   });
 }
+
+test("chat shows pending text immediately and does not wait for history reload before the next send", async ({
+  page,
+}) => {
+  const { state, id, own, profile } = await chatFixtures(page);
+  let releaseSend!: () => void;
+  const sendGate = new Promise<void>((resolve) => {
+    releaseSend = resolve;
+  });
+  let releaseReads!: () => void;
+  const readGate = new Promise<void>((resolve) => {
+    releaseReads = resolve;
+  });
+  let holdReads = false;
+  await page.route(
+    "https://*.supabase.co/rest/v1/chat_messages?**",
+    async (route) => {
+      if (holdReads) await readGate;
+      await route.fulfill({ json: [...state.messages].reverse() });
+    },
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/chat_send",
+    async (route) => {
+      const args = route.request().postDataJSON();
+      await sendGate;
+      state.messages.push({
+        id: args.client_id,
+        room_id: id,
+        sender_id: own,
+        body: args.message_body,
+        created_at: new Date().toISOString(),
+        hidden_at: null,
+        profiles: profile(own),
+      });
+      await route.fulfill({ json: args.client_id });
+    },
+  );
+  try {
+    await page.goto(`/chat/${id}`);
+    await expect(
+      page.getByText("İlk mesajı sen gönder.", { exact: true }),
+    ).toBeVisible();
+    holdReads = true;
+    await page
+      .getByLabel("Mesajın", { exact: true })
+      .fill("Yavaş ağda ilk mesaj");
+    await page
+      .getByRole("button", { name: "Mesaj gönder", exact: true })
+      .click();
+    await expect(
+      page
+        .getByTestId(/^chat-message-/)
+        .getByText("Yavaş ağda ilk mesaj", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Gönderiliyor…", { exact: true }),
+    ).toBeVisible();
+    expect(state.messages).toHaveLength(0);
+    releaseSend();
+    await expect(page.getByLabel("Mesajın", { exact: true })).toHaveValue("");
+    await expect(page.getByLabel("Mesajın", { exact: true })).toBeEditable();
+    await page
+      .getByLabel("Mesajın", { exact: true })
+      .fill("İkinci mesajı da yazabiliyorum");
+    await page
+      .getByRole("button", { name: "Mesaj gönder", exact: true })
+      .click();
+    await expect(page.getByLabel("Mesajın", { exact: true })).toHaveValue("");
+    await expect(
+      page
+        .getByTestId(/^chat-message-/)
+        .getByText("Yavaş ağda ilk mesaj", { exact: true }),
+    ).toHaveCount(1);
+    await expect(
+      page
+        .getByTestId(/^chat-message-/)
+        .getByText("İkinci mesajı da yazabiliyorum", { exact: true }),
+    ).toHaveCount(1);
+    releaseReads();
+    await expect.poll(() => state.messages.length).toBe(2);
+    await expect(page.getByText("Gönderiliyor…", { exact: true })).toHaveCount(
+      0,
+    );
+    await expect(
+      page
+        .getByTestId(/^chat-message-/)
+        .getByText("Yavaş ağda ilk mesaj", { exact: true }),
+    ).toHaveCount(1);
+  } finally {
+    releaseSend();
+    releaseReads();
+  }
+});
+
+test("an incoming message appears within the short fallback interval when realtime is unavailable", async ({
+  page,
+}) => {
+  const { state, id, peer, profile } = await chatFixtures(page);
+  await page.goto(`/chat/${id}`);
+  await expect(
+    page.getByText("İlk mesajı sen gönder.", { exact: true }),
+  ).toBeVisible();
+  state.messages.push({
+    id: "00000000-0000-0000-0000-000000000999",
+    room_id: id,
+    sender_id: peer,
+    body: "Canlı bağlantı yokken gelen mesaj",
+    created_at: new Date().toISOString(),
+    hidden_at: null,
+    profiles: profile(peer),
+  });
+  await expect(
+    page.getByText("Canlı bağlantı yokken gelen mesaj", { exact: true }),
+  ).toBeVisible({ timeout: 3500 });
+});
+
+for (const mode of ["room", "inbox"] as const) {
+  test(`the ${mode} receives realtime events even if the global unread request fails`, async ({
+    page,
+  }) => {
+    const { state, id, peer, profile } = await chatFixtures(page);
+    await page.route(
+      "https://*.supabase.co/rest/v1/rpc/chat_unread_count",
+      (route) =>
+        route.fulfill({
+          status: 503,
+          json: { message: "Fixture unread service unavailable" },
+        }),
+    );
+    if (mode === "inbox")
+      await page.route(
+        "https://*.supabase.co/rest/v1/rpc/chat_inbox",
+        (route) =>
+          route.fulfill({
+            json: state.messages.length
+              ? [
+                  {
+                    id,
+                    kind: "direct",
+                    country_id: null,
+                    title: "Deniz",
+                    created_by: peer,
+                    closed_at: null,
+                    status: "active",
+                    last_at: new Date().toISOString(),
+                    last_body: "Odaya özel canlı mesaj",
+                    unread_count: 1,
+                  },
+                ]
+              : [],
+          }),
+      );
+    let pushMessage: (() => void) | undefined;
+    await page.routeWebSocket(/supabase\.co/, (socket) => {
+      socket.onMessage((raw) => {
+        const frame = JSON.parse(String(raw));
+        const [joinRef, ref, topic, event, payload] = Array.isArray(frame)
+          ? frame
+          : [
+              frame.join_ref,
+              frame.ref,
+              frame.topic,
+              frame.event,
+              frame.payload,
+            ];
+        const reply = (replyEvent: string, replyPayload: unknown) =>
+          socket.send(
+            JSON.stringify(
+              Array.isArray(frame)
+                ? [joinRef, ref, topic, replyEvent, replyPayload]
+                : {
+                    join_ref: joinRef,
+                    ref,
+                    topic,
+                    event: replyEvent,
+                    payload: replyPayload,
+                  },
+            ),
+          );
+        if (event === "phx_join") {
+          const bindings = (payload.config?.postgres_changes ?? []).map(
+            (binding: Record<string, unknown>, i: number) => ({
+              ...binding,
+              id: i + 1,
+            }),
+          );
+          reply("phx_reply", {
+            status: "ok",
+            response: { postgres_changes: bindings },
+          });
+          if (String(topic).endsWith(mode === "room" ? `-${id}` : "-inbox"))
+            pushMessage = () =>
+              reply("postgres_changes", {
+                ids: [1],
+                data: {
+                  schema: "public",
+                  table: "chat_messages",
+                  type: "INSERT",
+                  commit_timestamp: new Date().toISOString(),
+                  columns: [],
+                  record: state.messages[0],
+                  old_record: {},
+                },
+              });
+        } else if (event === "heartbeat" || event === "phx_leave")
+          reply("phx_reply", { status: "ok", response: {} });
+      });
+    });
+    await page.goto(mode === "room" ? `/chat/${id}` : "/messages");
+    if (mode === "room")
+      await expect(
+        page.getByText("İlk mesajı sen gönder.", { exact: true }),
+      ).toBeVisible();
+    else
+      await expect(
+        page.getByRole("textbox", { name: "Sohbet ara", exact: true }),
+      ).toBeVisible();
+    await expect.poll(() => !!pushMessage).toBe(true);
+    state.messages.push({
+      id: "00000000-0000-0000-0000-000000000998",
+      room_id: id,
+      sender_id: peer,
+      body: "Odaya özel canlı mesaj",
+      created_at: new Date().toISOString(),
+      hidden_at: null,
+      profiles: profile(peer),
+    });
+    pushMessage!();
+    await expect(
+      page.getByText("Odaya özel canlı mesaj", { exact: true }),
+    ).toBeVisible({ timeout: 1500 });
+  });
+}

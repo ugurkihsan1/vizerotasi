@@ -10,8 +10,7 @@ import { chatError, useChatRealtime, useChatUnread } from "../lib/chat";
 import { useFollows } from "../lib/data";
 import { Button, Sheet, Message, styles, colors, useGate } from "./ui";
 export function ChatSync() {
-  const q = useChatUnread();
-  useChatRealtime(undefined, q.isSuccess);
+  useChatRealtime();
   return null;
 }
 export function MessagesEntry() {

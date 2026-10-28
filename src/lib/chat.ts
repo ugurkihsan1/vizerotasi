@@ -163,7 +163,11 @@ export function useChatMembers(
     refetchIntervalInBackground: false,
   });
 }
-export function useChatMessages(id: string, enabled: boolean) {
+export function useChatMessages(
+  id: string,
+  enabled: boolean,
+  realtimeConnected = false,
+) {
   const { session } = useAuth();
   return useInfiniteQuery({
     queryKey: ["chat", "messages", session?.user.id, id],
@@ -194,19 +198,31 @@ export function useChatMessages(id: string, enabled: boolean) {
             id: last[last.length - 1].id,
           }
         : undefined,
-    refetchInterval: 5000,
+    refetchInterval: realtimeConnected ? 20000 : 2000,
     refetchIntervalInBackground: false,
   });
 }
 /** INSERT/UPDATE only: Postgres RLS checks each recipient. No private message cache on disk. */
 export function useChatRealtime(id?: string, enabled = true) {
+  const [connectedChannel, setConnectedChannel] = useState<string | null>(null);
   const { session } = useAuth(),
     cache = useQueryClient();
   useEffect(() => {
     if (!session || !enabled) return;
     let channel: ReturnType<ReturnType<typeof db>["channel"]> | undefined;
     const refresh = () => {
-      void cache.invalidateQueries({ queryKey: ["chat"] });
+      // An inbox event must not reload every room and every history page.
+      for (const part of ["inbox", "unread"]) {
+        void cache.invalidateQueries(
+          { queryKey: ["chat", part, session.user.id] },
+          { cancelRefetch: false },
+        );
+      }
+      if (id)
+        void cache.invalidateQueries(
+          { queryKey: ["chat", "messages", session.user.id, id] },
+          { cancelRefetch: false },
+        );
     };
     const connect = () => {
       if (
@@ -224,9 +240,17 @@ export function useChatRealtime(id?: string, enabled = true) {
         .channel(`chat-${session.user.id}-${id ?? "inbox"}`)
         .on("postgres_changes", { ...filter, event: "INSERT" }, refresh)
         .on("postgres_changes", { ...filter, event: "UPDATE" }, refresh)
-        .subscribe();
+        .subscribe((status) => {
+          setConnectedChannel(
+            status === "SUBSCRIBED"
+              ? `chat-${session.user.id}-${id ?? "inbox"}`
+              : null,
+          );
+          if (status === "SUBSCRIBED") refresh();
+        });
     };
     const disconnect = () => {
+      setConnectedChannel(null);
       if (channel) {
         void db().removeChannel(channel);
         channel = undefined;
@@ -244,4 +268,7 @@ export function useChatRealtime(id?: string, enabled = true) {
       disconnect();
     };
   }, [session?.user.id, session, cache, id, enabled]);
+  return (
+    enabled && connectedChannel === `chat-${session?.user.id}-${id ?? "inbox"}`
+  );
 }

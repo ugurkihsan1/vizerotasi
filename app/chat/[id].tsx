@@ -1,3 +1,7 @@
+import {
+  mergeChatMessages,
+  type LocalChatMessage,
+} from "../../src/lib/chat-messages";
 import { ChatPhoto, ChatSharedPost } from "../../src/components/ChatAttachment";
 import {
   pickChatPhoto,
@@ -25,7 +29,7 @@ import {
   useFocusEffect,
   useLocalSearchParams,
 } from "expo-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { randomUUID } from "expo-crypto";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../src/lib/auth";
@@ -34,6 +38,7 @@ import { useProfile } from "../../src/lib/data";
 import {
   chatError,
   useChatMessages,
+  useChatRealtime,
   useChatMembers,
   useChatRoom,
   type ChatMessage,
@@ -89,9 +94,14 @@ function ChatRoomScreen({ id }: { id: string }) {
     );
   const own = members.data?.find((m) => m.user_id === session?.user.id),
     allowed = own?.status === "active";
+  const realtimeConnected = useChatRealtime(
+    id,
+    focused && active && allowed && !!room.data && !room.isError,
+  );
   const messages = useChatMessages(
     id,
     focused && active && allowed && !!room.data && !room.isError,
+    realtimeConnected,
   );
   const inviter = useProfile(
     own?.invited_by ?? room.data?.created_by ?? undefined,
@@ -122,8 +132,37 @@ function ChatRoomScreen({ id }: { id: string }) {
       null,
     ),
     sending = useRef(false);
-  const list = useRef<FlatList<ChatMessage>>(null);
-  const data = messages.data?.pages.flat() ?? [];
+  const list = useRef<FlatList<LocalChatMessage>>(null);
+  const [outbox, setOutbox] = useState<LocalChatMessage[]>([]);
+  useEffect(
+    () =>
+      cache.getQueryCache().subscribe((event) => {
+        const key = event.query.queryKey;
+        if (
+          event.type !== "updated" ||
+          event.action.type !== "success" ||
+          key.length !== 4 ||
+          key[0] !== "chat" ||
+          key[1] !== "messages" ||
+          key[2] !== session?.user.id ||
+          key[3] !== id
+        )
+          return;
+        const canonical = event.query.state.data as
+          InfiniteData<ChatMessage[]> | undefined;
+        const confirmed = new Set(
+          canonical?.pages.flat().map((message) => message.id) ?? [],
+        );
+        setOutbox((current) => {
+          const remaining = current.filter(
+            (message) => !confirmed.has(message.id),
+          );
+          return remaining.length === current.length ? current : remaining;
+        });
+      }),
+    [cache, session?.user.id, id],
+  );
+  const data = mergeChatMessages(messages.data?.pages.flat() ?? [], outbox);
   const newestId = data[0]?.id;
   const directUnavailable =
     room.data?.kind === "direct" &&
@@ -194,16 +233,54 @@ function ChatRoomScreen({ id }: { id: string }) {
     }
   }
   async function send() {
-    if (sending.current || (!text.trim() && !photo)) return;
+    if (sending.current || (!text.trim() && !photo) || !session) return;
     sending.current = true;
     setBusy(true);
     setError("");
     const body = text.trim();
+    let pendingId: string | undefined;
+    const localMessage = (
+      messageId: string,
+      messageBody: string,
+    ): LocalChatMessage => ({
+      id: messageId,
+      room_id: id,
+      sender_id: session.user.id,
+      body: messageBody,
+      created_at: new Date().toISOString(),
+      hidden_at: null,
+      profiles: profile
+        ? {
+            username: profile.username,
+            display_name: profile.display_name,
+            avatar_url: profile.avatar_url,
+          }
+        : null,
+    });
+    const refreshMessages = () => {
+      void cache.invalidateQueries(
+        { queryKey: ["chat", "messages", session.user.id, id] },
+        { cancelRefetch: false },
+      );
+      void cache.invalidateQueries(
+        { queryKey: ["chat", "inbox", session.user.id] },
+        { cancelRefetch: false },
+      );
+    };
     try {
-      if (photo && session) {
+      if (photo) {
         await sendChatPhoto(photo, id, session.user.id);
+        const sentPhoto = {
+          ...localMessage(photo.id, ""),
+          image_path: photo.path,
+          delivery_state: "sent" as const,
+        };
+        setOutbox((current) => [
+          ...current.filter((message) => message.id !== sentPhoto.id),
+          sentPhoto,
+        ]);
         setPhoto(null);
-        await cache.invalidateQueries({ queryKey: ["chat"] });
+        refreshMessages();
         if (!body) return;
       }
       if (
@@ -212,19 +289,36 @@ function ChatRoomScreen({ id }: { id: string }) {
         attempt.current.room !== id
       )
         attempt.current = { id: randomUUID(), body, room: id };
+      pendingId = attempt.current.id;
+      const preview = {
+        ...localMessage(pendingId, body),
+        delivery_state: "sending" as const,
+      };
+      setOutbox((current) => [
+        ...current.filter((message) => message.id !== preview.id),
+        preview,
+      ]);
+      list.current?.scrollToOffset({ offset: 0, animated: true });
       await call("chat_send", {
         target: id,
         message_body: body,
-        client_id: attempt.current.id,
+        client_id: pendingId,
       });
+      setOutbox((current) =>
+        current.map((message) =>
+          message.id === pendingId
+            ? { ...message, delivery_state: "sent" }
+            : message,
+        ),
+      );
       attempt.current = null;
       setText("");
-      await cache.invalidateQueries({
-        queryKey: ["chat", "messages", session?.user.id, id],
-      });
-      void cache.invalidateQueries({ queryKey: ["chat", "inbox"] });
-      list.current?.scrollToOffset({ offset: 0, animated: true });
+      refreshMessages();
     } catch (e) {
+      if (pendingId)
+        setOutbox((current) =>
+          current.filter((message) => message.id !== pendingId),
+        );
       setError(chatError(e));
     } finally {
       sending.current = false;
@@ -392,7 +486,7 @@ function ChatRoomScreen({ id }: { id: string }) {
             day = formatDate(m.created_at),
             older = data[index + 1];
           return (
-            <View style={{ gap: 8 }}>
+            <View testID={`chat-message-${m.id}`} style={{ gap: 8 }}>
               {(!older || formatDate(older.created_at) !== day) && (
                 <Text
                   style={[
@@ -454,6 +548,7 @@ function ChatRoomScreen({ id }: { id: string }) {
                 )}
                 <Pressable
                   accessibilityRole="button"
+                  disabled={!!m.delivery_state}
                   accessibilityLabel={`${m.profiles?.username ?? "Üye"}: ${m.hidden_at ? "Mesaj kaldırıldı" : m.body}`}
                   onPress={() => {
                     setSelected(m);
@@ -478,8 +573,10 @@ function ChatRoomScreen({ id }: { id: string }) {
                       alignSelf: "flex-end",
                     }}
                   >
-                    {formatDateTime(m.created_at).split(" ").pop()}
-                    {mine && privateRoom && seenBy(m) > 0
+                    {m.delivery_state === "sending"
+                      ? "Gönderiliyor…"
+                      : formatDateTime(m.created_at).split(" ").pop()}
+                    {mine && !m.delivery_state && privateRoom && seenBy(m) > 0
                       ? ` · ${room.data.kind === "direct" ? "Görüldü" : `${seenBy(m)} kişi gördü`}`
                       : ""}
                   </Text>
