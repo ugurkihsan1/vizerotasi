@@ -414,6 +414,9 @@ export default function Create() {
         for (const file of evidence) {
           if (uploadedEvidence.current.has(file.uri)) continue;
           await uploadEvidence(file, session.user.id, id);
+          void cache.invalidateQueries({ queryKey: ["evidence-queue"] });
+          void cache.invalidateQueries({ queryKey: ["post-evidence", id] });
+          void cache.invalidateQueries({ queryKey: ["post-verification", id] });
           uploadedEvidence.current.add(file.uri);
           setUploadedUris((current) => [...current, file.uri]);
         }

@@ -62,6 +62,9 @@ export function EvidenceUpload({
       <Text style={styles.muted}>
         Sadece sen ve yönetim görür · Kişisel bilgileri gizle.
       </Text>
+      {files.length > 0 && (
+        <Text style={styles.muted}>Seçildi · Gönderince yüklenecek.</Text>
+      )}
       {files.map((f, i) => (
         <View key={`${f.uri}:${i}`} style={{ gap: 4 }}>
           <Text style={styles.text}>

@@ -4582,3 +4582,136 @@ test("visa validity accepts years and preserves the selected unit across steps",
     requested_days: null,
   });
 });
+
+for (const mode of ["focus", "pagination"] as const) {
+  test(`evidence queue refreshes on ${mode} and explains independent review for own documents`, async ({
+    page,
+  }) => {
+    await member(page);
+    const me = "00000000-0000-0000-0000-000000000200";
+    await page.route("https://*.supabase.co/rest/v1/profiles?**", (route) =>
+      route.fulfill({
+        json: {
+          id: me,
+          username: "reviewer",
+          display_name: "Reviewer",
+          role: "admin",
+          membership_level: "Öncü Üye",
+        },
+      }),
+    );
+    const ids = Array.from(
+      { length: mode === "pagination" ? 51 : 1 },
+      (_, i) => `00000000-0000-0000-0000-${String(1000 + i).padStart(12, "0")}`,
+    );
+    let available = mode === "pagination";
+    const cursors: (string | null)[] = [];
+    await page.route(
+      "https://*.supabase.co/rest/v1/post_verifications?**",
+      (route) => {
+        const params = new URL(route.request().url()).searchParams;
+        if (params.get("select") !== "post_id")
+          return route.fulfill({
+            json: {
+              post_id: params.get("post_id")?.replace("eq.", ""),
+              status: "pending",
+              verified_at: null,
+            },
+          });
+        cursors.push(params.get("post_id"));
+        const cursor = params.get("post_id")?.replace("gt.", "");
+        return route.fulfill({
+          json: available
+            ? ids
+                .filter((id) => !cursor || id > cursor)
+                .slice(0, 50)
+                .map((post_id) => ({ post_id }))
+            : [],
+        });
+      },
+    );
+    await page.route("https://*.supabase.co/rest/v1/feed?**", (route) => {
+      const id = new URL(route.request().url()).searchParams
+        .get("id")
+        ?.replace("eq.", "");
+      return route.fulfill({
+        json: id
+          ? {
+              id,
+              user_id: me,
+              country_id: "spain",
+              kind: "experience",
+              title: `Belge paylaşımı ${ids.indexOf(id) + 1}`,
+              body: "Belge incelemesi bekleyen örnek paylaşım.",
+              status: "approved",
+              result: "approved",
+              created_at: "2026-10-28T10:00:00Z",
+              helpful_count: 0,
+              comment_count: 0,
+            }
+          : [],
+      });
+    });
+    await page.route(
+      "https://*.supabase.co/rest/v1/post_evidence?**",
+      (route) =>
+        route.fulfill({
+          json: [
+            {
+              id: "fixture-evidence",
+              file_name: "fixture-policy.pdf",
+              size_bytes: 1000,
+              storage_path: "private-fixture/file.pdf",
+            },
+          ],
+        }),
+    );
+    await page.goto("/moderation");
+    if (mode === "focus") {
+      await expect(
+        page.getByText("İnceleme bekleyen belge yok.", { exact: true }),
+      ).toBeVisible();
+      await page
+        .getByRole("button", { name: "Belge notlarını incele", exact: true })
+        .click();
+      await expect(page).toHaveURL(/document-notes/);
+      available = true;
+      await page.goBack();
+      await expect(
+        page.getByText("Belge paylaşımı 1", { exact: true }),
+      ).toBeVisible({ timeout: 3000 });
+      await expect(
+        page.getByText("Kendi belgelerini başka bir yönetici incelemeli.", {
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", {
+          name: "Belgeleri yeterli buldum · Doğrula",
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      await page
+        .getByRole("button", { name: "Kuyruğu yenile", exact: true })
+        .click();
+      await expect.poll(() => cursors.length).toBeGreaterThan(2);
+    } else {
+      await expect(
+        page.getByText("Belge paylaşımı 50", { exact: true }),
+      ).toBeAttached();
+      await page
+        .getByRole("button", { name: "Diğer belgeleri göster", exact: true })
+        .click();
+      await expect(
+        page.getByText("Belge paylaşımı 51", { exact: true }),
+      ).toBeVisible();
+      expect(cursors).toContain(`gt.${ids[49]}`);
+      await expect(
+        page.getByRole("button", {
+          name: "Diğer belgeleri göster",
+          exact: true,
+        }),
+      ).toHaveCount(0);
+    }
+  });
+}

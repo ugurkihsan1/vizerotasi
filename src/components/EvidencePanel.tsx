@@ -1,7 +1,12 @@
 import { useAppearance } from "../lib/appearance";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useFocusEffect, useIsFocused } from "expo-router";
 import { View, Text, Linking, Pressable } from "react-native";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useQueryClient,
+  useInfiniteQuery,
+} from "@tanstack/react-query";
 import { useAuth } from "../lib/auth";
 import { db } from "../lib/supabase";
 import {
@@ -89,6 +94,7 @@ export function EvidencePanel({ post }: { post: Post }) {
     (staff || own) && ["experience", "tip"].includes(post.kind),
   );
   const verification = useVerification(post.id);
+  const [notice, setNotice] = useState("");
   const [files, setFiles] = useState<EvidenceDraft[]>([]),
     [error, setError] = useState("");
   const [busy, setBusy] = useState(false),
@@ -108,6 +114,14 @@ export function EvidencePanel({ post }: { post: Post }) {
     <View style={[styles.card, { gap: 12 }]}>
       <Text style={styles.heading}>Özel belge incelemesi</Text>
       <VerificationLabel postId={post.id} />
+      {staff && own && !!q.data?.length && (
+        <Text style={styles.muted}>
+          Kendi belgelerini başka bir yönetici incelemeli.
+        </Text>
+      )}
+      {!!notice && files.length === 0 && (
+        <Text style={styles.pillText}>{notice}</Text>
+      )}
       <Text style={styles.muted}>
         Bu belgeler yalnız paylaşımın sahibi ve yönetim tarafından görülebilir.
         Yayın onayından ayrı incelenir.
@@ -189,6 +203,7 @@ export function EvidencePanel({ post }: { post: Post }) {
               onPress={() => {
                 setBusy(true);
                 setError("");
+                setNotice("");
                 void (async () => {
                   for (const f of files) {
                     await uploadEvidence(f, session!.user.id, post.id);
@@ -197,6 +212,7 @@ export function EvidencePanel({ post }: { post: Post }) {
                     );
                   }
                   invalidate();
+                  setNotice("Belgelerin inceleme kuyruğuna gönderildi.");
                 })()
                   .catch(() => {
                     setError(
@@ -311,37 +327,86 @@ function EvidenceQueueItem({ id }: { id: string }) {
 }
 export function EvidenceQueue() {
   useAppearance();
-
-  const q = useQuery({
-    queryKey: ["evidence-queue"],
-    queryFn: async () => {
-      const r = await db()
+  const { session, profile } = useAuth();
+  const focused = useIsFocused();
+  const staff = !!profile && profile.role !== "user";
+  const q = useInfiniteQuery({
+    queryKey: ["evidence-queue", session?.user.id],
+    enabled: staff && focused,
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }) => {
+      let query = db()
         .from("post_verifications")
         .select("post_id")
         .eq("status", "pending")
+        .order("post_id")
         .limit(50);
+      if (pageParam) query = query.gt("post_id", pageParam);
+      const r = await query;
       if (r.error) throw r.error;
       return r.data as { post_id: string }[];
     },
+    getNextPageParam: (last) =>
+      last.length === 50 ? last[last.length - 1].post_id : undefined,
+    refetchInterval: focused ? 10000 : false,
+    refetchIntervalInBackground: false,
   });
+  const { refetch } = q;
+  useFocusEffect(
+    useCallback(() => {
+      if (staff) void refetch();
+    }, [staff, refetch]),
+  );
+  const items = [
+    ...new Map(
+      (q.data?.pages.flat() ?? []).map((item) => [item.post_id, item]),
+    ).values(),
+  ];
+  if (!staff) return null;
   return (
-    <View style={{ gap: 16 }}>
-      <Text style={styles.heading}>Belge doğrulama kuyruğu</Text>
-      <Text style={styles.muted}>
-        Yayınlanan bir paylaşımın belgeleri sonradan da gelebilir. Yayın onayı
-        belge doğrulamasından ayrıdır.
-      </Text>
-      {q.data?.map((x) => (
+    <View style={{ gap: 12 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <Text style={[styles.heading, { flex: 1 }]}>
+          Belge doğrulama kuyruğu
+        </Text>
+        <Button
+          secondary
+          label="Kuyruğu yenile"
+          disabled={q.isFetching}
+          onPress={() => void refetch()}
+        />
+      </View>
+      {items.map((x) => (
         <EvidenceQueueItem key={x.post_id} id={x.post_id} />
       ))}
-      {!q.data?.length && (
+      {q.isError && (
         <Text style={styles.muted}>
-          {q.isError
-            ? "Belge kuyruğu yüklenemedi. Şema güncellemesini kontrol et."
-            : q.isPending
-              ? "Belgeler yükleniyor…"
-              : "İnceleme bekleyen belge yok."}
+          Belge kuyruğu yüklenemedi. Yeniden dene.
         </Text>
+      )}
+      {!items.length && !q.isError && (
+        <Text style={styles.muted}>
+          {q.isPending
+            ? "Belgeler yükleniyor…"
+            : "İnceleme bekleyen belge yok."}
+        </Text>
+      )}
+      {q.hasNextPage && (
+        <Button
+          secondary
+          label={
+            q.isFetchingNextPage ? "Yükleniyor…" : "Diğer belgeleri göster"
+          }
+          disabled={q.isFetching}
+          onPress={() => void q.fetchNextPage()}
+        />
       )}
     </View>
   );
