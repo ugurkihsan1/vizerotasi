@@ -3383,3 +3383,145 @@ test("notifications highlight unread replies and filter them on mobile", async (
   ).toBeVisible();
   await page.screenshot({ path: "/tmp/notifications-mobile.png" });
 });
+
+async function fillSignup(page: Page) {
+  await page.goto("/auth?mode=signup");
+  await page.getByLabel("Adınız", { exact: true }).fill("Test Yolcu");
+  await page.getByLabel("Kullanıcı adı", { exact: true }).fill("test_yolcu");
+  await page.getByLabel("E-posta", { exact: true }).fill("ui-test@example.com");
+  await page
+    .getByLabel("Şifre · en az 8 karakter", { exact: true })
+    .fill("Test1234");
+  await page
+    .getByRole("switch", {
+      name: "Kullanım koşullarını kabul ediyorum",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("switch", {
+      name: "Gizlilik politikasını kabul ediyorum",
+      exact: true,
+    })
+    .click();
+}
+
+test("signup explains a taken username without submitting or blaming the connection", async ({
+  page,
+}) => {
+  await fixtures(page);
+  let signups = 0;
+  await page.route("https://*.supabase.co/rest/v1/profiles?**", (route) =>
+    route.fulfill({ json: [{ id: "existing-profile" }] }),
+  );
+  await page.route("https://*.supabase.co/auth/v1/signup**", (route) => {
+    signups++;
+    return route.fulfill({ status: 500, json: { code: "unexpected_failure" } });
+  });
+  await fillSignup(page);
+  await page
+    .getByRole("button", { name: "Hesabımı oluştur", exact: true })
+    .click();
+  await expect(
+    page.getByText("Bu kullanıcı adı alınmış. Başka bir kullanıcı adı seç.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(signups).toBe(0);
+  await expect(page.getByText(/Bağlantını kontrol/)).toHaveCount(0);
+});
+
+test("signup handles a username race after a generic database failure", async ({
+  page,
+}) => {
+  await fixtures(page);
+  let checks = 0;
+  await page.route("https://*.supabase.co/rest/v1/profiles?**", (route) =>
+    route.fulfill({ json: ++checks === 1 ? [] : [{ id: "racing-profile" }] }),
+  );
+  await page.route("https://*.supabase.co/auth/v1/signup**", (route) =>
+    route.fulfill({
+      status: 500,
+      json: {
+        code: "unexpected_failure",
+        msg: "Database error saving new user",
+      },
+    }),
+  );
+  await fillSignup(page);
+  await page
+    .getByRole("button", { name: "Hesabımı oluştur", exact: true })
+    .click();
+  await expect(
+    page.getByText("Bu kullanıcı adı alınmış. Başka bir kullanıcı adı seç.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+});
+
+for (const type of ["signup", "recovery"] as const) {
+  test(`email ${type} redirect shows the correct focused screen`, async ({
+    page,
+  }) => {
+    await fixtures(page);
+    const user = {
+      id: "00000000-0000-0000-0000-000000000999",
+      aud: "authenticated",
+      role: "authenticated",
+      email: "verified@example.com",
+      email_confirmed_at: "2026-10-28T10:00:00Z",
+      app_metadata: {},
+      user_metadata: {},
+      created_at: "2026-10-28T10:00:00Z",
+    };
+    await page.route("https://*.supabase.co/auth/v1/user", (route) =>
+      route.fulfill({ json: user }),
+    );
+    const jwt = `${Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url")}.${Buffer.from(JSON.stringify({ sub: user.id, exp: Math.floor(Date.now() / 1000) + 3600, aud: "authenticated" })).toString("base64url")}.test-signature`;
+    await page.goto(
+      `/auth#access_token=${jwt}&refresh_token=fixture-refresh&expires_in=3600&token_type=bearer&type=${type}`,
+    );
+    if (type === "recovery") {
+      await expect(
+        page.getByText("Yeni bir şifre seç.", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByText("E-posta adresin doğrulandı", { exact: true }),
+      ).toHaveCount(0);
+    } else {
+      await expect(
+        page.getByText("E-posta adresin doğrulandı", { exact: true }),
+      ).toBeVisible();
+      await expect(page.getByLabel("E-posta", { exact: true })).toHaveCount(0);
+      await page.screenshot({ path: "/tmp/email-verified-mobile.png" });
+      await page
+        .getByRole("button", { name: "Giriş ekranına dön", exact: true })
+        .click();
+      await expect(page.getByLabel("E-posta", { exact: true })).toBeVisible();
+      await expect(
+        page.getByText("E-posta adresin doğrulandı", { exact: true }),
+      ).toHaveCount(0);
+    }
+  });
+}
+
+test("expired verification link shows an error and an arbitrary success flag cannot verify email", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.goto("/auth#error=access_denied&error_code=otp_expired");
+  await expect(
+    page.getByText("Bağlantı açılamadı", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "Bağlantı geçersiz veya süresi dolmuş. Yeni bir bağlantı iste.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await page.goto("/auth?confirmed=1");
+  await expect(page.getByLabel("E-posta", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("E-posta adresin doğrulandı", { exact: true }),
+  ).toHaveCount(0);
+});

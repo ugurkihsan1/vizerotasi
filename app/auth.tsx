@@ -1,3 +1,5 @@
+import { Ionicons } from "@expo/vector-icons";
+import { parseAuthCallback } from "../src/lib/auth-callback";
 import { webPath } from "../src/lib/web-path";
 import { useAppearance, themeColor, textSize } from "../src/lib/appearance";
 import { Image } from "expo-image";
@@ -23,7 +25,13 @@ import {
 import { useForm, Controller } from "react-hook-form";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Linking from "expo-linking";
-import { db, configured, supabase } from "../src/lib/supabase";
+import {
+  db,
+  configured,
+  supabase,
+  initialAuthUrl,
+  clearInitialAuthUrl,
+} from "../src/lib/supabase";
 import { signupSchema } from "../src/lib/schemas";
 import { authErrorMessage } from "../src/lib/auth-errors";
 import { styles, Button, Field, Message, colors } from "../src/components/ui";
@@ -36,6 +44,7 @@ type AuthValues = {
   privacy: boolean;
 };
 type Mode = "login" | "signup" | "forgot" | "reset";
+type Confirmation = "checking" | "verified" | "error" | null;
 export default function Auth() {
   useAppearance();
 
@@ -47,6 +56,16 @@ export default function Auth() {
       : params.mode === "signup"
         ? "signup"
         : "login",
+  );
+  const [callbackDismissed, setCallbackDismissed] = useState(false);
+  const callbackSource = callbackDismissed
+    ? null
+    : Platform.OS === "web" && parseAuthCallback(initialAuthUrl)
+      ? initialAuthUrl
+      : callbackUrl;
+  const initialCallback = parseAuthCallback(callbackSource);
+  const [confirmation, setConfirmation] = useState<Confirmation>(
+    initialCallback ? "checking" : null,
   );
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -76,34 +95,61 @@ export default function Auth() {
     return () => sub?.data.subscription.unsubscribe();
   }, []);
   useEffect(() => {
-    if (!callbackUrl || !supabase) return;
-    let url: URL;
-    try {
-      url = new URL(callbackUrl);
-    } catch {
-      return;
-    }
-    const hash = new URLSearchParams(url.hash.slice(1));
-    const access_token = hash.get("access_token"),
-      refresh_token = hash.get("refresh_token");
-    if (access_token && refresh_token)
-      void supabase.auth
-        .setSession({ access_token, refresh_token })
-        .then((r) => {
-          if (r.error)
-            setMessage(
-              "Bağlantının süresi dolmuş olabilir. Yeni bir bağlantı isteyebilirsin.",
-            );
-          else if (
-            hash.get("type") === "recovery" ||
-            url.searchParams.get("recovery")
-          )
+    const callback = parseAuthCallback(callbackSource);
+    if (!callback || !supabase) return;
+    let active = true;
+    void (async () => {
+      await Promise.resolve();
+      if (!active) return;
+      setConfirmation("checking");
+      try {
+        if (callback.error) throw { code: callback.error };
+        // The web SDK consumes the redirect during initialization. Await its
+        // session instead of racing it with another setSession call.
+        const result =
+          Platform.OS === "web"
+            ? await supabase!.auth.getSession()
+            : await supabase!.auth.setSession({
+                access_token: callback.accessToken!,
+                refresh_token: callback.refreshToken!,
+              });
+        if (result.error) throw result.error;
+        if (!result.data.session) throw { code: "otp_expired" };
+        if (callback.type === "recovery") {
+          if (active) {
             setMode("reset");
-          else setMessage("E-posta adresin doğrulandı. Giriş yapabilirsin.");
-        });
-  }, [callbackUrl]);
+            setConfirmation(null);
+          }
+          return;
+        }
+        if (callback.type !== "signup" && callback.type !== "email_change") {
+          if (active) {
+            setConfirmation(null);
+            setMessage("Bağlantı açıldı. Devam edebilirsin.");
+          }
+          return;
+        }
+        const user = await supabase!.auth.getUser();
+        if (user.error) throw user.error;
+        if (!user.data.user?.email_confirmed_at) throw { code: "otp_expired" };
+        if (active) {
+          setMessage("");
+          setConfirmation("verified");
+        }
+      } catch (error) {
+        if (active) {
+          setMessage(authErrorMessage(error));
+          setConfirmation("error");
+        }
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [callbackSource]);
   const changeMode = (next: Mode) => {
     setMode(next);
+    setConfirmation(null);
     setMessage("");
     setSent(false);
     clearErrors();
@@ -145,6 +191,16 @@ export default function Auth() {
           return;
         }
         const value = parsed.data;
+        const usernameTaken = async () => {
+          const check = await db()
+            .from("profiles")
+            .select("id")
+            .eq("username", value.username)
+            .limit(1);
+          if (check.error) throw { code: "username_check_failed" };
+          return !!check.data?.length;
+        };
+        if (await usernameTaken()) throw { code: "username_taken" };
         const r = await db().auth.signUp({
           email: value.email,
           password: value.password,
@@ -158,7 +214,19 @@ export default function Auth() {
             emailRedirectTo: redirect(),
           },
         });
-        if (r.error) throw r.error;
+        if (r.error) {
+          // The database unique constraint still wins if two signups race.
+          // Recheck before attributing a generic Auth database failure to a name.
+          if ((r.error.status ?? 0) >= 500) {
+            try {
+              if (await usernameTaken()) throw { code: "username_taken" };
+            } catch (checkError) {
+              if ((checkError as { code?: string }).code === "username_taken")
+                throw checkError;
+            }
+          }
+          throw r.error;
+        }
         let photoNotice = "";
         if (photo && r.data.user) {
           try {
@@ -215,11 +283,80 @@ export default function Auth() {
         router.replace("/");
       }
     } catch (e) {
-      setMessage(authErrorMessage(e));
+      const text = authErrorMessage(e);
+      if (
+        mode === "signup" &&
+        (e as { code?: string })?.code === "username_taken"
+      )
+        setError("username", { message: text });
+      else setMessage(text);
     } finally {
       setBusy(false);
     }
   }
+  if (confirmation)
+    return (
+      <ScrollView
+        style={styles.page}
+        contentContainerStyle={[
+          styles.content,
+          {
+            flexGrow: 1,
+            justifyContent: "center",
+            maxWidth: 460,
+            width: "100%",
+            alignSelf: "center",
+            gap: 24,
+          },
+        ]}
+      >
+        <Brand />
+        <View
+          style={[styles.card, { padding: 28, gap: 18, alignItems: "center" }]}
+        >
+          <Ionicons
+            name={
+              confirmation === "verified"
+                ? "checkmark-circle-outline"
+                : confirmation === "error"
+                  ? "alert-circle-outline"
+                  : "mail-outline"
+            }
+            size={64}
+            color={confirmation === "error" ? colors.amber : colors.green}
+          />
+          <Text style={[styles.title, { textAlign: "center" }]}>
+            {confirmation === "verified"
+              ? "E-posta adresin doğrulandı"
+              : confirmation === "error"
+                ? "Bağlantı açılamadı"
+                : "E-posta adresin doğrulanıyor"}
+          </Text>
+          {confirmation === "verified" && (
+            <Text style={[styles.muted, { textAlign: "center" }]}>
+              Vizesel hesabın hazır.
+            </Text>
+          )}
+          <Message text={message} />
+          {confirmation !== "checking" && (
+            <View style={{ alignSelf: "stretch" }}>
+              <Button
+                label="Giriş ekranına dön"
+                onPress={() => {
+                  // Clear callback parameters without signing the user out of other devices.
+                  if (Platform.OS === "web")
+                    window.history.replaceState({}, "", webPath("/auth"));
+                  clearInitialAuthUrl();
+                  setCallbackDismissed(true);
+                  changeMode("login");
+                  router.replace("/auth");
+                }}
+              />
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    );
   return (
     <KeyboardAvoidingView
       style={styles.page}

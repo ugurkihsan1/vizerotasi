@@ -13,6 +13,14 @@ const config = resolvePublicConfig(
   publicConfig,
 );
 export const configured = !!config;
+// Capture the auth redirect before the SDK consumes and clears its URL fragment.
+export let initialAuthUrl =
+  Platform.OS === "web" && typeof window !== "undefined"
+    ? window.location.href
+    : null;
+export function clearInitialAuthUrl() {
+  initialAuthUrl = null;
+}
 export const supabase = config
   ? createClient(config.url, config.key, {
       auth: {
