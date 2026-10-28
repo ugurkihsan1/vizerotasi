@@ -13,11 +13,13 @@ export function EvidenceUpload({
   onChange,
   disabled = false,
   existing = 0,
+  compact = false,
 }: {
   files: EvidenceDraft[];
   onChange: (files: EvidenceDraft[]) => void;
   disabled?: boolean;
   existing?: number;
+  compact?: boolean;
 }) {
   useAppearance();
 
@@ -31,37 +33,47 @@ export function EvidenceUpload({
           padding: 12,
           gap: 8,
         },
+        compact && {
+          borderWidth: 0,
+          padding: 0,
+          backgroundColor: "transparent",
+        },
       ]}
     >
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Text style={[styles.pillText, { flex: 1 }]}>
-          Belge ekle · isteğe bağlı
+      {!compact && (
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Text style={[styles.pillText, { flex: 1 }]}>
+            Belge ekle · isteğe bağlı
+          </Text>
+          <HelpButton
+            label="Belge doğrulaması hakkında bilgi"
+            title="Belgeyle doğrulama"
+          >
+            <Text style={styles.text}>
+              Belgelere yalnız sen ve yetkili yönetim erişebilir. Diğer üyeler
+              belgelerini göremez.
+            </Text>
+            <Text style={styles.text}>
+              En fazla 5 belge ekleyebilirsin. PDF, JPG veya PNG; her biri en
+              fazla 8 MB.
+            </Text>
+            <Text style={styles.text}>
+              Yüklemeden önce kimlik ve hesap bilgilerini gizle. İlgili seyahat
+              tarihleri görünsün.
+            </Text>
+            <Text style={styles.text}>
+              Yönetim inceler; doğrulanırsa paylaşımın etiket ve +10 puan
+              kazanır. Bu, resmî kural onayı değildir. Belgesiz de
+              paylaşabilirsin.
+            </Text>
+          </HelpButton>
+        </View>
+      )}
+      {!compact && (
+        <Text style={styles.muted}>
+          Sadece sen ve yönetim görür · Kişisel bilgileri gizle.
         </Text>
-        <HelpButton
-          label="Belge doğrulaması hakkında bilgi"
-          title="Belgeyle doğrulama"
-        >
-          <Text style={styles.text}>
-            Belgelere yalnız sen ve yetkili yönetim erişebilir. Diğer üyeler
-            belgelerini göremez.
-          </Text>
-          <Text style={styles.text}>
-            En fazla 5 belge ekleyebilirsin. PDF, JPG veya PNG; her biri en
-            fazla 8 MB.
-          </Text>
-          <Text style={styles.text}>
-            Yüklemeden önce kimlik ve hesap bilgilerini gizle. İlgili seyahat
-            tarihleri görünsün.
-          </Text>
-          <Text style={styles.text}>
-            Yönetim inceler; doğrulanırsa paylaşımın etiket ve +10 puan kazanır.
-            Bu, resmî kural onayı değildir. Belgesiz de paylaşabilirsin.
-          </Text>
-        </HelpButton>
-      </View>
-      <Text style={styles.muted}>
-        Sadece sen ve yönetim görür · Kişisel bilgileri gizle.
-      </Text>
+      )}
       {files.length > 0 && (
         <Text style={styles.muted}>Seçildi · Gönderince yüklenecek.</Text>
       )}
@@ -81,7 +93,7 @@ export function EvidenceUpload({
       <Message text={error} />
       <Button
         secondary
-        label="Destekleyici belgeleri seç"
+        label={compact ? "Belge ekle" : "Destekleyici belgeleri seç"}
         disabled={disabled || files.length + existing >= EVIDENCE_LIMIT}
         onPress={() => {
           setError("");

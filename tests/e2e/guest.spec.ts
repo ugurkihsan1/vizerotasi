@@ -4681,7 +4681,7 @@ for (const mode of ["focus", "pagination"] as const) {
         page.getByText("Belge paylaşımı 1", { exact: true }),
       ).toBeVisible({ timeout: 3000 });
       await expect(
-        page.getByText("Kendi belgelerini başka bir yönetici incelemeli.", {
+        page.getByText("Başka yönetici onayı bekleniyor", {
           exact: true,
         }),
       ).toBeVisible();
@@ -4695,6 +4695,21 @@ for (const mode of ["focus", "pagination"] as const) {
         .getByRole("button", { name: "Kuyruğu yenile", exact: true })
         .click();
       await expect.poll(() => cursors.length).toBeGreaterThan(2);
+      await page.screenshot({ path: "/tmp/compact-evidence-panel.png" });
+      await page
+        .getByRole("button", {
+          name: "Belge incelemesi hakkında bilgi",
+          exact: true,
+        })
+        .click();
+      await expect(
+        page
+          .getByRole("dialog")
+          .getByText(
+            "Belgeleri sadece sen ve yönetim görür. Kişisel bilgilerini gizle.",
+            { exact: true },
+          ),
+      ).toBeVisible();
     } else {
       await expect(
         page.getByText("Belge paylaşımı 50", { exact: true }),

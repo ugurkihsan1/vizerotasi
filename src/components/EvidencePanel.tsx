@@ -1,3 +1,5 @@
+import { Ionicons } from "@expo/vector-icons";
+import { HelpButton } from "./HelpButton";
 import { useAppearance } from "../lib/appearance";
 import { useState, useCallback } from "react";
 import { useFocusEffect, useIsFocused } from "expo-router";
@@ -21,8 +23,7 @@ import {
 } from "../lib/guide-topics";
 import type { Post } from "../lib/types";
 import { EvidenceUpload } from "./EvidenceUpload";
-import { VerificationLabel } from "./VerificationLabel";
-import { Button, Field, Message, Sheet, styles } from "./ui";
+import { Button, Field, Message, Sheet, styles, colors } from "./ui";
 export function TipPlacementEditor({ post }: { post: Post }) {
   useAppearance();
 
@@ -111,36 +112,75 @@ export function EvidencePanel({ post }: { post: Post }) {
     void cache.invalidateQueries({ queryKey: ["profile"] });
   };
   return (
-    <View style={[styles.card, { gap: 12 }]}>
-      <Text style={styles.heading}>Özel belge incelemesi</Text>
-      <VerificationLabel postId={post.id} />
-      {staff && own && !!q.data?.length && (
-        <Text style={styles.muted}>
-          Kendi belgelerini başka bir yönetici incelemeli.
-        </Text>
-      )}
-      {!!notice && files.length === 0 && (
-        <Text style={styles.pillText}>{notice}</Text>
-      )}
-      <Text style={styles.muted}>
-        Bu belgeler yalnız paylaşımın sahibi ve yönetim tarafından görülebilir.
-        Yayın onayından ayrı incelenir.
-      </Text>
+    <View style={[styles.card, { padding: 12, gap: 8 }]}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={styles.pillText}>Belgeler</Text>
+          {(!!q.data?.length || !!notice) && (
+            <Text style={[styles.muted, verified && { color: colors.green }]}>
+              {notice && files.length === 0
+                ? "İncelemeye gönderildi"
+                : verified
+                  ? "✓ Doğrulandı"
+                  : verification.data?.status === "declined"
+                    ? "Doğrulanmadı"
+                    : staff && own
+                      ? "Başka yönetici onayı bekleniyor"
+                      : "İncelemede"}
+            </Text>
+          )}
+        </View>
+        <HelpButton
+          label="Belge incelemesi hakkında bilgi"
+          title="Belge incelemesi"
+        >
+          <Text style={styles.text}>
+            Belgeleri sadece sen ve yönetim görür. Kişisel bilgilerini gizle.
+          </Text>
+          <Text style={styles.text}>
+            Kendi belgeni başka bir yönetici onaylar. Doğrulama +10 puan
+            kazandırır; resmî kural onayı değildir.
+          </Text>
+          <Text style={styles.text}>
+            Belgenin, paylaşımdaki bilgiyi desteklediğini kontrol et. Önce
+            paylaşım yayına alınmalıdır.
+          </Text>
+        </HelpButton>
+      </View>
       {q.isError && (
-        <Text style={styles.muted}>
-          Özel belgeler yüklenemedi. Veritabanı güncellemesini ve bağlantını
-          kontrol et.
-        </Text>
+        <Text style={styles.muted}>Belgeler yüklenemedi. Yeniden dene.</Text>
       )}
       {q.data?.map((f) => (
-        <View key={f.id} style={{ gap: 5 }}>
-          <Text style={styles.text}>
-            {f.file_name} · {Math.ceil(f.size_bytes / 1024)} KB
-          </Text>
-          <Button
-            secondary
+        <View
+          key={f.id}
+          style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+        >
+          <Ionicons name="document-outline" size={20} color={colors.muted} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.text} numberOfLines={1}>
+              {f.file_name}
+            </Text>
+            <Text style={styles.muted}>
+              {Math.ceil(f.size_bytes / 1024)} KB
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
             disabled={busy}
-            label={`${f.file_name} belgesini indir`}
+            accessibilityLabel={`${f.file_name} belgesini indir`}
+            style={{
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: busy ? 0.5 : 1,
+            }}
             onPress={() => {
               setError("");
               void db()
@@ -154,12 +194,21 @@ export function EvidencePanel({ post }: { post: Post }) {
                   setError("Belge indirme bağlantısı oluşturulamadı."),
                 );
             }}
-          />
+          >
+            <Ionicons name="download-outline" size={21} color={colors.navy} />
+          </Pressable>
           {own && !verified && (
-            <Button
-              secondary
+            <Pressable
+              accessibilityRole="button"
               disabled={busy}
-              label={`${f.file_name} belgesini kaldır`}
+              accessibilityLabel={`${f.file_name} belgesini kaldır`}
+              style={{
+                width: 44,
+                height: 44,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: busy ? 0.5 : 1,
+              }}
               onPress={() => {
                 setBusy(true);
                 void Promise.resolve(
@@ -175,22 +224,16 @@ export function EvidencePanel({ post }: { post: Post }) {
                   .catch(() => setError("Belge kaldırılamadı."))
                   .finally(() => setBusy(false));
               }}
-            />
+            >
+              <Ionicons name="close" size={20} color={colors.muted} />
+            </Pressable>
           )}
         </View>
       ))}
-      {verification.data?.status === "pending" && (
-        <Text style={styles.pillText}>Belge incelemesi bekliyor</Text>
-      )}
-      {verification.data?.status === "declined" && (
-        <Text style={styles.muted}>
-          Belgeler doğrulama için yeterli bulunmadı. Bu karar paylaşımın yayın
-          durumunu değiştirmez.
-        </Text>
-      )}
       {own && !verified && !q.isPending && !q.isError && (
         <>
           <EvidenceUpload
+            compact
             files={files}
             onChange={setFiles}
             disabled={busy}
@@ -228,11 +271,6 @@ export function EvidencePanel({ post }: { post: Post }) {
       )}
       {staff && !own && !!q.data?.length && (
         <>
-          <Text style={styles.muted}>
-            Tarihleri, ilgili belge alanını ve iddianın belgeyle desteklenip
-            desteklenmediğini kontrol et. Yalnız poliçe veya bilet görmek, ıslak
-            imza istendiği iddiasını tek başına doğrulamayabilir.
-          </Text>
           {!verified && (
             <Button
               label="Belgeleri yeterli buldum · Doğrula"
@@ -241,9 +279,7 @@ export function EvidencePanel({ post }: { post: Post }) {
             />
           )}
           {post.status !== "approved" && (
-            <Text style={styles.muted}>
-              Doğrulamadan önce paylaşımın yayın kararını ver.
-            </Text>
+            <Text style={styles.muted}>Önce paylaşımı yayına al.</Text>
           )}
           <Button
             secondary
@@ -266,8 +302,8 @@ export function EvidencePanel({ post }: { post: Post }) {
       >
         <Text style={styles.text}>
           {decision === "verified"
-            ? "Bu karar destekleyici belgelerin incelendiğini belirtir; resmî gereklilik onayı değildir. +10 ek puan yalnız bir kez verilir."
-            : "Doğrulama etiketi ve varsa +10 ek puan kaldırılır. Paylaşım yayında kalabilir."}
+            ? "Belge doğrulaması onaylansın mı?"
+            : "Belge doğrulaması kaldırılacak."}
         </Text>
         <Field
           label="Özel belge inceleme notu"
