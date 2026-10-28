@@ -32,7 +32,7 @@ export function Brand() {
             color: colors.navy,
           }}
         >
-          vize rotası<Text style={{ color: colors.blue }}>・</Text>
+          Vizesel<Text style={{ color: colors.blue }}>・</Text>
         </Text>
       </View>
     </View>
