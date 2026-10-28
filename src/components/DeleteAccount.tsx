@@ -18,7 +18,8 @@ export function DeleteAccount() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const pending = useRef(false);
-  const confirmed = confirmation.trim().toLocaleUpperCase("tr") === "SİL";
+  const confirmed =
+    confirmation.trim().toLocaleUpperCase("tr").replace(/İ/g, "I") === "SIL";
   function close() {
     if (pending.current) return;
     setOpen(false);

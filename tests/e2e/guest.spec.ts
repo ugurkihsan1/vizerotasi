@@ -3647,7 +3647,7 @@ test("an unavailable account deletion backend never pretends the account was del
   await page
     .getByLabel("Mevcut şifren", { exact: true })
     .fill("correct-password");
-  await page.getByLabel("Onaylamak için SİL yaz", { exact: true }).fill("SİL");
+  await page.getByLabel("Onaylamak için SİL yaz", { exact: true }).fill("SIL");
   await page
     .getByRole("button", { name: "Hesabımı kalıcı olarak sil", exact: true })
     .click();
