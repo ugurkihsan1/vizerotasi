@@ -1,8 +1,9 @@
 import { useAppearance, textSize, themeColor } from "../lib/appearance";
 import { DeleteContent } from "../components/DeleteContent";
 import { PlaneReaction } from "../components/PlaneReaction";
-import { EvidencePanel } from "../components/EvidencePanel";
-import { formatDate, formatDateTime } from "../lib/dates";
+import { PostExtraDetails } from "../components/PostExtraDetails";
+import { Ionicons } from "@expo/vector-icons";
+import { relativePostTime } from "../lib/dates";
 import { useState } from "react";
 import { View, Text, FlatList, Linking, Pressable } from "react-native";
 import { useLocalSearchParams } from "expo-router";
@@ -17,14 +18,10 @@ import {
 import { db } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import type { Comment } from "../lib/types";
-import {
-  PostCard,
-  Avatar,
-  ShareButton,
-  statusLabels,
-} from "../components/PostCard";
+import { PostCard, Avatar, statusLabels } from "../components/PostCard";
 import {
   styles,
+  colors,
   Button,
   Field,
   Sheet,
@@ -46,9 +43,11 @@ const reasons = [
 export function Report({
   postId,
   commentId,
+  label,
 }: {
   postId?: string;
   commentId?: string;
+  label?: string;
 }) {
   useAppearance();
 
@@ -71,7 +70,11 @@ export function Report({
           justifyContent: "center",
         }}
       >
-        <Text style={{ fontSize: textSize(20) }}>•••</Text>
+        <Text
+          style={{ fontSize: textSize(label ? 14 : 20), color: colors.muted }}
+        >
+          {label ?? "•••"}
+        </Text>
       </Pressable>
       <Sheet
         title="İçeriği bildir"
@@ -132,11 +135,12 @@ function CommentRow({
   return (
     <View
       style={[
-        styles.card,
         {
-          padding: 10,
+          paddingVertical: 10,
+          paddingHorizontal: 4,
           gap: 4,
-          borderRadius: 16,
+          borderBottomWidth: 1,
+          borderBottomColor: themeColor("#E4E9E2", "border"),
           marginLeft: comment.parent_comment_id ? 22 : 0,
         },
       ]}
@@ -153,7 +157,7 @@ function CommentRow({
           </Text>
         </View>
         <Text style={[styles.muted, { fontSize: textSize(10) }]}>
-          {formatDateTime(comment.created_at)}
+          {relativePostTime(comment.created_at)}
         </Text>
       </View>
       <Text style={styles.text}>{comment.body}</Text>
@@ -276,96 +280,33 @@ export default function DetailScreen() {
         />
       )}
       ListHeaderComponent={
-        <View style={{ gap: 16 }}>
+        <View style={{ gap: 12 }}>
           <PostCard post={p} detail />
           <View style={[styles.row, { justifyContent: "space-between" }]}>
-            <Text style={styles.heading}>Yorumlar</Text>
-            <Button
-              secondary
-              label="Detaylar"
+            <Text style={[styles.pillText, { fontSize: textSize(16) }]}>
+              Yorumlar{p.comment_count ? ` · ${p.comment_count}` : ""}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Detaylar"
               onPress={() => setDetails(true)}
-            />
+              style={{
+                minHeight: 44,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 5,
+              }}
+            >
+              <Text style={styles.muted}>Detaylar</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+            </Pressable>
           </View>
           <Sheet
             visible={details}
             title="Paylaşım detayları"
             onClose={() => setDetails(false)}
           >
-            {p.kind === "experience" && (
-              <View style={styles.card}>
-                <Text style={styles.heading}>Süreç</Text>
-                {[
-                  ["Randevu", p.appointment_date],
-                  ["Başvuru", p.application_date],
-                  ["Karar", p.decision_date],
-                  ["Pasaport", p.passport_date],
-                ].map(([label, date]) => (
-                  <Text key={label} style={styles.text}>
-                    ● {label} · {date ? formatDate(date) : "Henüz belirtilmedi"}
-                  </Text>
-                ))}
-                {p.advice && (
-                  <>
-                    <Text style={styles.heading}>Başvuracak birine not</Text>
-                    <Text style={styles.text}>{p.advice}</Text>
-                  </>
-                )}
-              </View>
-            )}
-            {p.kind === "experience" && !!p.invitation_notes && (
-              <View style={styles.card}>
-                <Text style={styles.heading}>Davetiye durumu</Text>
-                <Text style={styles.muted}>
-                  {p.invitation ? "Davetiyesi var" : "Davetiyeye ilişkin not"}
-                </Text>
-                <Text style={styles.text}>{p.invitation_notes}</Text>
-              </View>
-            )}
-            {p.kind === "experience" && !!p.previous_visas?.length && (
-              <View style={styles.card}>
-                <Text style={styles.heading}>Önceki Schengen vizeleri</Text>
-                {p.previous_visas.map((visa, index) => (
-                  <View
-                    key={index}
-                    style={{
-                      gap: 6,
-                      paddingTop: 10,
-                      borderTopWidth: 1,
-                      borderTopColor: themeColor("#E4E9E2", "border"),
-                    }}
-                  >
-                    <Text style={styles.pillText}>
-                      {index + 1}. {visa.country}
-                    </Text>
-                    {visa.issue_date && (
-                      <Text style={styles.muted}>
-                        Veriliş: {formatDate(visa.issue_date)}
-                      </Text>
-                    )}
-                    {!!visa.duration && (
-                      <Text style={styles.text}>
-                        Vize süresi: {visa.duration}
-                      </Text>
-                    )}
-                    {!!visa.entries && (
-                      <Text style={styles.muted}>
-                        {
-                          {
-                            single: "Tek giriş",
-                            double: "Çift giriş",
-                            multi: "Çok giriş",
-                          }[visa.entries]
-                        }
-                      </Text>
-                    )}
-                    {!!visa.notes && (
-                      <Text style={styles.text}>{visa.notes}</Text>
-                    )}
-                  </View>
-                ))}
-              </View>
-            )}
-            <EvidencePanel post={p} />
+            <PostExtraDetails post={p} />
             {p.source_url && (
               <Button
                 label="Kaynağı aç"
@@ -377,10 +318,9 @@ export default function DetailScreen() {
                 }
               />
             )}
-            <View style={styles.row}>
-              <ShareButton post={p} />
-              {p.status === "approved" && <Report postId={id} />}
-            </View>
+            {p.status === "approved" && session?.user.id !== p.user_id && (
+              <Report postId={id} label="İçeriği bildir" />
+            )}
             {session?.user.id === p.user_id &&
               ["needs_revision", "rejected"].includes(p.status) && (
                 <Button
@@ -405,7 +345,7 @@ export default function DetailScreen() {
         </Text>
       }
       ListFooterComponent={
-        <View style={{ gap: 12, marginTop: 20 }}>
+        <View style={{ gap: 8, marginTop: 12 }}>
           {reply && (
             <Button
               secondary
@@ -418,6 +358,7 @@ export default function DetailScreen() {
             value={body}
             onChangeText={setBody}
             multiline
+            style={[styles.input, { minHeight: 72, textAlignVertical: "top" }]}
             maxLength={3000}
           />
           <Message text={message} />

@@ -2440,58 +2440,114 @@ test("followed country pages are exhausted before other countries enter the home
     .toBe(true);
   expect(requests[0]).toEqual({ country: "in.(estonia)", offset: 0 });
 });
-test("post details keep the contribution and comments visible while process metadata lives in a sheet", async ({
-  page,
-}) => {
-  await fixtures(page);
-  const id = "00000000-0000-0000-0000-000000000886";
-  await page.route("https://*.supabase.co/rest/v1/feed?**", (r) =>
-    r.fulfill({
-      json: {
-        id,
-        kind: "experience",
-        country_id: "spain",
-        user_id: "00000000-0000-0000-0000-000000000301",
-        title: "Başvurumdaki deneyim",
-        body: "Belgelerimi tamamladım ve başvuru merkezine teslim ettim.",
-        status: "approved",
-        result: "approved",
-        created_at: "2026-10-27T10:00:00Z",
-        application_date: "2026-10-01",
-        decision_date: "2026-10-02",
-        is_sample: false,
-        helpful_count: 0,
-        comment_count: 1,
-      },
-    }),
-  );
-  await page.route("https://*.supabase.co/rest/v1/comments?**", (r) =>
-    r.fulfill({
-      json: [
-        {
-          id: "comment-fixture",
-          post_id: id,
-          user_id: "00000000-0000-0000-0000-000000000302",
-          parent_comment_id: null,
-          body: "Bu deneyim benim için çok faydalı oldu.",
+for (const theme of ["light", "dark"] as const) {
+  test(`post details keep content prominent and hide empty and secondary metadata in ${theme} mode`, async ({
+    page,
+  }) => {
+    await fixtures(page);
+    await page.addInitScript(
+      (theme) =>
+        localStorage.setItem(
+          "app-appearance:v1",
+          JSON.stringify({
+            theme,
+            reducedMotion: true,
+            haptics: false,
+            largeText: false,
+          }),
+        ),
+      theme,
+    );
+    const id = "00000000-0000-0000-0000-000000000886";
+    await page.route("https://*.supabase.co/rest/v1/feed?**", (r) =>
+      r.fulfill({
+        json: {
+          id,
+          kind: "experience",
+          country_id: "spain",
+          user_id: "00000000-0000-0000-0000-000000000301",
+          title: "Başvurumdaki deneyim",
+          body: "Belgelerimi tamamladım ve başvuru merkezine teslim ettim.",
           status: "approved",
-          created_at: "2026-10-27T12:00:00Z",
+          result: "approved",
+          created_at: "2026-10-27T10:00:00Z",
+          application_date: "2026-10-01",
+          decision_date: "2026-10-02",
+          processing_days: 24,
+          granted_days: 1095,
+          purpose: "Turistik",
+          previous_visas: [
+            {
+              country: "Fransa",
+              duration: "6 ay",
+              entries: "multi",
+              notes: "Önceki seyahatimden not.",
+            },
+          ],
+          is_sample: false,
+          helpful_count: 0,
+          comment_count: 1,
         },
-      ],
-    }),
-  );
-  await page.goto(`/experience/${id}`);
-  await expect(
-    page.getByText("Bu deneyim benim için çok faydalı oldu.", { exact: true }),
-  ).toBeInViewport();
-  await expect(page.getByText("Süreç", { exact: true })).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: "0 Faydalı", exact: true }),
-  ).toBeVisible();
-  await page.screenshot({ path: "/tmp/mobile2-detail.png" });
-  await page.getByRole("button", { name: "Detaylar", exact: true }).click();
-  await expect(page.getByText("Süreç", { exact: true })).toBeVisible();
-});
+      }),
+    );
+    await page.route("https://*.supabase.co/rest/v1/comments?**", (r) =>
+      r.fulfill({
+        json: [
+          {
+            id: "comment-fixture",
+            post_id: id,
+            user_id: "00000000-0000-0000-0000-000000000302",
+            parent_comment_id: null,
+            body: "Bu deneyim benim için çok faydalı oldu.",
+            status: "approved",
+            created_at: "2026-10-27T12:00:00Z",
+          },
+        ],
+      }),
+    );
+    await page.goto(`/experience/${id}`);
+    await expect(
+      page.getByText("Bu deneyim benim için çok faydalı oldu.", {
+        exact: true,
+      }),
+    ).toBeInViewport();
+    await expect(page.getByText("Süreç", { exact: true })).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "0 Faydalı", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("3 yıl vize", { exact: false })).toBeVisible();
+    await expect(
+      page.getByText("24 günde sonuçlandı", { exact: true }),
+    ).toBeVisible();
+    await page.screenshot({ path: `/tmp/compact-detail-${theme}.png` });
+    await page.getByRole("button", { name: "Detaylar", exact: true }).click();
+    await expect(
+      page.getByText("Henüz belirtilmedi", { exact: false }),
+    ).toHaveCount(0);
+    await expect(page.getByText("01/10/2026", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Paylaş", { exact: true })).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Başvuru tarihleri", exact: true })
+      .click();
+    await expect(page.getByText("01/10/2026", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Pasaport teslimi", { exact: true }),
+    ).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Önceki vizeler · 1", exact: true })
+      .click();
+    await expect(
+      page.getByText("Fransa · 6 ay", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByRole("dialog")
+        .getByRole("button", { name: "İçeriği bildir", exact: true }),
+    ).toBeVisible();
+    await page.screenshot({ path: `/tmp/compact-extra-details-${theme}.png` });
+  });
+}
+
 test("mobile inbox searches conversations without hiding message requests or changing permissions", async ({
   page,
 }) => {

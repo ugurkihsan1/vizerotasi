@@ -318,7 +318,7 @@ export function PostCard({
           )}
         </View>
       )}
-      <View style={{ padding: detail ? 20 : 14, gap: detail ? 14 : 8 }}>
+      <View style={{ padding: detail ? 16 : 14, gap: detail ? 10 : 8 }}>
         <View style={[styles.row, { justifyContent: "space-between" }]}>
           <Pressable
             accessibilityRole="link"
@@ -386,6 +386,7 @@ export function PostCard({
             <Avatar
               name={author?.display_name ?? "Üye"}
               url={author?.avatar_url}
+              size={32}
               accent={tone ? accent : undefined}
             />
             <View>
@@ -405,7 +406,7 @@ export function PostCard({
                 </Text>
               </Text>
               <Text style={styles.muted}>
-                {author?.membership_level} · {relativePostTime(post.created_at)}
+                {relativePostTime(post.created_at)}
               </Text>
             </View>
           </Pressable>
@@ -422,80 +423,72 @@ export function PostCard({
           accessibilityRole="link"
           accessibilityLabel={post.title}
           onPress={() => !detail && router.push(postPath(post))}
-          style={{ gap: detail ? 12 : 7 }}
+          style={{ gap: detail ? 10 : 7 }}
         >
           <Text
             numberOfLines={detail ? undefined : 2}
             style={[
               styles.heading,
               {
-                fontSize: detail ? textSize(22) : textSize(18),
-                lineHeight: detail ? 27 : 23,
+                fontSize: detail ? textSize(20) : textSize(18),
+                lineHeight: detail ? 26 : 23,
                 letterSpacing: -0.35,
               },
             ]}
           >
             {post.title}
           </Text>
-          {!detail && post.kind === "experience" && (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: 8,
-              }}
-            >
-              {post.result === "approved" &&
-                post.granted_days != null &&
-                post.granted_days > 0 && (
-                  <View
-                    style={{
-                      backgroundColor: isDark()
-                        ? "#254533"
-                        : themeColor("#EAF3ED", "status"),
-                      paddingHorizontal: 9,
-                      paddingVertical: 4,
-                      borderRadius: 9,
-                    }}
-                  >
-                    <Text
+          {post.kind === "experience" &&
+            (post.purpose ||
+              (post.result === "approved" && (post.granted_days ?? 0) > 0)) && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 8,
+                }}
+              >
+                {post.result === "approved" &&
+                  post.granted_days != null &&
+                  post.granted_days > 0 && (
+                    <View
                       style={{
-                        fontSize: textSize(12),
-                        fontWeight: "700",
-                        color: accent,
+                        backgroundColor: isDark()
+                          ? "#254533"
+                          : themeColor("#EAF3ED", "status"),
+                        paddingHorizontal: 9,
+                        paddingVertical: 4,
+                        borderRadius: 9,
                       }}
                     >
-                      {formatVisaDuration(post.granted_days)} vize
-                      {post.entries
-                        ? ` · ${{ single: "Tek giriş", double: "Çift giriş", multi: "Çok giriş" }[post.entries] ?? ""}`
-                        : ""}
-                    </Text>
-                  </View>
+                      <Text
+                        style={{
+                          fontSize: textSize(12),
+                          fontWeight: "700",
+                          color: accent,
+                        }}
+                      >
+                        {formatVisaDuration(post.granted_days)} vize
+                        {post.entries
+                          ? ` · ${{ single: "Tek giriş", double: "Çift giriş", multi: "Çok giriş" }[post.entries] ?? ""}`
+                          : ""}
+                      </Text>
+                    </View>
+                  )}
+                {!!post.purpose && (
+                  <Text
+                    style={{
+                      fontSize: textSize(12),
+                      color: accent,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {post.purpose}
+                  </Text>
                 )}
-              {!!post.purpose && (
-                <Text
-                  style={{
-                    fontSize: textSize(12),
-                    color: accent,
-                    fontWeight: "600",
-                  }}
-                >
-                  {post.purpose}
-                </Text>
-              )}
-            </View>
-          )}
-          {detail && post.kind === "experience" && !!post.purpose && (
-            <Text
-              style={[
-                styles.pillText,
-                { fontSize: textSize(12), color: accent },
-              ]}
-            >
-              {post.purpose}
-            </Text>
-          )}
+              </View>
+            )}
           {!!post.body && (
             <Text
               style={[
@@ -509,11 +502,7 @@ export function PostCard({
           )}
           {(post.kind === "tip" || post.kind === "experience") &&
             (post.source_type === "official" ? (
-              <Text style={styles.muted}>
-                {detail
-                  ? "Resmî kaynağa dayalı paylaşım · Kaynak ve kapsamı detayda kontrol et."
-                  : "Resmî kaynak referansı"}
-              </Text>
+              <Text style={styles.muted}>Resmî kaynak referansı</Text>
             ) : (
               <VerificationLabel
                 postId={post.id}
