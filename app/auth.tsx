@@ -12,7 +12,7 @@ import {
   type AvatarDraft,
 } from "../src/lib/avatar";
 import { Brand } from "../src/components/Brand";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ScrollView,
   View,
@@ -21,6 +21,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  Keyboard,
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { router, useLocalSearchParams } from "expo-router";
@@ -45,6 +46,15 @@ type AuthValues = {
 };
 type Mode = "login" | "signup" | "forgot" | "reset";
 type Confirmation = "checking" | "verified" | "error" | null;
+const signupFieldMessages = {
+  display_name: "Adın en az 2 karakter olmalı.",
+  username: "3–24 karakter kullan; yalnız küçük harf, rakam ve alt çizgi.",
+  email: "Geçerli bir e-posta adresi yaz.",
+  password: "En az 8 karakter kullan.",
+  terms: "Kullanım koşullarını kabul etmelisin.",
+  privacy: "Gizlilik politikasını kabul etmelisin.",
+};
+
 export default function Auth() {
   useAppearance();
 
@@ -69,6 +79,8 @@ export default function Auth() {
   );
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [signupStep, setSignupStep] = useState(0);
+  const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const [sent, setSent] = useState(false);
   const [photo, setPhoto] = useState<AvatarDraft | null>(null);
   const cache = useQueryClient();
@@ -78,7 +90,9 @@ export default function Auth() {
     formState: { errors },
     setError,
     clearErrors,
+    getValues,
   } = useForm<AuthValues>({
+    shouldUnregister: false,
     defaultValues: {
       email: "",
       password: "",
@@ -149,10 +163,40 @@ export default function Auth() {
   }, [callbackSource]);
   const changeMode = (next: Mode) => {
     setMode(next);
+    setSignupStep(0);
     setConfirmation(null);
     setMessage("");
     setSent(false);
     clearErrors();
+  };
+  const moveSignupStep = (next: number) => {
+    Keyboard.dismiss();
+    clearErrors();
+    setMessage("");
+    setSignupStep(next);
+    scroll.current?.scrollTo({ y: 0, animated: false });
+  };
+  const advanceSignup = () => {
+    clearErrors();
+    setMessage("");
+    const values = getValues();
+    const schema =
+      signupStep === 0
+        ? signupSchema.pick({ email: true })
+        : signupSchema.pick({ username: true, password: true });
+    const parsed = schema.safeParse({
+      ...values,
+      email: values.email.trim(),
+      username: values.username.trim().toLowerCase(),
+    });
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const name = issue.path[0] as keyof AuthValues;
+        setError(name, { message: signupFieldMessages[name] });
+      }
+      return;
+    }
+    moveSignupStep(signupStep + 1);
   };
   const redirect = () =>
     Platform.OS === "web"
@@ -177,17 +221,18 @@ export default function Auth() {
         if (!parsed.success) {
           for (const issue of parsed.error.issues) {
             const name = issue.path[0] as keyof typeof v;
-            const label = {
-              display_name: "Adın en az 2 karakter olmalı.",
-              username:
-                "3–24 karakter kullan; yalnız küçük harf, rakam ve alt çizgi.",
-              email: "Geçerli bir e-posta adresi yaz.",
-              password: "En az 8 karakter kullan.",
-              terms: "Kullanım koşullarını kabul etmelisin.",
-              privacy: "Gizlilik politikasını kabul etmelisin.",
-            }[name];
+            const label = signupFieldMessages[name];
             setError(name, { message: label });
           }
+          const first = parsed.error.issues[0]?.path[0];
+          setSignupStep(
+            first === "email"
+              ? 0
+              : first === "username" || first === "password"
+                ? 1
+                : 2,
+          );
+          scroll.current?.scrollTo({ y: 0, animated: false });
           return;
         }
         const value = parsed.data;
@@ -287,9 +332,11 @@ export default function Auth() {
       if (
         mode === "signup" &&
         (e as { code?: string })?.code === "username_taken"
-      )
+      ) {
+        setSignupStep(1);
+        scroll.current?.scrollTo({ y: 0, animated: false });
         setError("username", { message: text });
-      else setMessage(text);
+      } else setMessage(text);
     } finally {
       setBusy(false);
     }
@@ -363,6 +410,7 @@ export default function Auth() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
+        ref={scroll}
         contentContainerStyle={[
           styles.content,
           {
@@ -381,7 +429,11 @@ export default function Auth() {
         <View style={{ gap: 8 }}>
           <Text style={styles.title}>
             {mode === "signup"
-              ? "Topluluğa hoş geldin."
+              ? [
+                  "E-posta adresin ne?",
+                  "Hesabını oluşturalım.",
+                  "Seni tanıyalım.",
+                ][signupStep]
               : mode === "forgot"
                 ? "Şifreni yenileyelim."
                 : mode === "reset"
@@ -390,69 +442,93 @@ export default function Auth() {
           </Text>
           <Text style={styles.muted}>
             {mode === "signup"
-              ? "Hesabını oluştur, deneyimini paylaş ve rotanı kaydet."
+              ? [
+                  "Doğrulama bağlantısını buraya göndereceğiz.",
+                  "Bir kullanıcı adı ve güçlü bir şifre seç.",
+                  "Adını yaz, dilersen bir fotoğraf ekle.",
+                ][signupStep]
               : mode === "login"
                 ? "Kaldığın yerden devam et."
                 : "Hesabına güvenle geri dön."}
           </Text>
         </View>
-        {["login", "signup"].includes(mode) && !sent && (
+        {mode === "signup" && !sent && (
           <View
-            style={{
-              flexDirection: "row",
-              backgroundColor: themeColor("#E8EEF7", "surface"),
-              borderRadius: 14,
-              padding: 4,
-            }}
+            accessibilityLabel={`Üyelik adımı ${signupStep + 1} / 3`}
+            style={{ flexDirection: "row", gap: 6 }}
           >
-            {(["login", "signup"] as const).map((x) => (
-              <Pressable
-                key={x}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: mode === x }}
-                aria-selected={mode === x}
-                onPress={() => changeMode(x)}
+            {[0, 1, 2].map((step) => (
+              <View
+                key={step}
                 style={{
                   flex: 1,
-                  minHeight: 44,
-                  justifyContent: "center",
-                  alignItems: "center",
+                  height: 4,
+                  borderRadius: 2,
                   backgroundColor:
-                    mode === x ? themeColor("#FFF", "surface") : "transparent",
-                  borderRadius: 11,
+                    step <= signupStep
+                      ? colors.blue
+                      : themeColor("#DFE8E4", "border"),
                 }}
-              >
-                <Text
-                  style={{
-                    color: colors.navy,
-                    fontWeight: mode === x ? "700" : "400",
-                  }}
-                >
-                  {x === "login" ? "Giriş yap" : "Üye ol"}
-                </Text>
-              </Pressable>
+              />
             ))}
           </View>
         )}
+        {["login", "signup"].includes(mode) &&
+          !sent &&
+          (mode !== "signup" || signupStep === 0) && (
+            <View
+              style={{
+                flexDirection: "row",
+                backgroundColor: themeColor("#E8EEF7", "surface"),
+                borderRadius: 14,
+                padding: 4,
+              }}
+            >
+              {(["login", "signup"] as const).map((x) => (
+                <Pressable
+                  key={x}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: mode === x }}
+                  aria-selected={mode === x}
+                  onPress={() => changeMode(x)}
+                  style={{
+                    flex: 1,
+                    minHeight: 44,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    backgroundColor:
+                      mode === x
+                        ? themeColor("#FFF", "surface")
+                        : "transparent",
+                    borderRadius: 11,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.navy,
+                      fontWeight: mode === x ? "700" : "400",
+                    }}
+                  >
+                    {x === "login" ? "Giriş yap" : "Üye ol"}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
         {!sent && (
           <>
-            {mode === "signup" && (
-              <View style={{ alignItems: "center", gap: 8 }}>
-                {photo && (
-                  <Image
-                    source={{ uri: avatarPreview(photo) }}
-                    style={{ width: 84, height: 84, borderRadius: 42 }}
-                    accessibilityLabel="Seçilen profil fotoğrafı"
-                  />
-                )}
-                <Button
-                  secondary
-                  label={
+            {mode === "signup" && signupStep === 2 && (
+              <View
+                style={{ alignItems: "center", gap: 10, paddingVertical: 8 }}
+              >
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={
                     photo
                       ? "Profil fotoğrafını değiştir"
                       : "Profil fotoğrafı ekle (isteğe bağlı)"
                   }
-                  onPress={() =>
+                  onPress={() => {
                     void pickAvatar()
                       .then((p) => {
                         if (p) setPhoto(p);
@@ -463,38 +539,103 @@ export default function Auth() {
                             ? e.message
                             : "Fotoğraf seçilemedi.",
                         ),
-                      )
-                  }
-                />
+                      );
+                  }}
+                  style={{
+                    width: 128,
+                    height: 128,
+                    borderRadius: 64,
+                    borderWidth: 2,
+                    borderColor: colors.blue,
+                    padding: 6,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {photo ? (
+                    <Image
+                      source={{ uri: avatarPreview(photo) }}
+                      contentFit="cover"
+                      style={{ width: 112, height: 112, borderRadius: 56 }}
+                      accessibilityLabel="Seçilen profil fotoğrafı"
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        width: 112,
+                        height: 112,
+                        borderRadius: 56,
+                        backgroundColor: themeColor("#E9F3EF", "surface"),
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Ionicons
+                        name="person-outline"
+                        size={48}
+                        color={colors.blue}
+                      />
+                    </View>
+                  )}
+                  <View
+                    style={{
+                      position: "absolute",
+                      right: 0,
+                      bottom: 2,
+                      width: 32,
+                      height: 32,
+                      borderRadius: 16,
+                      backgroundColor: colors.blue,
+                      borderWidth: 3,
+                      borderColor: colors.bg,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Ionicons
+                      name="add"
+                      size={21}
+                      color={themeColor("#FFFFFF", "surface")}
+                    />
+                  </View>
+                </Pressable>
+                <Text style={{ color: colors.blue, fontWeight: "600" }}>
+                  {photo ? "Fotoğrafı değiştir" : "Fotoğraf ekle"}
+                </Text>
                 {photo && (
-                  <Button
-                    secondary
-                    label="Fotoğrafı kaldır"
+                  <Pressable
+                    accessibilityRole="button"
                     onPress={() => setPhoto(null)}
-                  />
+                    style={{ minHeight: 44, justifyContent: "center" }}
+                  >
+                    <Text style={styles.muted}>Fotoğrafı kaldır</Text>
+                  </Pressable>
                 )}
-                <Text style={styles.muted}>JPG / PNG · En fazla 2 MB</Text>
               </View>
             )}
             {mode === "signup" &&
-              (["display_name", "username"] as const).map((name) => (
-                <Controller
-                  key={name}
-                  control={control}
-                  name={name}
-                  render={({ field: { value, onChange } }) => (
-                    <Field
-                      label={name === "username" ? "Kullanıcı adı" : "Adınız"}
-                      value={value}
-                      onChangeText={onChange}
-                      error={errors[name]?.message}
-                      autoCapitalize={name === "username" ? "none" : "words"}
-                      autoCorrect={name !== "username"}
-                    />
-                  )}
-                />
-              ))}
-            {mode !== "reset" && (
+              (["display_name", "username"] as const)
+                .filter((name) =>
+                  name === "display_name" ? signupStep === 2 : signupStep === 1,
+                )
+                .map((name) => (
+                  <Controller
+                    key={name}
+                    control={control}
+                    name={name}
+                    render={({ field: { value, onChange } }) => (
+                      <Field
+                        label={name === "username" ? "Kullanıcı adı" : "Adınız"}
+                        value={value}
+                        onChangeText={onChange}
+                        error={errors[name]?.message}
+                        autoCapitalize={name === "username" ? "none" : "words"}
+                        autoCorrect={name !== "username"}
+                      />
+                    )}
+                  />
+                ))}
+            {mode !== "reset" && (mode !== "signup" || signupStep === 0) && (
               <Controller
                 control={control}
                 name="email"
@@ -512,7 +653,7 @@ export default function Auth() {
                 )}
               />
             )}
-            {mode !== "forgot" && (
+            {mode !== "forgot" && (mode !== "signup" || signupStep === 1) && (
               <Controller
                 control={control}
                 name="password"
@@ -535,7 +676,7 @@ export default function Auth() {
                 )}
               />
             )}
-            {mode === "signup" && (
+            {mode === "signup" && signupStep === 2 && (
               <View style={{ gap: 12 }}>
                 {(["terms", "privacy"] as const).map((name) => (
                   <Controller
@@ -586,7 +727,9 @@ export default function Auth() {
                 busy
                   ? "Bir saniye…"
                   : mode === "signup"
-                    ? "Hesabımı oluştur"
+                    ? signupStep < 2
+                      ? "Devam et"
+                      : "Hesabımı oluştur"
                     : mode === "login"
                       ? "Giriş yap"
                       : mode === "reset"
@@ -594,8 +737,20 @@ export default function Auth() {
                         : "Yenileme bağlantısı gönder"
               }
               disabled={busy}
-              onPress={() => void handleSubmit(submit)()}
+              onPress={() =>
+                mode === "signup" && signupStep < 2
+                  ? advanceSignup()
+                  : void handleSubmit(submit)()
+              }
             />
+            {mode === "signup" && signupStep > 0 && (
+              <Button
+                secondary
+                label="Geri"
+                disabled={busy}
+                onPress={() => moveSignupStep(signupStep - 1)}
+              />
+            )}
             {mode === "login" && (
               <Pressable
                 accessibilityRole="link"

@@ -77,25 +77,7 @@ test("signup submits required metadata and offers a clear verification state", a
       },
     });
   });
-  await page.goto("/auth?mode=signup");
-  await page.getByLabel("Adınız", { exact: true }).fill("Test Yolcu");
-  await page.getByLabel("Kullanıcı adı", { exact: true }).fill("test_yolcu");
-  await page.getByLabel("E-posta", { exact: true }).fill("ui-test@example.com");
-  await page
-    .getByLabel("Şifre · en az 8 karakter", { exact: true })
-    .fill("Test1234");
-  await page
-    .getByRole("switch", {
-      name: "Kullanım koşullarını kabul ediyorum",
-      exact: true,
-    })
-    .click();
-  await page
-    .getByRole("switch", {
-      name: "Gizlilik politikasını kabul ediyorum",
-      exact: true,
-    })
-    .click();
+  await fillSignup(page);
   await page.getByRole("button", { name: "Hesabımı oluştur" }).click();
   await expect(
     page.getByText(
@@ -816,6 +798,15 @@ test("signup photo stays local through email confirmation and uploads only after
       uploads++;
   });
   await page.goto("/auth?mode=signup");
+  await page
+    .getByLabel("E-posta", { exact: true })
+    .fill("photo-fixture@example.com");
+  await page.getByRole("button", { name: "Devam et", exact: true }).click();
+  await page.getByLabel("Kullanıcı adı", { exact: true }).fill("photo_fixture");
+  await page
+    .getByLabel("Şifre · en az 8 karakter", { exact: true })
+    .fill("Test1234");
+  await page.getByRole("button", { name: "Devam et", exact: true }).click();
   const chooser = page.waitForEvent("filechooser");
   await page
     .getByRole("button", {
@@ -828,13 +819,6 @@ test("signup photo stays local through email confirmation and uploads only after
     page.getByRole("img", { name: "Seçilen profil fotoğrafı", exact: true }),
   ).toBeVisible();
   await page.getByLabel("Adınız", { exact: true }).fill("Fotoğraf Yolcu");
-  await page.getByLabel("Kullanıcı adı", { exact: true }).fill("photo_fixture");
-  await page
-    .getByLabel("E-posta", { exact: true })
-    .fill("photo-fixture@example.com");
-  await page
-    .getByLabel("Şifre · en az 8 karakter", { exact: true })
-    .fill("Test1234");
   await page
     .getByRole("switch", {
       name: "Kullanım koşullarını kabul ediyorum",
@@ -3386,12 +3370,14 @@ test("notifications highlight unread replies and filter them on mobile", async (
 
 async function fillSignup(page: Page) {
   await page.goto("/auth?mode=signup");
-  await page.getByLabel("Adınız", { exact: true }).fill("Test Yolcu");
-  await page.getByLabel("Kullanıcı adı", { exact: true }).fill("test_yolcu");
   await page.getByLabel("E-posta", { exact: true }).fill("ui-test@example.com");
+  await page.getByRole("button", { name: "Devam et", exact: true }).click();
+  await page.getByLabel("Kullanıcı adı", { exact: true }).fill("test_yolcu");
   await page
     .getByLabel("Şifre · en az 8 karakter", { exact: true })
     .fill("Test1234");
+  await page.getByRole("button", { name: "Devam et", exact: true }).click();
+  await page.getByLabel("Adınız", { exact: true }).fill("Test Yolcu");
   await page
     .getByRole("switch", {
       name: "Kullanım koşullarını kabul ediyorum",
@@ -3524,4 +3510,71 @@ test("expired verification link shows an error and an arbitrary success flag can
   await expect(
     page.getByText("E-posta adresin doğrulandı", { exact: true }),
   ).toHaveCount(0);
+});
+
+test("signup has three compact steps, validates each and preserves values going back", async ({
+  page,
+}) => {
+  await fixtures(page);
+  await page.goto("/auth?mode=signup");
+  await expect(page.getByLabel("E-posta", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Kullanıcı adı", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.getByLabel("Adınız", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Devam et", exact: true }).click();
+  await expect(
+    page.getByText("Geçerli bir e-posta adresi yaz.", { exact: true }),
+  ).toBeVisible();
+  await page.getByLabel("E-posta", { exact: true }).fill("steps@example.com");
+  await page.getByRole("button", { name: "Devam et", exact: true }).click();
+  await expect(page.getByLabel("E-posta", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Kullanıcı adı", { exact: true })).toBeVisible();
+  await expect(
+    page.getByLabel("Şifre · en az 8 karakter", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Adınız", { exact: true })).toHaveCount(0);
+  await page.getByLabel("Kullanıcı adı", { exact: true }).fill("steps_member");
+  await page
+    .getByLabel("Şifre · en az 8 karakter", { exact: true })
+    .fill("short");
+  await page.getByRole("button", { name: "Devam et", exact: true }).click();
+  await expect(
+    page.getByText("En az 8 karakter kullan.", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Şifre · en az 8 karakter", { exact: true })
+    .fill("Strong1234");
+  await page.screenshot({ path: "/tmp/signup-account-step.png" });
+  await page.getByRole("button", { name: "Devam et", exact: true }).click();
+  await expect(page.getByLabel("Kullanıcı adı", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.getByLabel("Adınız", { exact: true })).toBeVisible();
+  const photo = page.getByRole("button", {
+    name: "Profil fotoğrafı ekle (isteğe bağlı)",
+    exact: true,
+  });
+  await expect(photo).toBeVisible();
+  const box = await photo.boundingBox();
+  expect(box!.width).toBe(box!.height);
+  await expect(photo).toHaveCSS("border-radius", "64px");
+  await page.getByLabel("Adınız", { exact: true }).fill("Gezgin Yolcu");
+  await page.screenshot({ path: "/tmp/signup-profile-step.png" });
+  await page.getByRole("button", { name: "Geri", exact: true }).click();
+  await expect(page.getByLabel("Kullanıcı adı", { exact: true })).toHaveValue(
+    "steps_member",
+  );
+  await expect(
+    page.getByLabel("Şifre · en az 8 karakter", { exact: true }),
+  ).toHaveValue("Strong1234");
+  await page.getByRole("button", { name: "Geri", exact: true }).click();
+  await expect(page.getByLabel("E-posta", { exact: true })).toHaveValue(
+    "steps@example.com",
+  );
+  await page.getByRole("button", { name: "Devam et", exact: true }).click();
+  await page.getByRole("button", { name: "Devam et", exact: true }).click();
+  await expect(page.getByLabel("Adınız", { exact: true })).toHaveValue(
+    "Gezgin Yolcu",
+  );
 });
