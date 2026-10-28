@@ -1,6 +1,6 @@
 import type { PreviousVisa } from "./schemas";
 import type { ProgressMetrics } from "./community";
-export type Kind = "experience" | "question" | "tip" | "update";
+export type Kind = "experience" | "general" | "question" | "tip" | "update";
 export type Status = "pending" | "approved" | "rejected" | "needs_revision";
 export interface Country {
   cover_url?: string | null;

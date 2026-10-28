@@ -99,7 +99,8 @@ export default function Moderation() {
           <View style={styles.row}>
             {Object.entries({
               all: "Tüm gönderiler",
-              experience: "Deneyimler",
+              experience: "Vize deneyimleri",
+              general: "Genel deneyimler",
               question: "Sorular",
               tip: "Önemli",
               comment: "Yorumlar",

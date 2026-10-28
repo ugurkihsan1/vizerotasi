@@ -1293,3 +1293,13 @@ it("ranks recent helpful content globally before pagination and replays the upgr
     as(a, "select chat_pair_blocked($1,$2)", [b, c]),
   ).rejects.toThrow();
 });
+
+it("stores general stories independently of visa outcomes and application fields", async () => {
+  const owner = await user();
+  const r = await as(
+    owner,
+    "insert into posts(user_id,country_id,kind,title,body,category_id) values($1,'spain','general','A general travel story','A separate travel experience without any fabricated visa decision.','general-experience') returning id,result,application_date",
+    [owner],
+  );
+  expect(r.rows[0]).toMatchObject({ result: null, application_date: null });
+});

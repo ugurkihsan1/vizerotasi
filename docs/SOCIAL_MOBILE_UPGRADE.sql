@@ -178,4 +178,9 @@ drop trigger if exists keep_profiles_public on public.profiles;
 create trigger keep_profiles_public before insert or update of is_private on public.profiles for each row execute function public.keep_profiles_public();
 notify pgrst,'reload schema';
 
+-- Separate travel/community stories from structured visa-application experiences.
+alter type public.post_kind add value if not exists 'general';
+notify pgrst,'reload schema';
+insert into public.forum_categories(id,name) values('general-experience','Genel deneyim') on conflict(id) do nothing;
+
 commit;

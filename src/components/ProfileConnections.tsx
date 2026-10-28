@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Text, View, Pressable } from "react-native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
@@ -8,7 +8,15 @@ import { useSocialProfile, useFollowAction } from "../lib/social";
 import { useAppearance } from "../lib/appearance";
 import { Button, Sheet, Message, styles, useGate } from "./ui";
 import { Avatar } from "./PostCard";
-export function ProfileConnections({ id, own }: { id: string; own: boolean }) {
+export function ProfileConnections({
+  id,
+  own,
+  action: actionButton,
+}: {
+  id: string;
+  own: boolean;
+  action?: ReactNode;
+}) {
   useAppearance();
   const { session } = useAuth(),
     q = useSocialProfile(id),
@@ -87,25 +95,33 @@ export function ProfileConnections({ id, own }: { id: string; own: boolean }) {
           </Pressable>
         ))}
       </View>
-      {!own && session?.user.id !== id && (
-        <Button
-          disabled={busy}
-          secondary={!!q.data?.relationship}
-          label={
-            q.data?.relationship === "accepted"
-              ? "Takiptesin"
-              : q.data?.relationship === "pending"
-                ? "İstek gönderildi"
-                : "Takip et"
-          }
-          onPress={() =>
-            gate.require(
-              () =>
-                void action(id, q.data?.relationship ? "unfollow" : "follow"),
-            )
-          }
-        />
-      )}
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        {!own && session?.user.id !== id && (
+          <View style={{ flex: 1 }}>
+            <Button
+              disabled={busy}
+              secondary={!!q.data?.relationship}
+              label={
+                q.data?.relationship === "accepted"
+                  ? "Takiptesin"
+                  : q.data?.relationship === "pending"
+                    ? "İstek gönderildi"
+                    : "Takip et"
+              }
+              onPress={() =>
+                gate.require(
+                  () =>
+                    void action(
+                      id,
+                      q.data?.relationship ? "unfollow" : "follow",
+                    ),
+                )
+              }
+            />
+          </View>
+        )}
+        {actionButton && <View style={{ flex: 1 }}>{actionButton}</View>}
+      </View>
       <Message text={error} />
       {gate.view}
       <Sheet

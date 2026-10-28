@@ -23,7 +23,8 @@ import { useAuth } from "../lib/auth";
 import { Button, styles, colors, useGate, Message } from "./ui";
 import { useState } from "react";
 export const kindLabels = {
-  experience: "Deneyim",
+  experience: "Vize deneyimi",
+  general: "Genel deneyim",
   question: "Soru",
   tip: "⚡ Önemli bilgi",
   update: "Ülke güncellemesi",
@@ -196,13 +197,15 @@ export function PostCard({
           gap: 0,
           overflow: "hidden",
           backgroundColor:
-            post.kind === "experience"
-              ? themeColor("#F0F7F2", "surface")
-              : post.kind === "question"
-                ? themeColor("#EFF5FD", "surface")
-                : post.kind === "tip"
-                  ? themeColor("#FFF5E7", "surface")
-                  : themeColor("#FFFFFF", "surface"),
+            post.kind === "general"
+              ? themeColor("#F4EFFB", "surface")
+              : post.kind === "experience"
+                ? themeColor("#F0F7F2", "surface")
+                : post.kind === "question"
+                  ? themeColor("#EFF5FD", "surface")
+                  : post.kind === "tip"
+                    ? themeColor("#FFF5E7", "surface")
+                    : themeColor("#FFFFFF", "surface"),
         },
         post.kind === "tip" && {
           borderColor: themeColor("#EDDCC4", "border"),
@@ -281,14 +284,22 @@ export function PostCard({
               styles.muted,
               {
                 color:
-                  post.kind === "tip"
-                    ? themeColor("#71579D", "text")
-                    : colors.blue,
+                  post.kind === "general"
+                    ? themeColor("#8050AD", "text")
+                    : post.kind === "tip"
+                      ? themeColor("#A76A1B", "text")
+                      : post.kind === "question"
+                        ? themeColor("#3476B5", "text")
+                        : colors.blue,
                 fontSize: textSize(11),
                 backgroundColor:
-                  post.kind === "tip"
-                    ? themeColor("#F0EBFA", "surface")
-                    : themeColor("#EDF3F0", "surface"),
+                  post.kind === "general"
+                    ? themeColor("#EBDFF7", "surface")
+                    : post.kind === "tip"
+                      ? themeColor("#F9EAD2", "surface")
+                      : post.kind === "question"
+                        ? themeColor("#E2EEFA", "surface")
+                        : themeColor("#EDF3F0", "surface"),
                 paddingHorizontal: 9,
                 paddingVertical: 3,
                 borderRadius: 7,

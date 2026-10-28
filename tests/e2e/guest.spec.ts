@@ -3176,6 +3176,8 @@ test("profile tabs preserve scroll position and compact dates keep keyboard prog
   );
   await page.goto("/profile");
   const tab = page.getByRole("button", { name: "Deneyimler", exact: true });
+  await expect(tab).toBeVisible();
+  await page.screenshot({ path: "/tmp/profile-refreshed.png" });
   await tab.scrollIntoViewIfNeeded();
   const scroll = await tab.evaluate((el) => {
     let p = el.parentElement;
@@ -3205,17 +3207,34 @@ test("profile tabs preserve scroll position and compact dates keep keyboard prog
       )?.scrollTop ?? 0,
   );
   expect(after).toBeGreaterThan(50);
-  await page.mouse.move(300, 300);
-  await page.mouse.down();
-  await page.mouse.move(90, 300, { steps: 10 });
-  await page.mouse.up();
+  const scoreBox = await page.getByText("Puan", { exact: true }).boundingBox();
+  if (!scoreBox) throw Error("Profile metrics not visible");
+  const swipeY = scoreBox.y + scoreBox.height / 2;
+  const touch = await page.context().newCDPSession(page);
+  await touch.send("Emulation.setTouchEmulationEnabled", {
+    enabled: true,
+    maxTouchPoints: 1,
+  });
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x: 370, y: swipeY }],
+  });
+  for (const x of [340, 300, 260, 220, 170, 100])
+    await touch.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x, y: swipeY }],
+    });
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
   await expect(
     page.getByRole("button", { name: "Sorular", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
 
   await page.goto("/create");
   await page
-    .getByRole("button", { name: "✦ Vize deneyimi paylaş", exact: true })
+    .getByRole("button", { name: "Vize başvurusu deneyimi", exact: true })
     .click();
   await page
     .getByRole("button", { name: "Başvuru ülkesi: Ülke seç", exact: true })
@@ -3235,4 +3254,55 @@ test("profile tabs preserve scroll position and compact dates keep keyboard prog
     page.getByLabel("Başvuru tarihi · ay", { exact: true }),
   ).toHaveCSS("outline-style", "none");
   await page.screenshot({ path: "/tmp/social-date-final.png" });
+});
+
+test("sharing offers four distinct paths and general stories omit visa fields", async ({
+  page,
+}) => {
+  await member(page);
+  let submitted: Record<string, unknown> | undefined;
+  await page.route("https://*.supabase.co/rest/v1/posts", (r) => {
+    submitted = r.request().postDataJSON();
+    return r.fulfill({ status: 201, body: "" });
+  });
+  await page.goto("/create");
+  for (const name of [
+    "Vize başvurusu deneyimi",
+    "Genel deneyim paylaşımı",
+    "? Soru sor",
+    "⚡ Önemli bilgi paylaş",
+  ])
+    await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
+  await page.screenshot({ path: "/tmp/profile-four-options.png" });
+  await page
+    .getByRole("button", { name: "Genel deneyim paylaşımı", exact: true })
+    .click();
+  await expect(page.getByLabel("Başvuru merkezi", { exact: true })).toHaveCount(
+    0,
+  );
+  await page
+    .getByRole("button", { name: "Başvuru ülkesi: Ülke seç", exact: true })
+    .click();
+  await page.getByRole("radio", { name: "İspanya", exact: true }).click();
+  await page
+    .getByLabel("Kısa bir başlık", { exact: true })
+    .fill("Barselona seyahatimden öneriler");
+  await page
+    .getByLabel("Detaylar", { exact: true })
+    .fill(
+      "Seyahatimde toplu taşıma kartı ve önceden bilet almak çok işime yaradı.",
+    );
+  await page
+    .getByRole("button", { name: "İncelemeye gönder", exact: true })
+    .click();
+  await expect(
+    page.getByText("Gönderin incelemeye alındı 🎉", { exact: true }),
+  ).toBeVisible();
+  expect(submitted).toMatchObject({
+    kind: "general",
+    category_id: "general-experience",
+    country_id: "spain",
+  });
+  expect(submitted).not.toHaveProperty("result");
+  expect(submitted).not.toHaveProperty("application_date");
 });

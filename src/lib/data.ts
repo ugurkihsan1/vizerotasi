@@ -125,7 +125,11 @@ export function useFeed(filter: FeedFilter = {}, enabled = true) {
       if (ids) q = q.in("id", ids);
       if (filter.country) q = q.eq("country_id", filter.country);
       if (filter.countryIds?.length) q = q.in("country_id", filter.countryIds);
-      if (filter.kind) q = q.eq("kind", filter.kind);
+      if (filter.kind)
+        q =
+          filter.kind === "experience"
+            ? q.or("kind.eq.experience,category_id.eq.general-experience")
+            : q.eq("kind", filter.kind);
       if (filter.result) q = q.eq("result", filter.result);
       if (filter.author) q = q.eq("user_id", filter.author);
       if (filter.pending) q = q.in("status", ["pending", "needs_revision"]);

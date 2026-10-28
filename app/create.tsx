@@ -63,7 +63,11 @@ export default function Create() {
     category?: string;
   }>();
   const [kind, setKind] = useState<Kind | null>(
-    params.kind === "question" || params.kind === "tip" ? params.kind : null,
+    params.kind === "question" ||
+      params.kind === "tip" ||
+      params.kind === "general"
+      ? params.kind
+      : null,
   );
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -182,15 +186,19 @@ export default function Create() {
             name === "title"
               ? kind === "question"
                 ? "Örn. Sigorta poliçesi için ıslak imza gerekiyor mu?"
-                : kind === "tip"
-                  ? "Örn. Sigorta poliçemde ıslak imza istendi"
-                  : "Örn. İspanya turistik vize başvurum 20 günde sonuçlandı"
+                : kind === "general"
+                  ? "Örn. Barselona’da ilk günümden öneriler"
+                  : kind === "tip"
+                    ? "Örn. Sigorta poliçemde ıslak imza istendi"
+                    : "Örn. İspanya turistik vize başvurum 20 günde sonuçlandı"
               : name === "body"
-                ? kind === "tip"
-                  ? "Örn. İstanbul’daki başvurumda sigorta poliçesinin ıslak imzalı nüshası istendi. Başvuru tarihim…"
-                  : kind === "question"
-                    ? "Örn. İlk kez başvuracağım. Seyahat tarihlerim… Merak ettiğim konu…"
-                    : "Örn. Randevumu… tarihinde aldım. Evrak tesliminde… Sonucu… öğrendim."
+                ? kind === "general"
+                  ? "Örn. Seyahatimde en çok işime yarayan şey… Bir daha gitsem…"
+                  : kind === "tip"
+                    ? "Örn. İstanbul’daki başvurumda sigorta poliçesinin ıslak imzalı nüshası istendi. Başvuru tarihim…"
+                    : kind === "question"
+                      ? "Örn. İlk kez başvuracağım. Seyahat tarihlerim… Merak ettiğim konu…"
+                      : "Örn. Randevumu… tarihinde aldım. Evrak tesliminde… Sonucu… öğrendim."
                 : name === "advice"
                   ? "Örn. Başvurmadan önce mutlaka… kontrol edin."
                   : name === "city"
@@ -326,7 +334,7 @@ export default function Create() {
               country_id: v.country_id,
               title: v.title,
               body: v.body,
-              category_id: category,
+              category_id: kind === "general" ? "general-experience" : category,
             };
       let id = createdPost;
       if (!id) {
@@ -439,7 +447,8 @@ export default function Create() {
         <Text style={styles.muted}>Paylaşımın yayın öncesi incelenir.</Text>
         {(
           [
-            ["experience", "✦ Vize deneyimi paylaş"],
+            ["experience", "Vize başvurusu deneyimi"],
+            ["general", "Genel deneyim paylaşımı"],
             ["question", "? Soru sor"],
             ["tip", "⚡ Önemli bilgi paylaş"],
           ] as const
@@ -448,10 +457,28 @@ export default function Create() {
             key={k}
             accessibilityRole="button"
             accessibilityLabel={l}
-            onPress={() => setKind(k)}
+            onPress={() => {
+              setKind(k);
+              setCategory("other");
+            }}
             style={[
               styles.card,
-              { flexDirection: "row", alignItems: "center", padding: 18 },
+              {
+                flexDirection: "row",
+                alignItems: "center",
+                padding: 16,
+                borderRadius: 18,
+                backgroundColor: themeColor(
+                  k === "general"
+                    ? "#F4EFFB"
+                    : k === "experience"
+                      ? "#EDF7F0"
+                      : k === "question"
+                        ? "#EDF4FC"
+                        : "#FFF5E6",
+                  "surface",
+                ),
+              },
             ]}
           >
             <View
@@ -460,41 +487,58 @@ export default function Create() {
                 height: 46,
                 borderRadius: 16,
                 backgroundColor:
-                  k === "experience"
-                    ? themeColor("#E4EFE8", "surface")
-                    : k === "question"
-                      ? themeColor("#E6EDF4", "surface")
-                      : themeColor("#FBEDD4", "surface"),
+                  k === "general"
+                    ? themeColor("#E8DDF8", "surface")
+                    : k === "experience"
+                      ? themeColor("#DDEFE3", "surface")
+                      : k === "question"
+                        ? themeColor("#E6EDF4", "surface")
+                        : themeColor("#FBEDD4", "surface"),
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
               <Ionicons
                 name={
-                  k === "experience"
-                    ? "paper-plane-outline"
-                    : k === "question"
-                      ? "chatbubble-ellipses-outline"
-                      : "bulb-outline"
+                  k === "general"
+                    ? "compass-outline"
+                    : k === "experience"
+                      ? "document-text-outline"
+                      : k === "question"
+                        ? "chatbubble-ellipses-outline"
+                        : "bulb-outline"
                 }
                 size={24}
-                color={colors.blue}
+                color={themeColor(
+                  k === "general"
+                    ? "#8050AD"
+                    : k === "question"
+                      ? "#3476B5"
+                      : k === "tip"
+                        ? "#AB6A18"
+                        : "#24766C",
+                  "text",
+                )}
               />
             </View>
             <View style={{ flex: 1, gap: 4 }}>
               <Text style={styles.pillText}>
-                {k === "experience"
-                  ? "Vize deneyimi paylaş"
-                  : k === "question"
-                    ? "Soru sor"
-                    : "Önemli bilgi paylaş"}
+                {k === "general"
+                  ? "Genel deneyim paylaşımı"
+                  : k === "experience"
+                    ? "Vize başvurusu deneyimi"
+                    : k === "question"
+                      ? "Soru sor"
+                      : "Önemli bilgi paylaş"}
               </Text>
               <Text style={[styles.muted, { fontSize: textSize(12) }]}>
-                {k === "experience"
-                  ? "Başvurunu, sürecini ve sonucunu anlat."
-                  : k === "question"
-                    ? "Topluluğun deneyiminden yararlan."
-                    : "İşe yarayan bir detayı paylaş."}
+                {k === "general"
+                  ? "Seyahatinden bir hikâye veya öneri."
+                  : k === "experience"
+                    ? "Başvurun, sürecin ve sonucun."
+                    : k === "question"
+                      ? "Topluluğun deneyiminden yararlan."
+                      : "İşe yarayan bir detayı paylaş."}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.muted} />
@@ -521,9 +565,11 @@ export default function Create() {
           <Text style={[styles.title, { flex: 1 }]}>
             {kind === "experience"
               ? ["Başvurun", "Senin durumun", "Sonuç", "Deneyimini anlat"][step]
-              : kind === "question"
-                ? "Aklındaki soruyu sor"
-                : "Önemli bilgi paylaş"}
+              : kind === "general"
+                ? "Genel deneyimini paylaş"
+                : kind === "question"
+                  ? "Aklındaki soruyu sor"
+                  : "Önemli bilgi paylaş"}
           </Text>
           {kind === "tip" && (
             <HelpButton
@@ -714,14 +760,16 @@ export default function Create() {
                 {privacyWarning}
               </Text>
             )}
-            {kind !== "experience" && (
+            {kind !== "experience" && kind !== "general" && (
               <View style={{ gap: 10 }}>
                 <Text style={styles.pillText}>Konu</Text>
                 <View style={styles.row}>
                   {(kind === "tip"
                     ? criticalTopics
                     : (categories.data?.filter(
-                        (c) => !c.id.startsWith("doc-"),
+                        (c) =>
+                          !c.id.startsWith("doc-") &&
+                          c.id !== "general-experience",
                       ) ?? [])
                   ).map((c) => (
                     <Chip
