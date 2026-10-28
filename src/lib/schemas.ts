@@ -46,7 +46,11 @@ export const experienceSchema = z
     decision_date: z.union([z.iso.date(), z.literal("")]),
     result: z.enum(["approved", "rejected", "waiting"]),
     requested_days: z.number().int().min(1).max(730),
-    granted_days: z.number().int().min(0).max(1825),
+    granted_days: z
+      .number()
+      .int()
+      .min(0)
+      .max(1825, "Verilen vize süresi en fazla 5 yıl olabilir."),
     entries: z.enum(["single", "double", "multi"]),
   })
   .refine((x) => !x.decision_date || x.decision_date >= x.application_date, {

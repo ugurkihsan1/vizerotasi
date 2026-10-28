@@ -1,3 +1,8 @@
+import {
+  visaDurationUnits,
+  visaDurationDays,
+  type VisaDurationUnit,
+} from "../src/lib/visa-duration";
 import { HelpButton } from "../src/components/HelpButton";
 import { useAppearance, themeColor, textSize } from "../src/lib/appearance";
 import { CountryPicker } from "../src/components/CountryPicker";
@@ -70,6 +75,8 @@ export default function Create() {
       : null,
   );
   const [step, setStep] = useState(0);
+  const [grantedAmount, setGrantedAmount] = useState("");
+  const [grantedUnit, setGrantedUnit] = useState<VisaDurationUnit>("days");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
@@ -760,12 +767,39 @@ export default function Create() {
               false,
               true,
             )}
-            {text(
-              "granted_days",
-              "Verilen vize süresi (onaylandıysa, gün)",
-              false,
-              true,
-            )}
+            <View style={{ gap: 8 }}>
+              <Field
+                label="Verilen vize süresi (onaylandıysa)"
+                value={grantedAmount}
+                placeholder="Örn. 3"
+                keyboardType="number-pad"
+                maxLength={4}
+                onChangeText={(input) => {
+                  const amount = input.replace(/[^0-9]/g, "");
+                  setGrantedAmount(amount);
+                  setValue(
+                    "granted_days",
+                    visaDurationDays(amount, grantedUnit),
+                  );
+                }}
+              />
+              <View style={styles.row}>
+                {visaDurationUnits.map((unit) => (
+                  <Chip
+                    key={unit.id}
+                    label={unit.label}
+                    active={grantedUnit === unit.id}
+                    onPress={() => {
+                      setGrantedUnit(unit.id);
+                      setValue(
+                        "granted_days",
+                        visaDurationDays(grantedAmount, unit.id),
+                      );
+                    }}
+                  />
+                ))}
+              </View>
+            </View>
             <Controller
               control={control}
               name="entries"

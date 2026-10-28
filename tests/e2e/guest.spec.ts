@@ -4475,3 +4475,46 @@ test("dark navigation keeps large transition surfaces dark between tabs and mess
   expect(frames.frames).toBeGreaterThan(0);
   expect(frames.whiteFrames).toBe(0);
 });
+
+test("visa validity accepts years and preserves the selected unit across steps", async ({
+  page,
+}) => {
+  await member(page);
+  let submitted: Record<string, unknown> | undefined;
+  await page.route("https://*.supabase.co/rest/v1/posts", async (route) => {
+    submitted = route.request().postDataJSON();
+    await route.fulfill({ status: 201, body: "" });
+  });
+  await page.goto("/create?country=spain");
+  await page
+    .getByRole("button", { name: "Vize başvurusu deneyimi", exact: true })
+    .click();
+  await page.getByLabel("Başvuru şehri", { exact: true }).fill("İstanbul");
+  await page.getByLabel("Başvuru merkezi", { exact: true }).fill("BLS");
+  await page.getByRole("button", { name: "Devam", exact: true }).click();
+  await page.getByRole("button", { name: "Devam", exact: true }).click();
+  await page.getByLabel("Başvuru tarihi · gün", { exact: true }).fill("01");
+  await page.getByLabel("Başvuru tarihi · ay", { exact: true }).fill("10");
+  await page.getByLabel("Başvuru tarihi · yıl", { exact: true }).fill("2026");
+  await page.getByRole("button", { name: "✓ Onaylandı", exact: true }).click();
+  await page
+    .getByLabel("Verilen vize süresi (onaylandıysa)", { exact: true })
+    .fill("3");
+  await page.getByRole("button", { name: "Yıl", exact: true }).click();
+  await page.getByRole("button", { name: "Devam", exact: true }).click();
+  await page.getByRole("button", { name: "Geri", exact: true }).click();
+  await expect(
+    page.getByLabel("Verilen vize süresi (onaylandıysa)", { exact: true }),
+  ).toHaveValue("3");
+  await expect(
+    page.getByRole("button", { name: "Yıl", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Devam", exact: true }).click();
+  await page
+    .getByLabel("Kısa bir başlık", { exact: true })
+    .fill("Üç yıllık vize deneyimim");
+  await page
+    .getByRole("button", { name: "İncelemeye gönder", exact: true })
+    .click();
+  await expect.poll(() => submitted?.granted_days).toBe(1095);
+});

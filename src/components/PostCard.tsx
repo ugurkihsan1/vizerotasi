@@ -1,3 +1,4 @@
+import { formatVisaDuration } from "../lib/visa-duration";
 import { webPath } from "../lib/web-path";
 import { SendPost } from "./SendPost";
 import { DeleteContent } from "./DeleteContent";
@@ -442,7 +443,7 @@ export function PostCard({
                         color: accent,
                       }}
                     >
-                      {post.granted_days} gün vize
+                      {formatVisaDuration(post.granted_days)} vize
                       {post.entries
                         ? ` · ${{ single: "Tek giriş", double: "Çift giriş", multi: "Çok giriş" }[post.entries] ?? ""}`
                         : ""}
