@@ -4415,3 +4415,63 @@ test("community-only inbox pages do not hide private conversations on later page
   expect(offsets).toContain(30);
   await expect(page.getByRole("link", { name: /^Topluluk \d/ })).toHaveCount(0);
 });
+
+test("dark navigation keeps large transition surfaces dark between tabs and messages", async ({
+  page,
+}) => {
+  await member(page);
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "app-appearance:v1",
+      JSON.stringify({
+        theme: "dark",
+        reducedMotion: false,
+        haptics: false,
+        largeText: false,
+      }),
+    ),
+  );
+  await page.goto("/profile");
+  await expect(page.getByTestId("app-surface")).toHaveCSS(
+    "background-color",
+    "rgb(8, 8, 8)",
+  );
+  await page.evaluate(() => {
+    const state = { running: true, whiteFrames: 0, frames: 0 };
+    (window as any).__navigationFrames = state;
+    const sample = () => {
+      state.frames++;
+      if (
+        [...document.querySelectorAll("div")].some((el) => {
+          const rect = el.getBoundingClientRect();
+          const style = getComputedStyle(el);
+          return (
+            rect.width >= innerWidth * 0.9 &&
+            rect.height >= innerHeight * 0.5 &&
+            rect.bottom > 0 &&
+            rect.top < innerHeight &&
+            style.visibility !== "hidden" &&
+            style.opacity !== "0" &&
+            style.backgroundColor === "rgb(255, 255, 255)"
+          );
+        })
+      )
+        state.whiteFrames++;
+      if (state.running) requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
+  await page.getByRole("tab", { name: "Keşfet" }).click();
+  await expect(page).toHaveURL(/discover/);
+  await page.getByRole("tab", { name: "Profil" }).click();
+  await page.getByRole("button", { name: "Mesajlarım", exact: true }).click();
+  await expect(page).toHaveURL(/messages/);
+  await expect(page.getByRole("textbox", { name: "Sohbet ara" })).toBeVisible();
+  const frames = await page.evaluate(() => {
+    const state = (window as any).__navigationFrames;
+    state.running = false;
+    return state;
+  });
+  expect(frames.frames).toBeGreaterThan(0);
+  expect(frames.whiteFrames).toBe(0);
+});
