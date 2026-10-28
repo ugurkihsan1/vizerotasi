@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useSocialProfile } from "../src/lib/social";
 import { webPath } from "../src/lib/web-path";
 import * as Linking from "expo-linking";
 import { pendingCleanup, cleanupEvidence } from "../src/lib/content-cleanup";
@@ -74,7 +73,6 @@ function SettingsBody() {
     [privacy, setPrivacy] = useState(false);
   const [email, setEmail] = useState(session?.user.email ?? ""),
     [accountBusy, setAccountBusy] = useState(false);
-  const social = useSocialProfile(session?.user.id);
   const emailRedirect = () =>
     Platform.OS === "web"
       ? `${window.location.origin}${webPath("/auth")}`
@@ -247,42 +245,8 @@ function SettingsBody() {
               ))}
             </View>
           </SettingsSection>
-          <SettingsSection title="Hesap ve gizlilik" icon="lock-closed-outline">
+          <SettingsSection title="Hesap ve güvenlik" icon="lock-closed-outline">
             <Message text={message} />
-            <View style={[styles.row, { justifyContent: "space-between" }]}>
-              <Text style={styles.text}>Gizli profil</Text>
-              <Switch
-                accessibilityLabel="Gizli profil"
-                value={social.data?.is_private ?? profile.is_private ?? false}
-                disabled={accountBusy}
-                onValueChange={(v) => {
-                  setAccountBusy(true);
-                  void db()
-                    .from("profiles")
-                    .update({ is_private: v })
-                    .eq("id", profile.id)
-                    .then(async (r) => {
-                      setAccountBusy(false);
-                      if (r.error)
-                        setMessage(
-                          "Gizlilik kaydedilemedi. Sosyal profil SQL güncellemesini kontrol et.",
-                        );
-                      else {
-                        await cache.invalidateQueries({ queryKey: ["social"] });
-                        await cache.invalidateQueries({
-                          queryKey: ["profile"],
-                        });
-                        await cache.invalidateQueries({ queryKey: ["feed"] });
-                      }
-                    });
-                }}
-              />
-            </View>
-            <Text style={styles.muted}>
-              Paylaşımlarını yalnız onayladığın takipçiler görür. Adın,
-              biyografin ve profil fotoğrafın görünür kalır. Herkese açık
-              paylaşımlara yazdığın yorumlar da görünür.
-            </Text>
             <Field
               label="Yeni e-posta adresi"
               value={email}

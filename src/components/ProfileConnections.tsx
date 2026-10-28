@@ -86,16 +86,6 @@ export function ProfileConnections({ id, own }: { id: string; own: boolean }) {
             </Text>
           </Pressable>
         ))}
-        {own && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Takip istekleri"
-            onPress={() => setOpen("requests")}
-            style={{ minHeight: 44, justifyContent: "center" }}
-          >
-            <Text style={styles.muted}>İstekler</Text>
-          </Pressable>
-        )}
       </View>
       {!own && session?.user.id !== id && (
         <Button

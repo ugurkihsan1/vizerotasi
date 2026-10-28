@@ -1106,67 +1106,34 @@ it("country editing is administrator-only, validates URLs and generates a real f
   ).toMatchObject({ flag: "🇧🇪" });
 });
 
-it("enforces private profile approval in feed, comments and direct post reads", async () => {
+it("keeps profiles public, accepts follows immediately and preserves blocking", async () => {
   const owner = await user(),
-    follower = await user(),
-    outsider = await user();
+    viewer = await user();
   const pid = await post(owner);
-  await as(owner, "update profiles set is_private=true where id=$1", [owner]);
+  await expect(
+    as(owner, "update profiles set is_private=true where id=$1", [owner]),
+  ).rejects.toThrow();
+  await root("update profiles set is_private=true where id=$1", [owner]);
+  expect(
+    (await root("select is_private from profiles where id=$1", [owner]))
+      .rows[0],
+  ).toMatchObject({ is_private: false });
   expect(
     (await as(null, "select id from feed where id=$1", [pid])).rows,
-  ).toHaveLength(0);
-  expect(
-    (await as(outsider, "select id from posts where id=$1", [pid])).rows,
-  ).toHaveLength(0);
-  await as(follower, "select social_follow($1)", [owner]);
-  expect(
-    (await as(follower, "select id from feed where id=$1", [pid])).rows,
-  ).toHaveLength(0);
-  await expect(
-    as(outsider, "update user_follows set status='accepted'"),
-  ).rejects.toThrow();
-  await as(owner, "select social_follow($1,'accept')", [follower]);
-  expect(
-    (await as(follower, "select id from feed where id=$1", [pid])).rows,
   ).toHaveLength(1);
-  await as(owner, "select chat_block_user($1,true)", [follower]);
-  expect(
-    (await as(follower, "select id from feed where id=$1", [pid])).rows,
-  ).toHaveLength(0);
-  await as(owner, "select chat_block_user($1,false)", [follower]);
-  await as(follower, "select social_follow($1,'unfollow')", [owner]);
-  expect(
-    (await as(follower, "select id from feed where id=$1", [pid])).rows,
-  ).toHaveLength(0);
-  expect(
-    (await as(owner, "select id from feed where id=$1", [pid])).rows,
-  ).toHaveLength(1);
-});
-it("turns pending requests into followers only when the owner opens the profile", async () => {
-  const owner = await user(),
-    follower = await user(),
-    third = await user();
-  await as(owner, "update profiles set is_private=true where id=$1", [owner]);
-  await as(follower, "select social_follow($1)", [owner]);
-  await as(third, "select social_follow($1,'accept')", [follower]);
+  await as(viewer, "select social_follow($1)", [owner]);
   expect(
     (
-      await root("select status from user_follows where following_id=$1", [
-        owner,
-      ])
-    ).rows[0],
-  ).toMatchObject({ status: "pending" });
-  await as(owner, "update profiles set is_private=false where id=$1", [owner]);
-  expect(
-    (
-      await root("select status from user_follows where following_id=$1", [
-        owner,
-      ])
+      await root(
+        "select status from user_follows where follower_id=$1 and following_id=$2",
+        [viewer, owner],
+      )
     ).rows[0],
   ).toMatchObject({ status: "accepted" });
-  await expect(
-    as(follower, "select social_follow($1)", [follower]),
-  ).rejects.toThrow();
+  await as(owner, "select chat_block_user($1,true)", [viewer]);
+  expect(
+    (await as(viewer, "select id from feed where id=$1", [pid])).rows,
+  ).toHaveLength(0);
 });
 it("keeps photos private to accepted direct-chat participants and scopes reports to a single image", async () => {
   const a = await user(),
@@ -1263,7 +1230,7 @@ it("keeps photos private to accepted direct-chat participants and scopes reports
     ).rows,
   ).toHaveLength(0);
 });
-it("does not copy private posts to unauthorized recipients and hides stale popular content", async () => {
+it("shares public posts with accepted chat recipients and hides stale popular content", async () => {
   const a = await user(),
     b = await user();
   const pid = await post(a);
@@ -1272,10 +1239,6 @@ it("does not copy private posts to unauthorized recipients and hides stale popul
       .rows[0] as { id: string }
   ).id;
   await as(b, "select chat_answer_invite($1,true)", [room]);
-  await as(a, "update profiles set is_private=true where id=$1", [a]);
-  await expect(
-    as(a, "select chat_send_attachment($1,$2,$3)", [room, randomUUID(), pid]),
-  ).rejects.toThrow();
   await as(b, "select social_follow($1)", [a]);
   await as(a, "select social_follow($1,'accept')", [b]);
   await as(a, "select chat_send_attachment($1,$2,$3)", [
@@ -1286,8 +1249,7 @@ it("does not copy private posts to unauthorized recipients and hides stale popul
   await as(b, "select social_follow($1,'unfollow')", [a]);
   expect(
     (await as(b, "select id from feed where id=$1", [pid])).rows,
-  ).toHaveLength(0);
-  await as(a, "update profiles set is_private=false where id=$1", [a]);
+  ).toHaveLength(1);
   const old = await post(a);
   await root(
     "update posts set created_at=now()-interval '31 days' where id=$1",

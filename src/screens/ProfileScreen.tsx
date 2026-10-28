@@ -44,10 +44,7 @@ export function ProfileScreen({
   const { session } = useAuth();
   const own = suppliedOwn || session?.user.id === profile.id;
   const social = useSocialProfile(profile.id);
-  const canView =
-    own ||
-    social.data?.can_view === true ||
-    (!profile.is_private && social.data?.can_view !== false);
+  const canView = own || social.data?.can_view !== false;
   const tabs = [
     "Paylaşımlar",
     "Deneyimler",
@@ -420,7 +417,7 @@ export function ProfileScreen({
               <Text style={styles.muted}>
                 {social.isPending
                   ? "Profil yükleniyor…"
-                  : "Bu profil gizli. Paylaşımlarını görmek için takip isteği gönder."}
+                  : "Bu profile erişilemiyor."}
               </Text>
             )}
             {canView && own && tab === "Belgelerim" && <SavedDocuments />}

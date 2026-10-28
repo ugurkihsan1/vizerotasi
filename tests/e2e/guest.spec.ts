@@ -2925,7 +2925,7 @@ test("important information keeps guidance behind help buttons without losing th
   await page.screenshot({ path: "/tmp/tip-simple-mobile.png", fullPage: true });
 });
 
-test("settings are grouped and private profiles require a follow request", async ({
+test("settings keep email management and no longer offer private profiles", async ({
   page,
 }) => {
   await member(page);
@@ -2983,10 +2983,11 @@ test("settings are grouped and private profiles require a follow request", async
     .getByRole("button", { name: "Kapat", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Hesap ve gizlilik", exact: true })
+    .getByRole("button", { name: "Hesap ve güvenlik", exact: true })
     .click();
-  await page.getByRole("switch", { name: "Gizli profil", exact: true }).click();
-  await expect.poll(() => isPrivate).toBe(true);
+  await expect(
+    page.getByRole("switch", { name: "Gizli profil", exact: true }),
+  ).toHaveCount(0);
   await page
     .getByLabel("Yeni e-posta adresi", { exact: true })
     .fill("changed@example.com");
@@ -2994,16 +2995,6 @@ test("settings are grouped and private profiles require a follow request", async
     .getByRole("button", { name: "E-postayı değiştir", exact: true })
     .click();
   await expect.poll(() => email).toBe("changed@example.com");
-  await page.route("https://*.supabase.co/rest/v1/rpc/social_follow", (r) => {
-    relation = "pending";
-    return r.fulfill({ status: 204, body: "" });
-  });
-  await page.goto("/profile/private_peer");
-  await expect(page.getByText(/Bu profil gizli/)).toBeVisible();
-  await page.getByRole("button", { name: "Takip et", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "İstek gönderildi", exact: true }),
-  ).toBeVisible();
 });
 
 test("posts can be sent from their action row to an existing private chat", async ({
