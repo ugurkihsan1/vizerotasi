@@ -116,12 +116,11 @@ export function ApplicationBuddies({
             <Text
               style={{
                 color: colors.muted,
-                fontSize: textSize(11),
+                fontSize: textSize(18),
                 fontWeight: "700",
-                letterSpacing: 1,
               }}
             >
-              BAŞVURU ARKADAŞLARI
+              Başvuru arkadaşları
             </Text>
             <Text
               style={{
@@ -136,14 +135,6 @@ export function ApplicationBuddies({
               Prototip
             </Text>
           </View>
-          <Text
-            style={[
-              styles.title,
-              { fontSize: textSize(29), lineHeight: textSize(35) },
-            ]}
-          >
-            Aynı süreçte, yan yana.
-          </Text>
         </View>
         <View
           style={{

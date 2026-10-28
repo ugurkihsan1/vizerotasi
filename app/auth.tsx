@@ -430,15 +430,15 @@ export default function Auth() {
           <Text style={styles.title}>
             {mode === "signup"
               ? [
-                  "E-posta adresin ne?",
-                  "Hesabını oluşturalım.",
-                  "Seni tanıyalım.",
+                  "E-posta adresin",
+                  "Kullanıcı adı ve şifre",
+                  "Adın ve fotoğrafın",
                 ][signupStep]
               : mode === "forgot"
-                ? "Şifreni yenileyelim."
+                ? "Şifreni sıfırla"
                 : mode === "reset"
-                  ? "Yeni bir şifre seç."
-                  : "Yeniden hoş geldin."}
+                  ? "Yeni şifre"
+                  : "Giriş yap"}
           </Text>
           <Text style={styles.muted}>
             {mode === "signup"

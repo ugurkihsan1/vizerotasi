@@ -222,12 +222,12 @@ export function Feed({
                     ? "Henüz bir şey kaydetmedin."
                     : count
                       ? "Bu filtrelerde henüz paylaşım yok."
-                      : "Her rota bir deneyimle başlar."
+                      : "Henüz paylaşım yok."
               }
               body={
                 count
                   ? "Filtrelerini genişleterek yeniden bakabilirsin."
-                  : "Ülke topluluklarını keşfet; hazır olduğunda deneyiminle sen de yol göster."
+                  : undefined
               }
               action={
                 saved
@@ -256,9 +256,8 @@ export function Feed({
       <Sheet
         visible={open}
         onClose={() => setOpen(false)}
-        title="Sana benzeyen başvuruları bul"
+        title="Paylaşımları filtrele"
       >
-        <Text style={styles.muted}>İhtiyacın olanları seçmen yeterli.</Text>
         <Text style={styles.heading}>Sıralama</Text>
         <View style={styles.row}>
           <Chip

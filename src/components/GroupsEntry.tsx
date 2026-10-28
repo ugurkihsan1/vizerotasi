@@ -40,7 +40,7 @@ export function GroupsEntry() {
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={styles.pillText}>Gruplar</Text>
         <Text style={[styles.muted, { fontSize: textSize(12) }]}>
-          Erasmus ve ortak yolculuklar
+          Erasmus ve diğer gruplar
         </Text>
       </View>
       <Ionicons

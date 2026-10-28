@@ -39,23 +39,7 @@ export default function Badges() {
   const next = levels?.find((l) => l.rank > rank);
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
-      <View style={{ gap: 8 }}>
-        <Text
-          style={{
-            fontSize: textSize(10),
-            letterSpacing: 1.3,
-            fontWeight: "700",
-            color: colors.blue,
-          }}
-        >
-          HER KATKININ BİR DEĞERİ VAR
-        </Text>
-        <Text style={styles.title}>Birlikte yol al, iz bırak.</Text>
-        <Text style={styles.muted}>
-          Sayıdan fazlası: faydalı yorumlar, farklı ülkeler ve zamanla oluşan
-          güven.
-        </Text>
-      </View>
+      <Text style={styles.title}>Rozetler ve ilerleme</Text>
       {profile && (
         <View style={styles.card}>
           <MemberBadge
@@ -169,7 +153,7 @@ export default function Badges() {
           </Pressable>
         ))}
       </View>
-      <Text style={styles.heading}>Yol boyunca kazandıkların</Text>
+      <Text style={styles.heading}>Başarı rozetleri</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
         {achievementDefinitions.map((a) => {
           const has = earned.data?.includes(a.id);
@@ -212,7 +196,7 @@ export default function Badges() {
         })}
       </View>
       <View style={styles.card}>
-        <Text style={styles.heading}>Güven nasıl oluşuyor?</Text>
+        <Text style={styles.heading}>Puan hesabı</Text>
         <Text style={styles.muted}>
           Onaylı deneyimler, farklı Schengen ülkeleri ve başkalarının faydalı
           bulduğu yorumlar birlikte değerlendirilir. Bir oy, rozet hesabında

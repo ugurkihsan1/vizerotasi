@@ -110,19 +110,16 @@ export function Onboarding() {
     <Sheet
       visible={open}
       onClose={() => void finish(undefined, true)}
-      title="Rotanı birlikte planlayalım"
+      title="Başvuru planın"
     >
       <View style={{ gap: 16 }}>
         <Text style={[styles.muted, { color: colors.blue }]}>
-          {step + 1} / 3 · Sana uygun başlangıç
+          {step + 1} / 3
         </Text>
         {step === 0 && (
           <>
             <Text style={styles.title}>
               Yakında bir randevu ya da seyahat planın var mı?
-            </Text>
-            <Text style={styles.muted}>
-              Sana doğru ülkenin rehberini ve belge listesini gösterelim.
             </Text>
             {plans.map((option) => (
               <Pressable
@@ -155,7 +152,7 @@ export function Onboarding() {
               </Pressable>
             ))}
             <Button
-              label={plan === "none" ? "Topluluğu keşfet" : "Devam"}
+              label={plan === "none" ? "Akışa geç" : "Devam"}
               disabled={!plan || busy}
               onPress={() => (plan === "none" ? void finish() : setStep(1))}
             />
@@ -223,9 +220,7 @@ export function Onboarding() {
               {plan === "booked" ? "✓" : "↗"}
             </Text>
             <Text style={styles.title}>
-              {plan === "booked"
-                ? "Randevun hazır. Peki belgelerin?"
-                : `${country.name} rotan için ilk adım`}
+              {plan === "booked" ? "Belge kontrolü" : "Başvuru bilgileri"}
             </Text>
             <View style={styles.card}>
               <View style={styles.row}>
@@ -259,7 +254,7 @@ export function Onboarding() {
             />
             <Button
               secondary
-              label="Şimdilik topluluğu keşfet"
+              label="Akışa geç"
               disabled={busy}
               onPress={() => void finish()}
             />

@@ -11,6 +11,7 @@ export function HomeWelcome() {
   useAppearance();
 
   const { profile, session } = useAuth();
+  if (!session) return null;
   return (
     <View
       style={{
@@ -24,7 +25,7 @@ export function HomeWelcome() {
         <Text style={[styles.title, { fontSize: textSize(25) }]}>
           {profile
             ? `Merhaba, ${profile.display_name.split(" ")[0]} 👋`
-            : "Bir sonraki rotan burada."}
+            : "Akış"}
         </Text>
       </View>
       {session && (
@@ -172,12 +173,9 @@ export function CommunityEmpty() {
           <Ionicons name="chatbubbles-outline" size={20} color={colors.blue} />
         </View>
         <Text style={[styles.heading, { fontSize: textSize(16), flex: 1 }]}>
-          İlk deneyim senden olsun
+          Henüz paylaşım yok
         </Text>
       </View>
-      <Text style={[styles.muted, { fontSize: textSize(12) }]}>
-        Deneyimin başka birinin yolunu kolaylaştırabilir.
-      </Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={session ? "Deneyimini paylaş" : "Topluluğa katıl"}

@@ -128,7 +128,7 @@ export default function Notifications() {
     return (
       <View style={styles.content}>
         <Empty
-          title="Bildirimlerin burada"
+          title="Bildirimler"
           body="Topluluğa katıl, yanıtları ve gelişmeleri kaçırma."
           action="Giriş yap"
           onPress={() => router.push("/auth")}

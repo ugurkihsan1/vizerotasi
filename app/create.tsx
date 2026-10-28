@@ -445,8 +445,7 @@ export default function Create() {
     return (
       <View style={styles.content}>
         <Empty
-          title="Deneyimin birine yol göstersin"
-          body="Paylaşım yapmak için topluluğa katıl."
+          title="Paylaşım yapmak için giriş yap"
           action="Giriş yap / Üye ol"
           onPress={() => router.push("/auth")}
         />

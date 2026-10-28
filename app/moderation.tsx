@@ -95,7 +95,6 @@ export default function Moderation() {
       keyExtractor={(x) => x.id}
       ListHeaderComponent={
         <View style={{ gap: 12 }}>
-          <Text style={styles.title}>Birlikte güvenli bir topluluk.</Text>
           <View style={styles.row}>
             {Object.entries({
               all: "Tüm gönderiler",

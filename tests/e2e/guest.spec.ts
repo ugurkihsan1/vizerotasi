@@ -41,7 +41,7 @@ test("guest gets a guided feed with advanced filters hidden until requested", as
   await fixtures(page);
   await page.addInitScript(() => localStorage.setItem("onboarding-v1", "done"));
   await page.goto("/");
-  await expect(page.getByText("İlk deneyim senden olsun")).toBeVisible();
+  await expect(page.getByText("Henüz paylaşım yok")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "İlk Schengen", exact: true }),
   ).not.toBeVisible();
@@ -903,9 +903,7 @@ test("first visit asks about plans and booked applicants can open a persistent d
   ).toBeDisabled();
   await page.getByRole("radio", { name: "İspanya", exact: true }).click();
   await page.getByRole("button", { name: "Devam", exact: true }).click();
-  await expect(
-    page.getByText("Randevun hazır. Peki belgelerin?", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Belge kontrolü", { exact: true })).toBeVisible();
   await page.screenshot({ path: "/tmp/planner-booked-mobile.png" });
   await page
     .getByRole("button", { name: "Belge checklistine git", exact: true })
@@ -931,7 +929,7 @@ test("first visit asks about plans and booked applicants can open a persistent d
     ),
   ).toEqual({ status: "booked", country_id: "spain" });
   await page.goto("/");
-  await expect(page.getByText("İlk deneyim senden olsun")).toBeVisible();
+  await expect(page.getByText("Henüz paylaşım yok")).toBeVisible();
   await expect(
     page.getByRole("radio", { name: "Randevumu aldım", exact: true }),
   ).toHaveCount(0);
@@ -999,7 +997,7 @@ test("visitors can skip planning or explore without a plan and are not asked aga
     page.getByRole("radio", { name: "Randevumu aldım", exact: true }),
   ).toHaveCount(0);
   await page.reload();
-  await expect(page.getByText("İlk deneyim senden olsun")).toBeVisible();
+  await expect(page.getByText("Henüz paylaşım yok")).toBeVisible();
   await expect(
     page.getByRole("radio", { name: "Randevumu aldım", exact: true }),
   ).toHaveCount(0);
@@ -1008,9 +1006,7 @@ test("visitors can skip planning or explore without a plan and are not asked aga
   await page
     .getByRole("radio", { name: "Şimdilik bir planım yok", exact: true })
     .click();
-  await page
-    .getByRole("button", { name: "Topluluğu keşfet", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Akışa geç", exact: true }).click();
   await expect(
     page.getByRole("radio", { name: "Randevumu aldım", exact: true }),
   ).toHaveCount(0);
@@ -3524,9 +3520,7 @@ for (const type of ["signup", "recovery"] as const) {
       `/auth#access_token=${jwt}&refresh_token=fixture-refresh&expires_in=3600&token_type=bearer&type=${type}`,
     );
     if (type === "recovery") {
-      await expect(
-        page.getByText("Yeni bir şifre seç.", { exact: true }),
-      ).toBeVisible();
+      await expect(page.getByText("Yeni şifre", { exact: true })).toBeVisible();
       await expect(
         page.getByText("E-posta adresin doğrulandı", { exact: true }),
       ).toHaveCount(0);
@@ -4104,7 +4098,7 @@ test("light mode is monochrome and profile keeps badges inside the summary with 
     .click();
   await expect(page).toHaveURL(/\/badges$/);
   await expect(
-    page.getByText("Birlikte yol al, iz bırak.", { exact: true }),
+    page.getByText("Rozetler ve ilerleme", { exact: true }),
   ).toBeVisible();
   await page.goto("/auth?mode=signup");
   const next = page.getByRole("button", { name: "Devam et", exact: true });
@@ -5002,7 +4996,7 @@ for (const theme of ["light", "dark"] as const) {
     });
     await page.goto("/country/germany?tab=Arkadaşlar");
     await expect(
-      page.getByText("Aynı süreçte, yan yana.", { exact: true }),
+      page.getByText("Başvuru arkadaşları", { exact: true }),
     ).toBeVisible();
     await expect(
       page.getByText("Örnek kişiler", { exact: true }),

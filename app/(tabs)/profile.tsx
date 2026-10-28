@@ -13,8 +13,8 @@ export default function Profile() {
     return (
       <View style={styles.content}>
         <Empty
-          title="Senin rotan, senin topluluğun"
-          body="Deneyimlerini paylaşmak ve kaydettiklerine dönmek için hesabını oluştur."
+          title="Profil"
+          body="Paylaşımlarını ve kaydettiklerini görmek için giriş yap."
           action="Üye ol"
           onPress={() => router.push("/auth?mode=signup")}
         />
