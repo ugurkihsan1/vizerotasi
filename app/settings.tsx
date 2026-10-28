@@ -214,6 +214,26 @@ function SettingsBody() {
               }}
             />
           </SettingsSection>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel="Rozetlerim ve ilerlemem"
+            onPress={() => router.push("/badges")}
+            style={[
+              styles.card,
+              {
+                padding: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+              },
+            ]}
+          >
+            <Ionicons name="ribbon-outline" size={22} color={colors.blue} />
+            <Text style={[styles.pillText, { flex: 1 }]}>
+              Rozetlerim ve ilerlemem
+            </Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+          </Pressable>
           <SettingsSection title="Bildirimler" icon="notifications-outline">
             <View style={styles.card}>
               {Object.entries({
@@ -297,6 +317,29 @@ function SettingsBody() {
             />
             <DeleteAccount />
           </SettingsSection>
+          {profile.role !== "user" && (
+            <SettingsSection title="Yönetim" icon="shield-checkmark-outline">
+              <Button
+                secondary
+                label="Moderasyon kuyruğu"
+                onPress={() => router.push("/moderation")}
+              />
+              {profile.role === "admin" && (
+                <>
+                  <Button
+                    secondary
+                    label="Ülkeleri yönet"
+                    onPress={() => router.push("/admin-countries")}
+                  />
+                  <Button
+                    secondary
+                    label="İçerik ve üye yönetimi"
+                    onPress={() => router.push("/admin")}
+                  />
+                </>
+              )}
+            </SettingsSection>
+          )}
         </>
       )}
       <SettingsSection title="Veri ve uygulama" icon="options-outline">

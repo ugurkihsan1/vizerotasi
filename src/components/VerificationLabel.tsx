@@ -1,7 +1,7 @@
 import { useAppearance, themeColor, textSize } from "../lib/appearance";
 import { Text, View } from "react-native";
 import { useVerification } from "../lib/evidence";
-import { styles } from "./ui";
+import { styles, colors } from "./ui";
 export function VerificationLabel({
   postId,
   compact = false,
@@ -19,7 +19,7 @@ export function VerificationLabel({
     return (
       <Text
         style={{
-          color: color ?? themeColor("#24766C", "text"),
+          color: color ?? colors.green,
           fontSize: textSize(10),
           lineHeight: 16,
         }}
@@ -33,9 +33,7 @@ export function VerificationLabel({
         style={[
           styles.pillText,
           {
-            color: verified
-              ? themeColor("#24766C", "text")
-              : themeColor("#71579D", "text"),
+            color: verified ? colors.green : themeColor("#71579D", "text"),
             fontSize: textSize(11),
           },
         ]}

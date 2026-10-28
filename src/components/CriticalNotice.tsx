@@ -1,4 +1,4 @@
-import { useAppearance, themeColor, textSize, isDark } from "../lib/appearance";
+import { useAppearance, themeColor, textSize } from "../lib/appearance";
 import { useState, type PropsWithChildren } from "react";
 import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,11 +23,7 @@ export function CriticalNotice({
 
   const [open, setOpen] = useState(initiallyOpen);
   const official = source === "reference";
-  const accent = official
-    ? themeColor("#71579D", "text")
-    : isDark()
-      ? colors.green
-      : themeColor("#24766C", "text");
+  const accent = official ? themeColor("#71579D", "text") : colors.green;
   return (
     <View
       style={{

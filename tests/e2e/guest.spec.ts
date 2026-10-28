@@ -3170,7 +3170,7 @@ test("profile tabs preserve scroll position and compact dates keep keyboard prog
     }),
   );
   await page.goto("/profile");
-  const tab = page.getByRole("button", { name: "Deneyimler", exact: true });
+  const tab = page.getByRole("tab", { name: "Deneyimler", exact: true });
   await expect(tab).toBeVisible();
   await page.screenshot({ path: "/tmp/profile-refreshed.png" });
   await tab.scrollIntoViewIfNeeded();
@@ -3191,8 +3191,8 @@ test("profile tabs preserve scroll position and compact dates keep keyboard prog
   expect(scroll).toBeGreaterThan(50);
   await tab.click();
   await expect(
-    page.getByRole("button", { name: "Deneyimler", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
+    page.getByRole("tab", { name: "Deneyimler", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
   const after = await page.evaluate(
     () =>
       Array.from(document.querySelectorAll("div")).find(
@@ -3224,8 +3224,8 @@ test("profile tabs preserve scroll position and compact dates keep keyboard prog
     touchPoints: [],
   });
   await expect(
-    page.getByRole("button", { name: "Sorular", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
+    page.getByRole("tab", { name: "Sorular", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
 
   await page.goto("/create");
   await page
@@ -3866,4 +3866,196 @@ test("black theme uses neutral profile surfaces and readable primary actions", a
     "rgb(228, 228, 228)",
   );
   await page.screenshot({ path: "/tmp/black-theme-auth.png" });
+});
+
+for (const theme of ["light", "dark"] as const) {
+  test(`green and amber status cards keep colored surfaces and experience labels in ${theme} mode`, async ({
+    page,
+  }) => {
+    await fixtures(page);
+    await page.addInitScript(
+      (theme) =>
+        localStorage.setItem(
+          "app-appearance:v1",
+          JSON.stringify({
+            theme,
+            reducedMotion: true,
+            largeText: false,
+            haptics: false,
+          }),
+        ),
+      theme,
+    );
+    const base = {
+      user_id: "00000000-0000-0000-0000-000000000300",
+      country_id: "spain",
+      kind: "experience",
+      body: "Başvuru sırasında yaşadıklarımı paylaşıyorum.",
+      status: "approved",
+      created_at: "2026-10-28T10:00:00Z",
+      helpful_count: 0,
+      comment_count: 0,
+      purpose: "Kültürel etkinlik",
+      source_type: "submission",
+    };
+    await page.route("https://*.supabase.co/rest/v1/feed?**", (route) =>
+      route.fulfill({
+        json: [
+          {
+            ...base,
+            id: "00000000-0000-0000-0000-000000000971",
+            title: "Onay deneyimim",
+            result: "approved",
+          },
+          {
+            ...base,
+            id: "00000000-0000-0000-0000-000000000972",
+            title: "Bekleyen deneyimim",
+            result: "waiting",
+          },
+          {
+            ...base,
+            id: "00000000-0000-0000-0000-000000000973",
+            title: "Randevu önemli bilgisi",
+            kind: "tip",
+          },
+        ],
+      }),
+    );
+    await page.goto("/");
+    const green = page
+      .getByText("✓ Onaylandı", { exact: true })
+      .locator("../..");
+    const amber = page
+      .getByText("◷ Bekliyor", { exact: true })
+      .locator("../..");
+    await expect(green).toHaveCSS(
+      "background-color",
+      theme === "dark" ? "rgb(24, 43, 34)" : "rgb(240, 247, 242)",
+    );
+    await expect(amber).toHaveCSS(
+      "background-color",
+      theme === "dark" ? "rgb(48, 41, 25)" : "rgb(255, 246, 229)",
+    );
+    await expect(
+      green.getByText("Kullanıcı deneyimi", { exact: true }),
+    ).toHaveCSS(
+      "color",
+      theme === "dark" ? "rgb(120, 213, 163)" : "rgb(23, 103, 68)",
+    );
+    await expect(
+      amber.getByText("Kullanıcı deneyimi", { exact: true }),
+    ).toHaveCSS(
+      "color",
+      theme === "dark" ? "rgb(235, 200, 110)" : "rgb(135, 91, 16)",
+    );
+    const tip = page
+      .getByRole("link", { name: "Randevu önemli bilgisi", exact: true })
+      .locator("../..");
+    await expect(tip).toHaveCSS(
+      "background-color",
+      theme === "dark" ? "rgb(48, 41, 25)" : "rgb(255, 246, 229)",
+    );
+    await page.screenshot({ path: `/tmp/semantic-cards-${theme}.png` });
+  });
+}
+
+test("light mode is monochrome and profile keeps badges inside the summary with progress and admin tools in settings", async ({
+  page,
+}) => {
+  await member(page);
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "app-appearance:v1",
+      JSON.stringify({
+        theme: "light",
+        reducedMotion: true,
+        largeText: false,
+        haptics: false,
+      }),
+    ),
+  );
+  await page.route("https://*.supabase.co/rest/v1/profiles?**", (route) =>
+    route.fulfill({
+      json: {
+        id: "00000000-0000-0000-0000-000000000200",
+        username: "fixture_member",
+        display_name: "Normal member",
+        membership_level: "Gezgin",
+        role: "admin",
+        badge_score: 42,
+      },
+    }),
+  );
+  await page.route("https://*.supabase.co/rest/v1/user_badges?**", (route) =>
+    route.fulfill({
+      json: [
+        {
+          badge_id: "europe-conqueror",
+          badges: {
+            name: "Avrupa Fatihi",
+            icon: "earth-outline",
+            badge_group: "achievement",
+          },
+        },
+        {
+          badge_id: "gezgin",
+          badges: {
+            name: "Gezgin",
+            icon: "footsteps-outline",
+            badge_group: "level",
+          },
+        },
+      ],
+    }),
+  );
+  await page.goto("/profile");
+  await expect(page.getByTestId("app-surface")).toHaveCSS(
+    "background-color",
+    "rgb(255, 255, 255)",
+  );
+  const summary = page
+    .getByRole("button", { name: "Profil ve ayarlar", exact: true })
+    .locator("../..");
+  await expect(
+    summary.getByText("Avrupa Fatihi", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("Gezgin", { exact: true })).toHaveCount(1);
+  await expect(
+    page.getByRole("link", { name: "Rozetlerim ve ilerlemem", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText("Moderasyon kuyruğu", { exact: true }),
+  ).toHaveCount(0);
+  const tab = page.getByRole("tab", { name: "Deneyimler", exact: true });
+  await expect(tab).toHaveCSS("border-radius", "0px");
+  await tab.click();
+  await expect(tab).toHaveAttribute("aria-selected", "true");
+  await expect(tab).toHaveCSS("border-bottom-width", "2px");
+  await page.screenshot({ path: "/tmp/profile-minimal-light.png" });
+  await page
+    .getByRole("button", { name: "Profil ve ayarlar", exact: true })
+    .click();
+  await expect(
+    page.getByRole("link", { name: "Rozetlerim ve ilerlemem", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Yönetim", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Ülkeleri yönet", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Kapat", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Rozetlerim ve ilerlemem", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/badges$/);
+  await expect(
+    page.getByText("Birlikte yol al, iz bırak.", { exact: true }),
+  ).toBeVisible();
+  await page.goto("/auth?mode=signup");
+  const next = page.getByRole("button", { name: "Devam et", exact: true });
+  await expect(next).toHaveCSS("background-color", "rgb(17, 17, 17)");
+  await expect(next.getByText("Devam et", { exact: true })).toHaveCSS(
+    "color",
+    "rgb(255, 255, 255)",
+  );
 });

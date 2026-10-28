@@ -4,6 +4,7 @@ import {
   themeColor,
   useAppearance,
   darkPalette,
+  lightPalette,
 } from "../lib/appearance";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -25,19 +26,19 @@ import { router } from "expo-router";
 import { useAuth } from "../lib/auth";
 export const colors = {
   get navy() {
-    return isDark() ? darkPalette.heading : "#182E43";
+    return isDark() ? darkPalette.heading : lightPalette.heading;
   },
   get blue() {
-    return isDark() ? darkPalette.accent : "#24766C";
+    return isDark() ? darkPalette.accent : lightPalette.accent;
   },
   get bg() {
-    return isDark() ? darkPalette.background : "#F5F5F0";
+    return isDark() ? darkPalette.background : lightPalette.background;
   },
   get text() {
-    return isDark() ? darkPalette.text : "#263E4F";
+    return isDark() ? darkPalette.text : lightPalette.text;
   },
   get muted() {
-    return isDark() ? darkPalette.muted : "#6D7D87";
+    return isDark() ? darkPalette.muted : lightPalette.muted;
   },
   get green() {
     return isDark() ? "#58CC98" : "#13835A";
@@ -166,12 +167,12 @@ export function Button({
         borderColor: secondary
           ? isDark()
             ? "#515151"
-            : "#CFDBD5"
+            : lightPalette.border
           : "transparent",
         backgroundColor: secondary
           ? isDark()
             ? darkPalette.raised
-            : "#EAF0ED"
+            : lightPalette.raised
           : isDark()
             ? "#E8E8E8"
             : themeColor("#24766C", "surface"),
@@ -225,7 +226,7 @@ export function Chip({
           backgroundColor: active
             ? isDark()
               ? "#303030"
-              : "#182E43"
+              : lightPalette.heading
             : themeColor("#E8EEF7", "surface"),
         },
       ]}

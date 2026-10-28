@@ -1,6 +1,16 @@
 import { useSyncExternalStore } from "react";
 import { Appearance, Platform, AccessibilityInfo } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+export const lightPalette = {
+  background: "#FFFFFF",
+  surface: "#FFFFFF",
+  raised: "#F5F5F5",
+  border: "#E4E4E4",
+  heading: "#111111",
+  text: "#262626",
+  muted: "#737373",
+  accent: "#111111",
+};
 export const darkPalette = {
   background: "#080808",
   surface: "#151515",
@@ -34,7 +44,7 @@ const emit = () => {
     document.documentElement.style.colorScheme = isDark() ? "dark" : "light";
     document.documentElement.style.backgroundColor = isDark()
       ? darkPalette.background
-      : "#F5F5F0";
+      : lightPalette.background;
   }
   listeners.forEach((f) => f());
 };
@@ -95,7 +105,6 @@ export function themeColor(
   hex: string,
   role: "surface" | "text" | "border" | "status" = "surface",
 ) {
-  if (!isDark()) return hex;
   let h = hex.slice(1);
   if (h.length === 3 || h.length === 4)
     h = h
@@ -108,6 +117,23 @@ export function themeColor(
     max = Math.max(...rgb),
     min = Math.min(...rgb),
     lum = (rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722) / 255;
+  if (!isDark()) {
+    if (role === "status") return hex;
+    if (role === "border") return lightPalette.border + alpha;
+    if (role === "text") {
+      if (min > 230) return "#FFFFFF" + alpha;
+      if (hex.slice(1, 7).toLowerCase() === "24766c" || lum < 0.25)
+        return lightPalette.heading + alpha;
+      if (max - min < 50) return lightPalette.muted + alpha;
+      return hex;
+    }
+    if (alpha) return (lum > 0.7 ? "#FFFFFF" : "#000000") + alpha;
+    return lum < 0.65
+      ? lightPalette.heading
+      : min >= 248
+        ? lightPalette.surface
+        : lightPalette.raised;
+  }
   if (role === "border") return darkPalette.border + alpha;
   if (role === "text") {
     if (min > 230) return "#FFFFFF" + alpha;

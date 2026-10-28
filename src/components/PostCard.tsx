@@ -68,7 +68,9 @@ export function Avatar({
         borderRadius: size / 2,
         backgroundColor: isDark()
           ? "#262626"
-          : themeColor(accent ? "#FBE4E2" : "#DCE9FC", "surface"),
+          : accent
+            ? `${accent}14`
+            : themeColor("#DCE9FC", "surface"),
         alignItems: "center",
         justifyContent: "center",
       }}
@@ -192,8 +194,53 @@ export function PostCard({
   const { data: author } = useProfile(post.user_id);
   const country = countries?.find((x) => x.id === post.country_id);
   const days = processingDays(post.application_date, post.decision_date);
-  const rejected = post.kind === "experience" && post.result === "rejected";
-  const accent = rejected ? (isDark() ? "#F197A2" : "#9E3041") : colors.blue;
+  const outcome = post.kind === "experience" ? post.result : null;
+  const rejected = outcome === "rejected";
+  const tone = rejected
+    ? "red"
+    : outcome === "approved"
+      ? "green"
+      : outcome === "waiting" || post.kind === "tip"
+        ? "amber"
+        : null;
+  const accent =
+    tone === "red"
+      ? isDark()
+        ? "#F197A2"
+        : "#9E3041"
+      : tone === "green"
+        ? isDark()
+          ? "#78D5A3"
+          : "#176744"
+        : tone === "amber"
+          ? isDark()
+            ? "#EBC86E"
+            : "#875B10"
+          : colors.blue;
+  const toneBackground =
+    tone === "red"
+      ? isDark()
+        ? "#2B2027"
+        : "#FFF3F1"
+      : tone === "green"
+        ? isDark()
+          ? "#182B22"
+          : "#F0F7F2"
+        : isDark()
+          ? "#302919"
+          : "#FFF6E5";
+  const toneCap =
+    tone === "red"
+      ? isDark()
+        ? "#482832"
+        : "#F7D1CD"
+      : tone === "green"
+        ? isDark()
+          ? "#254533"
+          : "#CDECD9"
+        : isDark()
+          ? "#4B3C1B"
+          : "#FFE8A6";
   return (
     <View
       style={[
@@ -202,10 +249,8 @@ export function PostCard({
           padding: 0,
           gap: 0,
           overflow: "hidden",
-          backgroundColor: rejected
-            ? isDark()
-              ? "#2B2027"
-              : "#FFF3F1"
+          backgroundColor: tone
+            ? toneBackground
             : post.kind === "general"
               ? themeColor("#F4EFFB", "surface")
               : post.kind === "experience"
@@ -216,12 +261,22 @@ export function PostCard({
                     ? themeColor("#FFF5E7", "surface")
                     : themeColor("#FFFFFF", "surface"),
         },
-        rejected && { borderColor: isDark() ? "#66404C" : "#EBC8C5" },
-        post.kind === "tip" && {
-          borderColor: themeColor("#EDDCC4", "border"),
-        },
         post.kind === "question" && {
           borderColor: themeColor("#DDE6E9", "border"),
+        },
+        tone && {
+          borderColor:
+            tone === "red"
+              ? isDark()
+                ? "#66404C"
+                : "#EBC8C5"
+              : tone === "green"
+                ? isDark()
+                  ? "#365D47"
+                  : "#D1E6D8"
+                : isDark()
+                  ? "#6B582E"
+                  : "#E9D8A9",
         },
       ]}
     >
@@ -235,26 +290,14 @@ export function PostCard({
             alignItems: "center",
             justifyContent: "space-between",
             gap: 8,
-            backgroundColor:
-              post.result === "approved"
-                ? themeColor("#CDECD9", "status")
-                : post.result === "rejected"
-                  ? isDark()
-                    ? "#482832"
-                    : "#F7D1CD"
-                  : themeColor("#FFE8A6", "status"),
+            backgroundColor: toneCap,
           }}
         >
           <Text
             style={{
               fontWeight: "800",
               fontSize: textSize(14),
-              color:
-                post.result === "approved"
-                  ? themeColor("#176744", "text")
-                  : post.result === "rejected"
-                    ? accent
-                    : themeColor("#866000", "text"),
+              color: accent,
             }}
           >
             {resultLabels[post.result]}
@@ -264,7 +307,7 @@ export function PostCard({
               style={{
                 fontSize: textSize(12),
                 fontWeight: "600",
-                color: rejected ? accent : colors.navy,
+                color: accent,
               }}
             >
               {days} günde sonuçlandı
@@ -295,27 +338,21 @@ export function PostCard({
             style={[
               styles.muted,
               {
-                color:
-                  post.kind === "general"
+                color: tone
+                  ? accent
+                  : post.kind === "general"
                     ? themeColor("#8050AD", "text")
-                    : post.kind === "tip"
-                      ? themeColor("#A76A1B", "text")
-                      : post.kind === "question"
-                        ? themeColor("#3476B5", "text")
-                        : accent,
+                    : post.kind === "question"
+                      ? themeColor("#3476B5", "text")
+                      : accent,
                 fontSize: textSize(11),
-                backgroundColor:
-                  post.kind === "general"
+                backgroundColor: tone
+                  ? toneCap
+                  : post.kind === "general"
                     ? themeColor("#EBDFF7", "surface")
-                    : post.kind === "tip"
-                      ? themeColor("#F9EAD2", "surface")
-                      : post.kind === "question"
-                        ? themeColor("#E2EEFA", "surface")
-                        : rejected
-                          ? isDark()
-                            ? "#482832"
-                            : "#FBE3DF"
-                          : themeColor("#EDF3F0", "surface"),
+                    : post.kind === "question"
+                      ? themeColor("#E2EEFA", "surface")
+                      : themeColor("#EDF3F0", "surface"),
                 paddingHorizontal: 9,
                 paddingVertical: 3,
                 borderRadius: 7,
@@ -337,7 +374,7 @@ export function PostCard({
             <Avatar
               name={author?.display_name ?? "Üye"}
               url={author?.avatar_url}
-              accent={rejected ? accent : undefined}
+              accent={tone ? accent : undefined}
             />
             <View>
               <Text style={styles.pillText}>
@@ -390,7 +427,9 @@ export function PostCard({
                 post.granted_days > 0 && (
                   <View
                     style={{
-                      backgroundColor: themeColor("#EAF3ED", "surface"),
+                      backgroundColor: isDark()
+                        ? "#254533"
+                        : themeColor("#EAF3ED", "status"),
                       paddingHorizontal: 11,
                       paddingVertical: 6,
                       borderRadius: 9,
@@ -400,7 +439,7 @@ export function PostCard({
                       style={{
                         fontSize: textSize(12),
                         fontWeight: "700",
-                        color: themeColor("#24766C", "text"),
+                        color: accent,
                       }}
                     >
                       {post.granted_days} gün vize
@@ -461,7 +500,7 @@ export function PostCard({
               <VerificationLabel
                 postId={post.id}
                 compact
-                color={rejected ? accent : undefined}
+                color={tone ? accent : undefined}
               />
             ))}
         </Pressable>
@@ -481,7 +520,7 @@ export function PostCard({
               name={author?.display_name ?? "Üye"}
               url={author?.avatar_url}
               size={26}
-              accent={rejected ? accent : undefined}
+              accent={tone ? accent : undefined}
             />
             <Text
               style={{

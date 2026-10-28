@@ -22,14 +22,7 @@ import { db } from "../lib/supabase";
 import type { Profile } from "../lib/types";
 import { Feed } from "../components/Feed";
 import { Avatar } from "../components/PostCard";
-import {
-  styles,
-  Chip,
-  colors,
-  Button,
-  Message,
-  useGate,
-} from "../components/ui";
+import { styles, colors, Button, Message, useGate } from "../components/ui";
 export function ProfileScreen({
   profile,
   own: suppliedOwn = false,
@@ -53,9 +46,11 @@ export function ProfileScreen({
   ];
   const [slide] = useState(() => new Animated.Value(0));
   const changeTab = (next: string) => {
+    if (next === tab) return;
+    const direction = tabs.indexOf(next) > tabs.indexOf(tab) ? 1 : -1;
     setTab(next);
     if (!appearance.motionReduced) {
-      slide.setValue(10);
+      slide.setValue(direction * 20);
       Animated.timing(slide, {
         toValue: 0,
         duration: 140,
@@ -66,11 +61,24 @@ export function ProfileScreen({
   const swipe = PanResponder.create({
     onMoveShouldSetPanResponder: (_, g) =>
       Math.abs(g.dx) > 55 && Math.abs(g.dy) < 18,
+    onPanResponderMove: (_, g) => {
+      if (!appearance.motionReduced)
+        slide.setValue(Math.max(-35, Math.min(35, g.dx * 0.2)));
+    },
+    onPanResponderTerminate: () => slide.setValue(0),
     onPanResponderRelease: (_, g) => {
       if (Math.abs(g.dx) > 55 && Math.abs(g.dy) < 40) {
         const next = tabs[tabs.indexOf(tab) + (g.dx < 0 ? 1 : -1)];
-        if (next) changeTab(next);
+        if (next) {
+          changeTab(next);
+          return;
+        }
       }
+      Animated.timing(slide, {
+        toValue: 0,
+        duration: appearance.motionReduced ? 0 : 140,
+        useNativeDriver: false,
+      }).start();
     },
   });
   const gate = useGate();
@@ -81,11 +89,23 @@ export function ProfileScreen({
     queryFn: async () => {
       const r = await db()
         .from("user_badges")
-        .select("badge_id,badges(name)")
+        .select("badge_id,badges(name,icon,badge_group)")
         .eq("user_id", profile.id);
       if (r.error) throw r.error;
       return r.data;
     },
+  });
+  const visibleBadges = (badges.data ?? []).flatMap((row) => {
+    const badge = (Array.isArray(row.badges) ? row.badges[0] : row.badges) as {
+      name: string;
+      icon?: string;
+      badge_group?: string;
+    } | null;
+    return !badge ||
+      badge.badge_group === "level" ||
+      badge.name === profile.membership_level
+      ? []
+      : [{ id: row.badge_id, ...badge }];
   });
   const stats = useQuery({
     queryKey: ["profile-stats", profile.id],
@@ -177,6 +197,43 @@ export function ProfileScreen({
                   </Text>
                 )}
               </View>
+              {visibleBadges.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 14 }}
+                >
+                  {visibleBadges.map((badge) => (
+                    <View
+                      key={badge.id}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 5,
+                        paddingVertical: 4,
+                      }}
+                    >
+                      <Ionicons
+                        name={
+                          (badge.icon ??
+                            "ribbon-outline") as keyof typeof Ionicons.glyphMap
+                        }
+                        size={14}
+                        color={colors.amber}
+                      />
+                      <Text
+                        style={{
+                          color: colors.muted,
+                          fontSize: textSize(11),
+                          fontWeight: "600",
+                        }}
+                      >
+                        {badge.name}
+                      </Text>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
               {!!profile.bio && <Text style={styles.text}>{profile.bio}</Text>}
               <ProfileConnections
                 id={profile.id}
@@ -252,122 +309,41 @@ export function ProfileScreen({
                 ))}
               </View>
             </View>
-            {own && (
-              <Pressable
-                accessibilityRole="link"
-                accessibilityLabel="Rozetlerim ve ilerlemem"
-                onPress={() => router.push("/badges")}
-                style={[
-                  styles.card,
-                  { flexDirection: "row", alignItems: "center", padding: 16 },
-                ]}
-              >
-                <Ionicons name="ribbon-outline" size={26} color={colors.blue} />
-                <View style={{ flex: 1, gap: 3 }}>
-                  <Text style={styles.pillText}>Rozetlerim ve ilerlemem</Text>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={colors.muted}
-                />
-              </Pressable>
-            )}
-            {badges.data && badges.data.length > 0 && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 8 }}
-              >
-                {badges.data.map((b) => (
-                  <View
-                    key={b.badge_id}
-                    style={{
-                      backgroundColor: themeColor("#FFF1D7", "surface"),
-                      padding: 12,
-                      borderRadius: 14,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: textSize(12),
-                        color: themeColor("#8E692C", "text"),
-                      }}
-                    >
-                      🏅 {(b.badges as unknown as { name: string })?.name}
-                    </Text>
-                  </View>
-                ))}
-              </ScrollView>
-            )}
-            {own && profile.role !== "user" && (
-              <View style={{ gap: 10 }}>
-                <Pressable
-                  accessibilityRole="link"
-                  onPress={() => router.push("/moderation")}
-                  style={[
-                    styles.card,
-                    {
-                      flexDirection: "row",
-                      alignItems: "center",
-                      padding: 16,
-                      gap: 12,
-                      backgroundColor: themeColor("#ECF2ED", "surface"),
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name="shield-checkmark-outline"
-                    size={25}
-                    color={colors.blue}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.pillText}>Moderasyon kuyruğu</Text>
-                  </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={18}
-                    color={colors.blue}
-                  />
-                </Pressable>
-                {profile.role === "admin" && (
-                  <Button
-                    secondary
-                    label="Ülkeleri yönet"
-                    onPress={() => router.push("/admin-countries")}
-                  />
-                )}
-                {profile.role === "admin" && (
-                  <Pressable
-                    accessibilityRole="link"
-                    onPress={() => router.push("/admin")}
-                    style={{
-                      minHeight: 44,
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      style={{ fontSize: textSize(12), color: colors.blue }}
-                    >
-                      İçerik ve üye yönetimi →
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
-            )}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8 }}
+              contentContainerStyle={{
+                gap: 24,
+                borderBottomWidth: 1,
+                borderBottomColor: themeColor("#E4E4E4", "border"),
+              }}
             >
               {tabs.map((t) => (
-                <Chip
+                <Pressable
                   key={t}
-                  label={t}
-                  active={tab === t}
+                  accessibilityRole="tab"
+                  accessibilityLabel={t}
+                  accessibilityState={{ selected: tab === t }}
+                  aria-selected={tab === t}
                   onPress={() => changeTab(t)}
-                />
+                  style={{
+                    minHeight: 46,
+                    justifyContent: "center",
+                    borderBottomWidth: tab === t ? 2 : 0,
+                    borderBottomColor: colors.navy,
+                    paddingHorizontal: 2,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: tab === t ? colors.navy : colors.muted,
+                      fontWeight: tab === t ? "700" : "500",
+                      fontSize: textSize(13),
+                    }}
+                  >
+                    {t}
+                  </Text>
+                </Pressable>
               ))}
             </ScrollView>
             {!canView && (
