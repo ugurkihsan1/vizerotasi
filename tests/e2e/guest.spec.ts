@@ -4189,6 +4189,20 @@ for (const theme of ["light", "dark"] as const) {
     await expect(
       page.getByLabel("4 okunmamış mesaj", { exact: true }),
     ).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: "İspanya", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "İspanya sohbeti", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByLabel("İspanya: 1 okunmamış mesaj", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByRole("tab", { name: "Okunmamış", exact: true })
+        .getByText("1", { exact: true }),
+    ).toBeVisible();
     expect(reads.length).toBeGreaterThan(0);
     await page.screenshot({ path: `/tmp/inbox-polished-${theme}.png` });
     await page.getByRole("tab", { name: "Okunmamış", exact: true }).click();
@@ -4356,4 +4370,48 @@ test("visa fee notes appear in documents including the explicitly identified old
     .getByRole("button", { name: "İncelemeye gönder", exact: true })
     .click();
   await expect.poll(() => submitted?.category_id).toBe("visa-fee");
+});
+
+test("community-only inbox pages do not hide private conversations on later pages", async ({
+  page,
+}) => {
+  const { id } = await chatFixtures(page);
+  const offsets: number[] = [];
+  await page.route("https://*.supabase.co/rest/v1/rpc/chat_inbox", (route) => {
+    const offset = route.request().postDataJSON().page_offset;
+    offsets.push(offset);
+    return route.fulfill({
+      json:
+        offset === 0
+          ? Array.from({ length: 30 }, (_, i) => ({
+              id: `community-${i}`,
+              kind: "community",
+              country_id: `country-${i}`,
+              title: `Topluluk ${i}`,
+              status: "active",
+              last_body: "Bir topluluk mesajı",
+              last_at: new Date().toISOString(),
+              unread_count: 0,
+              closed_at: null,
+            }))
+          : [
+              {
+                id,
+                kind: "direct",
+                title: "Özel arkadaş",
+                status: "active",
+                last_body: "Merhaba!",
+                last_at: new Date().toISOString(),
+                unread_count: 1,
+                closed_at: null,
+              },
+            ],
+    });
+  });
+  await page.goto("/messages");
+  await expect(
+    page.getByRole("link", { name: "Özel arkadaş", exact: true }),
+  ).toBeVisible();
+  expect(offsets).toContain(30);
+  await expect(page.getByRole("link", { name: /^Topluluk \d/ })).toHaveCount(0);
 });

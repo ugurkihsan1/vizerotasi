@@ -76,7 +76,9 @@ function MessagesScreen({
     seen.add(room.id);
     return true;
   });
-  const ids = rooms
+  const privateRooms = rooms.filter((room) => room.kind !== "community");
+  const communityRooms = rooms.filter((room) => room.kind === "community");
+  const ids = privateRooms
     .filter((room) => room.status === "active" && room.kind !== "community")
     .map((room) => room.id);
   const peers = useQuery({
@@ -111,11 +113,23 @@ function MessagesScreen({
   });
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = inbox;
   useEffect(() => {
-    if (focused && search.trim() && hasNextPage && !isFetchingNextPage)
+    if (
+      focused &&
+      hasNextPage &&
+      !isFetchingNextPage &&
+      (search.trim() || privateRooms.length === 0)
+    )
       void fetchNextPage();
-  }, [focused, search, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [
+    focused,
+    search,
+    privateRooms.length,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  ]);
   const term = search.trim().toLocaleLowerCase("tr-TR");
-  const filtered = rooms.filter(
+  const filtered = privateRooms.filter(
     (room) =>
       (filter !== "Okunmamış" ||
         (room.status === "active" &&
@@ -134,7 +148,12 @@ function MessagesScreen({
         .includes(term),
   );
   const followedCountries =
-    countries.data?.filter((c) => follows.data?.includes(c.id)) ?? [];
+    countries.data?.filter(
+      (c) =>
+        (follows.data?.includes(c.id) ||
+          communityRooms.some((room) => room.country_id === c.id)) &&
+        c.name.toLocaleLowerCase("tr-TR").includes(term),
+    ) ?? [];
   const [compose, setCompose] = useState(false),
     [people, setPeople] = useState<Profile[]>([]),
     [title, setTitle] = useState(""),
@@ -312,45 +331,81 @@ function MessagesScreen({
               </Pressable>
             )}
           </View>
-          {!term && filter === "Tümü" && followedCountries.length > 0 && (
+          {followedCountries.length > 0 && (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ gap: 16, paddingVertical: 4 }}
             >
-              {followedCountries.map((c) => (
-                <CommunityChatEntry
-                  key={c.id}
-                  countryId={c.id}
-                  name={c.name}
-                  label={`${c.name} sohbeti`}
-                >
-                  <View
-                    style={{
-                      width: 54,
-                      height: 54,
-                      borderRadius: 27,
-                      borderWidth: 1,
-                      borderColor: themeColor("#E4E4E4", "border"),
-                      backgroundColor: themeColor("#F5F5F5", "surface"),
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
+              {followedCountries.map((c) => {
+                const unread = communityRooms
+                  .filter((room) => room.country_id === c.id && !room.closed_at)
+                  .reduce((sum, room) => sum + room.unread_count, 0);
+                return (
+                  <CommunityChatEntry
+                    key={c.id}
+                    countryId={c.id}
+                    name={c.name}
+                    label={`${c.name} sohbeti`}
                   >
-                    <CountryFlag code={c.code} emoji={c.flag} name={c.name} />
-                  </View>
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      color: colors.muted,
-                      fontSize: textSize(11),
-                      maxWidth: 76,
-                    }}
-                  >
-                    {c.name}
-                  </Text>
-                </CommunityChatEntry>
-              ))}
+                    <View
+                      style={{
+                        width: 54,
+                        height: 54,
+                        borderRadius: 27,
+                        borderWidth: unread ? 2 : 1,
+                        borderColor: unread
+                          ? colors.navy
+                          : themeColor("#E4E4E4", "border"),
+                        backgroundColor: themeColor("#F5F5F5", "surface"),
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <CountryFlag code={c.code} emoji={c.flag} name={c.name} />
+                      {unread > 0 && (
+                        <View
+                          accessibilityLabel={`${c.name}: ${unread} okunmamış mesaj`}
+                          style={{
+                            position: "absolute",
+                            top: -4,
+                            right: -4,
+                            minWidth: 20,
+                            height: 20,
+                            borderRadius: 10,
+                            paddingHorizontal: 5,
+                            backgroundColor: colors.navy,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            borderWidth: 2,
+                            borderColor: colors.bg,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: colors.bg,
+                              fontSize: textSize(10),
+                              fontWeight: "700",
+                            }}
+                          >
+                            {unread > 99 ? "99+" : unread}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        color: colors.muted,
+                        fontSize: textSize(11),
+                        maxWidth: 76,
+                      }}
+                    >
+                      {c.name}
+                    </Text>
+                  </CommunityChatEntry>
+                );
+              })}
             </ScrollView>
           )}
           <View
@@ -364,9 +419,9 @@ function MessagesScreen({
             {["Tümü", "Okunmamış", "İstekler"].map((label) => {
               const count =
                 label === "İstekler"
-                  ? rooms.filter((r) => r.status === "invited").length
+                  ? privateRooms.filter((r) => r.status === "invited").length
                   : label === "Okunmamış"
-                    ? rooms.filter(
+                    ? privateRooms.filter(
                         (r) =>
                           r.status === "active" &&
                           !r.closed_at &&
@@ -432,44 +487,47 @@ function MessagesScreen({
               />
             ))}
           </View>
-          {inbox.isSuccess && !filtered.length && !inbox.isFetching && (
-            <View
-              style={{ alignItems: "center", gap: 12, paddingVertical: 36 }}
-            >
+          {inbox.isSuccess &&
+            !filtered.length &&
+            !inbox.isFetching &&
+            !inbox.hasNextPage && (
               <View
-                style={{
-                  width: 68,
-                  height: 68,
-                  borderRadius: 24,
-                  backgroundColor: themeColor("#F3F3F3", "surface"),
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                style={{ alignItems: "center", gap: 12, paddingVertical: 36 }}
               >
-                <Ionicons
-                  name="chatbubble-ellipses-outline"
-                  size={29}
-                  color={colors.muted}
-                />
+                <View
+                  style={{
+                    width: 68,
+                    height: 68,
+                    borderRadius: 24,
+                    backgroundColor: themeColor("#F3F3F3", "surface"),
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons
+                    name="chatbubble-ellipses-outline"
+                    size={29}
+                    color={colors.muted}
+                  />
+                </View>
+                <Text style={styles.heading}>
+                  {term
+                    ? "Sohbet bulunamadı"
+                    : filter === "İstekler"
+                      ? "Yeni istek yok"
+                      : filter === "Okunmamış"
+                        ? "Hepsini okudun"
+                        : "İlk sohbetini başlat"}
+                </Text>
+                {!term && filter === "Tümü" && (
+                  <Button
+                    secondary
+                    label="Yeni mesaj"
+                    onPress={() => setCompose(true)}
+                  />
+                )}
               </View>
-              <Text style={styles.heading}>
-                {term
-                  ? "Sohbet bulunamadı"
-                  : filter === "İstekler"
-                    ? "Yeni istek yok"
-                    : filter === "Okunmamış"
-                      ? "Hepsini okudun"
-                      : "İlk sohbetini başlat"}
-              </Text>
-              {!term && filter === "Tümü" && (
-                <Button
-                  secondary
-                  label="Yeni mesaj"
-                  onPress={() => setCompose(true)}
-                />
-              )}
-            </View>
-          )}
+            )}
           {inbox.hasNextPage && (
             <Button
               secondary
