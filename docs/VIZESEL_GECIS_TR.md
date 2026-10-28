@@ -1,5 +1,7 @@
 # Vizesel adına geçiş
 
+**Güncel tercih:** Alan adı satın alma ertelendi. Uygulamanın iletişim adresi `vizeselapp@gmail.com`. Alan adı gerektirmeyen Gmail SMTP kurulumu için [Gmail rehberini](GMAIL_SMTP_TR.md) izle. Aşağıdaki alan adı/Resend adımları ilerisi için alternatiftir. Uzak SMTP henüz bağlanmadı.
+
 ## Kontrol sonucu — 28 Ekim 2026
 
 - Verisign RDAP sorgusu `vizesel.com` için HTTP 404 döndü: sorgu anında kayıt bulunamadı. Bu rezervasyon veya satın alma garantisi değildir; satıcının ödeme ekranında müsaitliği ve varsa premium fiyatı doğrula.
@@ -56,7 +58,7 @@ Dosyalarda `{{ .ConfirmationURL }}` korunur. Bu güvenli bağlantıyı elle sabi
 
 - Uygulamanın görünen adı ve paylaşım metni Vizesel oldu.
 - Mevcut depo, GitHub Pages URL’si, Supabase projesi, kullanıcılar ve auth şeması korunur. İsim değişikliği hesap/veri taşımayı gerektirmez.
-- `merhaba@vizesel.com` uygulama içinde destek adresi olarak gösterilmiyor; gelen posta kurulmadan çalışıyor izlenimi verilmez.
+- Mevcut destek bağlantısı `vizeselapp@gmail.com` adresini açar. `merhaba@vizesel.com` henüz etkinleştirilmedi.
 - Maili kendi alan adından göndermek için uygulamanın web adresini taşımak gerekmez. Şimdilik Supabase Site URL ve Redirect URL izinlerinde mevcut GitHub Pages `/vizerotasi/auth` adresini koru.
 - Sonradan web uygulamasını `vizesel.com` alanına taşımak ayrı adımdır: önce DNS/hosting ve HTTPS doğrulanır, build base path `/vizerotasi` yerine boş yapılır, Supabase redirect izinleri ve paylaşımların native URL’si güncellenir. Alan adı kontrol edilmeden `CNAME` eklenmez.
 - App Store’a ilk gönderim öncesi yeni Bundle ID/package ve URL scheme istersen ayrıca planlanır. Yayımlanmış bir mağaza uygulamasının Bundle ID’si değiştirilemez. Mevcut `com.vizerotasi.app` ve `vizerotasi://auth` bugün kırılmaması için değiştirilmedi.

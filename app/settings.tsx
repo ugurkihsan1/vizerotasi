@@ -340,6 +340,19 @@ function SettingsBody() {
         />
         <Button
           secondary
+          label="Destek ve iletişim"
+          onPress={() => {
+            void Linking.openURL(
+              "mailto:vizeselapp@gmail.com?subject=Vizesel%20Destek",
+            ).catch(() =>
+              setMessage(
+                "E-posta uygulaması açılamadı. vizeselapp@gmail.com adresinden bize ulaşabilirsin.",
+              ),
+            );
+          }}
+        />
+        <Button
+          secondary
           label="Fotoğraf kaynakları"
           onPress={() => router.push("/photo-credits")}
         />
