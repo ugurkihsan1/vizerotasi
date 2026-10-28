@@ -486,7 +486,7 @@ function ChatRoomScreen({ id }: { id: string }) {
                   <Ionicons
                     name="ellipsis-horizontal"
                     size={14}
-                    color={mine ? "#D8ECE6" : colors.muted}
+                    color={mine ? themeColor("#D8ECE6", "text") : colors.muted}
                   />
                 </Pressable>
               </View>

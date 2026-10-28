@@ -200,7 +200,7 @@ export default function Notifications() {
                     color:
                       filter === value
                         ? isDark()
-                          ? "#0F1720"
+                          ? colors.bg
                           : "#FFFFFF"
                         : colors.text,
                     fontWeight: "600",

@@ -2553,7 +2553,7 @@ test("dark appearance persists and adapts forms, cards and larger text without c
   await page.getByRole("button", { name: "Karanlık", exact: true }).click();
   await expect(page.getByTestId("app-surface")).toHaveCSS(
     "background-color",
-    "rgb(15, 23, 32)",
+    "rgb(8, 8, 8)",
   );
   await expect
     .poll(() =>
@@ -2570,12 +2570,12 @@ test("dark appearance persists and adapts forms, cards and larger text without c
   await page.reload();
   await expect(page.getByTestId("app-surface")).toHaveCSS(
     "background-color",
-    "rgb(15, 23, 32)",
+    "rgb(8, 8, 8)",
   );
   await page.goto("/discover");
   await expect(
     page.getByLabel("Ülke, belge, deneyim veya soru ara", { exact: true }),
-  ).toHaveCSS("color", "rgb(218, 228, 236)");
+  ).toHaveCSS("color", "rgb(228, 228, 228)");
   await expect
     .poll(() =>
       page
@@ -3827,3 +3827,43 @@ for (const theme of ["light", "dark"] as const) {
     await page.screenshot({ path: `/tmp/rejected-card-${theme}.png` });
   });
 }
+
+test("black theme uses neutral profile surfaces and readable primary actions", async ({
+  page,
+}) => {
+  await member(page);
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "app-appearance:v1",
+      JSON.stringify({
+        theme: "dark",
+        reducedMotion: true,
+        haptics: false,
+        largeText: false,
+      }),
+    ),
+  );
+  await page.goto("/profile");
+  const messages = page.getByRole("button", {
+    name: "Mesajlarım",
+    exact: true,
+  });
+  await expect(messages).toBeVisible();
+  await expect(page.getByTestId("app-surface")).toHaveCSS(
+    "background-color",
+    "rgb(8, 8, 8)",
+  );
+  await page.screenshot({ path: "/tmp/black-theme-profile.png" });
+  await page.goto("/auth?mode=signup");
+  const next = page.getByRole("button", { name: "Devam et", exact: true });
+  await expect(next).toHaveCSS("background-color", "rgb(232, 232, 232)");
+  await expect(next.getByText("Devam et", { exact: true })).toHaveCSS(
+    "color",
+    "rgb(8, 8, 8)",
+  );
+  await expect(page.getByLabel("E-posta", { exact: true })).toHaveCSS(
+    "color",
+    "rgb(228, 228, 228)",
+  );
+  await page.screenshot({ path: "/tmp/black-theme-auth.png" });
+});

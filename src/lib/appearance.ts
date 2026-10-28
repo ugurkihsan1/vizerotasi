@@ -1,6 +1,16 @@
 import { useSyncExternalStore } from "react";
 import { Appearance, Platform, AccessibilityInfo } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+export const darkPalette = {
+  background: "#080808",
+  surface: "#151515",
+  raised: "#262626",
+  border: "#343434",
+  heading: "#F2F2F2",
+  text: "#E4E4E4",
+  muted: "#A0A0A0",
+  accent: "#D4D4D4",
+};
 export type ThemeMode = "light" | "dark" | "system";
 export interface AppPreferences {
   theme: ThemeMode;
@@ -23,7 +33,7 @@ const emit = () => {
   if (Platform.OS === "web" && typeof document !== "undefined") {
     document.documentElement.style.colorScheme = isDark() ? "dark" : "light";
     document.documentElement.style.backgroundColor = isDark()
-      ? "#0F1720"
+      ? darkPalette.background
       : "#F5F5F0";
   }
   listeners.forEach((f) => f());
@@ -80,10 +90,10 @@ AccessibilityInfo.addEventListener("reduceMotionChanged", (v) => {
 export function textSize(size: number) {
   return preferences.largeText ? Math.round(size * 1.15) : size;
 }
-/** Adapt existing brand tones without image filters, so photographs and flags keep their colors. */
+/** Neutral dark surfaces; explicit status tints keep meaningful outcomes distinct. */
 export function themeColor(
   hex: string,
-  role: "surface" | "text" | "border" = "surface",
+  role: "surface" | "text" | "border" | "status" = "surface",
 ) {
   if (!isDark()) return hex;
   let h = hex.slice(1);
@@ -98,10 +108,14 @@ export function themeColor(
     max = Math.max(...rgb),
     min = Math.min(...rgb),
     lum = (rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722) / 255;
-  if (role === "border") return "#344453" + alpha;
+  if (role === "border") return darkPalette.border + alpha;
   if (role === "text") {
     if (min > 230) return "#FFFFFF" + alpha;
-    if (lum < 0.25) return "#E1EBF2" + alpha;
+    if (max - min < 45)
+      return (lum < 0.25 ? darkPalette.heading : darkPalette.muted) + alpha;
+    if (hex.slice(1, 7).toLowerCase() === "24766c")
+      return darkPalette.accent + alpha;
+    if (lum < 0.25) return darkPalette.heading + alpha;
     if (lum < 0.65)
       return (
         "#" +
@@ -116,17 +130,14 @@ export function themeColor(
       );
     return hex;
   }
-  if (lum > 0.7) {
-    // Keep tinted experience/question/community cards distinct in dark mode.
+  // Color is reserved for outcomes and source notes, not every panel.
+  if (role === "status") {
     const avg = rgb.reduce((a, b) => a + b) / 3;
     return (
       "#" +
       rgb
-        .map((v, i) =>
-          Math.max(
-            12,
-            Math.min(65, Math.round([25, 35, 46][i] + (v - avg) * 0.45)),
-          )
+        .map((v) =>
+          Math.max(8, Math.min(60, Math.round(24 + (v - avg) * 0.45)))
             .toString(16)
             .padStart(2, "0"),
         )
@@ -134,6 +145,6 @@ export function themeColor(
       alpha
     );
   }
-  if (max - min < 35 && lum > 0.45) return "#344453" + alpha;
-  return hex;
+  if (alpha) return "#000000" + alpha;
+  return lum > 0.7 ? darkPalette.surface : darkPalette.raised;
 }

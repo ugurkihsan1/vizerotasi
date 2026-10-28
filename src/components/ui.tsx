@@ -1,4 +1,10 @@
-import { isDark, textSize, themeColor, useAppearance } from "../lib/appearance";
+import {
+  isDark,
+  textSize,
+  themeColor,
+  useAppearance,
+  darkPalette,
+} from "../lib/appearance";
 
 import { Ionicons } from "@expo/vector-icons";
 import { useState, type PropsWithChildren } from "react";
@@ -19,19 +25,19 @@ import { router } from "expo-router";
 import { useAuth } from "../lib/auth";
 export const colors = {
   get navy() {
-    return isDark() ? "#E1EBF2" : "#182E43";
+    return isDark() ? darkPalette.heading : "#182E43";
   },
   get blue() {
-    return isDark() ? "#61C6A7" : "#24766C";
+    return isDark() ? darkPalette.accent : "#24766C";
   },
   get bg() {
-    return isDark() ? "#0F1720" : "#F5F5F0";
+    return isDark() ? darkPalette.background : "#F5F5F0";
   },
   get text() {
-    return isDark() ? "#DAE4EC" : "#263E4F";
+    return isDark() ? darkPalette.text : "#263E4F";
   },
   get muted() {
-    return isDark() ? "#98A7B5" : "#6D7D87";
+    return isDark() ? darkPalette.muted : "#6D7D87";
   },
   get green() {
     return isDark() ? "#58CC98" : "#13835A";
@@ -89,7 +95,7 @@ const createStyles = () =>
       elevation: 1,
     },
     timeline: {
-      backgroundColor: isDark() ? "#0F1720" : "#FFFFFF",
+      backgroundColor: isDark() ? darkPalette.background : "#FFFFFF",
       borderRadius: 0,
       borderWidth: 0,
       borderBottomWidth: 1,
@@ -159,21 +165,27 @@ export function Button({
         borderWidth: 1,
         borderColor: secondary
           ? isDark()
-            ? "#526779"
+            ? "#515151"
             : "#CFDBD5"
           : "transparent",
         backgroundColor: secondary
           ? isDark()
-            ? "#243544"
+            ? darkPalette.raised
             : "#EAF0ED"
-          : themeColor("#24766C", "surface"),
+          : isDark()
+            ? "#E8E8E8"
+            : themeColor("#24766C", "surface"),
         opacity: disabled ? 0.45 : pressed ? 0.75 : 1,
       })}
     >
       <Text
         style={{
           fontWeight: "700",
-          color: secondary ? colors.navy : themeColor("#FFF", "text"),
+          color: secondary
+            ? colors.navy
+            : isDark()
+              ? darkPalette.background
+              : themeColor("#FFF", "text"),
           fontSize: textSize(14),
         }}
       >
@@ -207,12 +219,12 @@ export function Chip({
           borderWidth: 1,
           borderColor: isDark()
             ? active
-              ? "#61C6A7"
-              : "#405363"
+              ? darkPalette.accent
+              : darkPalette.border
             : "transparent",
           backgroundColor: active
             ? isDark()
-              ? "#285447"
+              ? "#303030"
               : "#182E43"
             : themeColor("#E8EEF7", "surface"),
         },
@@ -300,7 +312,9 @@ export function Sheet({
               width: 36,
               height: 4,
               borderRadius: 2,
-              backgroundColor: themeColor("#CED8D2", "surface"),
+              backgroundColor: isDark()
+                ? "#505050"
+                : themeColor("#CED8D2", "surface"),
               alignSelf: "center",
             }}
           />

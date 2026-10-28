@@ -66,7 +66,9 @@ export function Avatar({
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: themeColor(accent ? "#FBE4E2" : "#DCE9FC", "surface"),
+        backgroundColor: isDark()
+          ? "#262626"
+          : themeColor(accent ? "#FBE4E2" : "#DCE9FC", "surface"),
         alignItems: "center",
         justifyContent: "center",
       }}
@@ -235,12 +237,12 @@ export function PostCard({
             gap: 8,
             backgroundColor:
               post.result === "approved"
-                ? themeColor("#CDECD9", "surface")
+                ? themeColor("#CDECD9", "status")
                 : post.result === "rejected"
                   ? isDark()
                     ? "#482832"
                     : "#F7D1CD"
-                  : themeColor("#FFE8A6", "surface"),
+                  : themeColor("#FFE8A6", "status"),
           }}
         >
           <Text
