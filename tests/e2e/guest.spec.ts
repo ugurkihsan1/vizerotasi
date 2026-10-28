@@ -4964,3 +4964,103 @@ for (const mode of ["room", "inbox"] as const) {
     ).toBeVisible({ timeout: 1500 });
   });
 }
+
+for (const theme of ["light", "dark"] as const) {
+  test(`application buddies prototype distinguishes application and destination cities in ${theme} mode`, async ({
+    page,
+  }) => {
+    await fixtures(page);
+    await page.addInitScript(
+      (theme) =>
+        localStorage.setItem(
+          "app-appearance:v1",
+          JSON.stringify({
+            theme,
+            reducedMotion: true,
+            haptics: false,
+            largeText: false,
+          }),
+        ),
+      theme,
+    );
+    await page.route("https://*.supabase.co/rest/v1/countries?**", (route) =>
+      route.fulfill({
+        json: [
+          { id: "germany", name: "Almanya", flag: "🇩🇪", code: "DE" },
+          { id: "spain", name: "İspanya", flag: "🇪🇸", code: "ES" },
+        ],
+      }),
+    );
+    let writes = 0;
+    page.on("request", (request) => {
+      if (
+        /supabase\.co/.test(request.url()) &&
+        !request.url().includes("/rpc/country_stats") &&
+        !["GET", "HEAD", "OPTIONS"].includes(request.method())
+      )
+        writes++;
+    });
+    await page.goto("/country/germany?tab=Arkadaşlar");
+    await expect(
+      page.getByText("Aynı süreçte, yan yana.", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Örnek kişiler", { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByTestId("buddy-example-germany-0")).toContainText(
+      "Münih",
+    );
+    await expect(page.getByTestId("buddy-example-germany-1")).toContainText(
+      "Berlin",
+    );
+    await page.screenshot({ path: `/tmp/buddy-prototype-${theme}.png` });
+    await page
+      .getByRole("button", { name: "Aynı varış şehri", exact: true })
+      .click();
+    await expect(page.getByTestId("buddy-example-germany-1")).toHaveCount(0);
+    await expect(page.getByTestId("buddy-example-germany-0")).toBeVisible();
+    await page
+      .getByRole("button", { name: "Başvuru planını düzenle", exact: true })
+      .click();
+    await page
+      .getByRole("dialog")
+      .getByLabel("Gidilecek şehir", { exact: true })
+      .fill("Berlin");
+    await page
+      .getByRole("switch", {
+        name: "Başvuru arkadaşlarında görün",
+        exact: true,
+      })
+      .click();
+    await page
+      .getByRole("button", { name: "Eşleşmeleri önizle", exact: true })
+      .click();
+    await expect(page.getByTestId("buddy-example-germany-1")).toBeVisible();
+    await expect(page.getByTestId("buddy-example-germany-0")).toHaveCount(0);
+    await page.reload();
+    await expect(
+      page.getByText("✓ Planın hazır", { exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Ece ile tanışmayı dene", exact: true })
+      .click();
+    await expect(
+      page
+        .getByRole("dialog")
+        .getByText("Örnek profil · Gerçek mesaj gönderilmez.", { exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Gönderimi dene", exact: true })
+      .click();
+    await expect(
+      page.getByText("Örnek mesaj · Gönderilmedi", { exact: true }),
+    ).toBeVisible();
+    expect(writes).toBe(0);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({ path: `/tmp/buddy-introduction-${theme}.png` });
+  });
+}
