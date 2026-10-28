@@ -421,20 +421,28 @@ test("a normal member can choose the guide topic and submit a critical note for 
     await route.fulfill({ status: 201, body: "" });
   });
   await page.goto("/create?kind=tip&country=spain&category=appointment");
+  await page
+    .getByRole("button", { name: "Topluluk notu nerede görünür?", exact: true })
+    .click();
   await expect(
     page.getByText(
       "İspanya rehberindeki Randevu adımında topluluk notu olarak görünür.",
       { exact: true },
     ),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Kapat", exact: true }).click();
   await page
     .getByRole("button", { name: "Davet mektubu", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Topluluk notu nerede görünür?", exact: true })
     .click();
   await expect(
     page.getByText(
       /İspanya rehberindeki Konaklama ve davet mektubu adımında ve Konaklama belgelerinin altında/,
     ),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Kapat", exact: true }).click();
   await page
     .getByLabel("Kısa bir başlık", { exact: true })
     .fill("Davet mektubunu erkenden hazırlayın");
@@ -638,7 +646,11 @@ test("document subtypes submit a precise country-guide category", async ({
     .getByRole("button", { name: "Belge türünü seç", exact: true })
     .click();
   await page.getByRole("radio", { name: /seyahat sağlık sigortası/i }).click();
-  await expect(page.getByText(/topluluk notu/)).toBeVisible();
+  await expect(
+    page.getByText("İspanya → Yurtdışı seyahat sağlık sigortası", {
+      exact: true,
+    }),
+  ).toBeVisible();
   await page
     .getByLabel("Kısa bir başlık", { exact: true })
     .fill("Sigorta belgesindeki imza");
@@ -1129,13 +1141,14 @@ test("multiple private evidence files accompany one post and show the exact insu
   );
   await page.goto("/create?kind=tip&country=spain&category=doc-insurance");
   await expect(
-    page.getByText(
-      "İspanya → Turistik Vize → Belgeler → Yurtdışı seyahat sağlık sigortası",
-      { exact: true },
-    ),
+    page.getByText("İspanya → Yurtdışı seyahat sağlık sigortası", {
+      exact: true,
+    }),
   ).toBeVisible();
   await expect(
-    page.getByText(/yalnız sen ve yetkili yönetim erişebilir/),
+    page.getByText("Sadece sen ve yönetim görür · Kişisel bilgileri gizle.", {
+      exact: true,
+    }),
   ).toBeVisible();
   await page
     .getByLabel("Kısa bir başlık", { exact: true })
@@ -1419,7 +1432,7 @@ test("a failed private upload can be retried without duplicating the public cont
   );
   await page.goto("/create?kind=tip&country=spain&category=doc-insurance");
   await page
-    .getByText("Bilginin bağlanacağı yer", { exact: true })
+    .getByRole("button", { name: "Topluluk notu nerede görünür?", exact: true })
     .scrollIntoViewIfNeeded();
   await page.screenshot({ path: "/tmp/critical-destination-mobile.png" });
   await page
@@ -2849,4 +2862,66 @@ test("Spain shows the current sourced BLS appointment notice in the guide and ch
       exact: true,
     }),
   ).toBeVisible();
+});
+
+test("important information keeps guidance behind help buttons without losing the draft", async ({
+  page,
+}) => {
+  await member(page);
+  await page.goto("/create?kind=tip&country=spain&category=doc-insurance");
+  await page
+    .getByLabel("Kısa bir başlık", { exact: true })
+    .fill("Sigorta poliçesinde tarih kontrolü");
+  await page
+    .getByLabel("Detaylar", { exact: true })
+    .fill("Poliçedeki seyahat tarihlerini kontrol ettiler.");
+  await expect(page.getByText("0 / 8000", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByText(/Belge seçenekleri seçtiğin ülkenin/),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Paylaşım hakkında bilgi", exact: true })
+    .click();
+  await expect(page.getByText(/Yayınlanması resmî bilgi olduğu/)).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Kapat", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Topluluk notu nerede görünür?", exact: true })
+    .click();
+  await expect(
+    page.getByText(
+      /İspanya belge listesindeki “Yurtdışı seyahat sağlık sigortası”/,
+    ),
+  ).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Kapat", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Belge doğrulaması hakkında bilgi",
+      exact: true,
+    })
+    .click();
+  await expect(page.getByText(/her biri en fazla 8 MB/)).toBeVisible();
+  await expect(page.getByText(/etiket ve \+10 puan/)).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Kapat", exact: true })
+    .click();
+  await expect(page.getByLabel("Kısa bir başlık", { exact: true })).toHaveValue(
+    "Sigorta poliçesinde tarih kontrolü",
+  );
+  await expect(page.getByLabel("Detaylar", { exact: true })).toHaveValue(
+    "Poliçedeki seyahat tarihlerini kontrol ettiler.",
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.screenshot({ path: "/tmp/tip-simple-mobile.png", fullPage: true });
 });

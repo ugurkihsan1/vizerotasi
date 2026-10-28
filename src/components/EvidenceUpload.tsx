@@ -1,4 +1,5 @@
 import { useAppearance, themeColor } from "../lib/appearance";
+import { HelpButton } from "./HelpButton";
 import { useState } from "react";
 import { View, Text } from "react-native";
 import {
@@ -6,7 +7,7 @@ import {
   type EvidenceDraft,
   EVIDENCE_LIMIT,
 } from "../lib/evidence";
-import { Button, styles, Message, Sheet } from "./ui";
+import { Button, styles, Message } from "./ui";
 export function EvidenceUpload({
   files,
   onChange,
@@ -21,38 +22,46 @@ export function EvidenceUpload({
   useAppearance();
 
   const [error, setError] = useState("");
-  const [info, setInfo] = useState(false);
   return (
     <View
       style={[
         styles.card,
-        { backgroundColor: themeColor("#F7F4FC", "surface"), padding: 16 },
+        {
+          backgroundColor: themeColor("#F7F4FC", "surface"),
+          padding: 12,
+          gap: 8,
+        },
       ]}
     >
-      <Text style={styles.pillText}>Belge ekle · isteğe bağlı</Text>
-      <Text style={styles.muted}>
-        Belgelere yalnız sen ve yetkili yönetim erişebilir.
-      </Text>
-      <Text style={styles.muted}>
-        Kimlik ve hesap bilgilerini gizle. Tarihler görünsün.
-      </Text>
-      <Text style={styles.muted}>5 belge · PDF/JPG/PNG · 8 MB</Text>
-      <Button
-        secondary
-        label="Doğrulama bilgisi"
-        onPress={() => setInfo(true)}
-      />
-      <Sheet
-        visible={info}
-        title="Belgeyle doğrulama"
-        onClose={() => setInfo(false)}
-      >
-        <Text style={styles.text}>
-          Yönetim belgeni inceler. Doğrulanırsa deneyimin etiket ve +10 puan
-          kazanır. Belge yüklemek resmî kural onayı değildir; belgesiz de
-          paylaşabilirsin.
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <Text style={[styles.pillText, { flex: 1 }]}>
+          Belge ekle · isteğe bağlı
         </Text>
-      </Sheet>
+        <HelpButton
+          label="Belge doğrulaması hakkında bilgi"
+          title="Belgeyle doğrulama"
+        >
+          <Text style={styles.text}>
+            Belgelere yalnız sen ve yetkili yönetim erişebilir. Diğer üyeler
+            belgelerini göremez.
+          </Text>
+          <Text style={styles.text}>
+            En fazla 5 belge ekleyebilirsin. PDF, JPG veya PNG; her biri en
+            fazla 8 MB.
+          </Text>
+          <Text style={styles.text}>
+            Yüklemeden önce kimlik ve hesap bilgilerini gizle. İlgili seyahat
+            tarihleri görünsün.
+          </Text>
+          <Text style={styles.text}>
+            Yönetim inceler; doğrulanırsa paylaşımın etiket ve +10 puan kazanır.
+            Bu, resmî kural onayı değildir. Belgesiz de paylaşabilirsin.
+          </Text>
+        </HelpButton>
+      </View>
+      <Text style={styles.muted}>
+        Sadece sen ve yönetim görür · Kişisel bilgileri gizle.
+      </Text>
       {files.map((f, i) => (
         <View key={`${f.uri}:${i}`} style={{ gap: 4 }}>
           <Text style={styles.text}>

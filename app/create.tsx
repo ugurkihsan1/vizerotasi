@@ -1,3 +1,4 @@
+import { HelpButton } from "../src/components/HelpButton";
 import { useAppearance, themeColor, textSize } from "../src/lib/appearance";
 import { CountryPicker } from "../src/components/CountryPicker";
 import { EvidenceUpload } from "../src/components/EvidenceUpload";
@@ -516,13 +517,31 @@ export default function Create() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>
-          {kind === "experience"
-            ? ["Başvurun", "Senin durumun", "Sonuç", "Deneyimini anlat"][step]
-            : kind === "question"
-              ? "Aklındaki soruyu sor"
-              : "Topluluğa bir ipucu bırak"}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Text style={[styles.title, { flex: 1 }]}>
+            {kind === "experience"
+              ? ["Başvurun", "Senin durumun", "Sonuç", "Deneyimini anlat"][step]
+              : kind === "question"
+                ? "Aklındaki soruyu sor"
+                : "Önemli bilgi paylaş"}
+          </Text>
+          {kind === "tip" && (
+            <HelpButton
+              label="Paylaşım hakkında bilgi"
+              title="Önemli bilgi paylaşımı"
+            >
+              <Text style={styles.text}>
+                Ülke ve konuyu seç, yaşadığın durumu kendi deneyimin olarak
+                anlat. Belgeyle ilgiliyse ilgili belgeyi de seç.
+              </Text>
+              <Text style={styles.text}>
+                Paylaşımın yayın öncesi incelenir. Yayınlanması resmî bilgi
+                olduğu veya belgeyle doğrulandığı anlamına gelmez.
+              </Text>
+              <Text style={styles.text}>{privacyWarning}</Text>
+            </HelpButton>
+          )}
+        </View>
         {kind === "experience" && (
           <Text style={styles.muted}>{step + 1} / 4</Text>
         )}
@@ -688,18 +707,16 @@ export default function Create() {
         )}
         {(kind !== "experience" || step === 3) && (
           <>
-            <Text
-              style={[styles.muted, { color: themeColor("#9A6615", "text") }]}
-            >
-              {privacyWarning}
-            </Text>
+            {kind !== "tip" && (
+              <Text
+                style={[styles.muted, { color: themeColor("#9A6615", "text") }]}
+              >
+                {privacyWarning}
+              </Text>
+            )}
             {kind !== "experience" && (
               <View style={{ gap: 10 }}>
-                <Text style={styles.pillText}>
-                  {kind === "tip"
-                    ? "Önemli bilgi hangi konuyla ilgili?"
-                    : "Konu"}
-                </Text>
+                <Text style={styles.pillText}>Konu</Text>
                 <View style={styles.row}>
                   {(kind === "tip"
                     ? criticalTopics
@@ -746,14 +763,6 @@ export default function Create() {
                         Belge türlerini görmek için ülke seç.
                       </Text>
                     )}
-                    {!!selectedCountry && (
-                      <Text style={styles.muted}>
-                        Bu liste{" "}
-                        {countries.data?.find((c) => c.id === selectedCountry)
-                          ?.name ?? "seçtiğin ülke"}{" "}
-                        için mevcut belge kontrol listesinden gelir.
-                      </Text>
-                    )}
                     <Sheet
                       visible={pickDocument}
                       onClose={() => setPickDocument(false)}
@@ -789,39 +798,50 @@ export default function Create() {
                     render={({ field: { value } }) => (
                       <View
                         style={{
-                          padding: 12,
+                          paddingHorizontal: 10,
                           backgroundColor: themeColor("#F0EBFA", "surface"),
                           borderRadius: 10,
                           gap: 4,
                         }}
                       >
-                        <Text
+                        <View
                           style={{
-                            fontSize: textSize(12),
-                            fontWeight: "600",
-                            color: themeColor("#644A94", "text"),
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 4,
                           }}
                         >
-                          Bilginin bağlanacağı yer
-                        </Text>
-                        {!!value && (
                           <Text
                             style={[
-                              styles.pillText,
-                              { color: themeColor("#644A94", "text") },
+                              styles.muted,
+                              {
+                                flex: 1,
+                                fontSize: textSize(12),
+                                color: themeColor("#644A94", "text"),
+                              },
                             ]}
-                          >{`${countries.data?.find((c) => c.id === value)?.name ?? "Ülke"} → Turistik Vize → ${categoryRoot === "documents" && category !== "documents" ? "Belgeler → " + (documentChoices.find((d) => d.id === category)?.name ?? "Belge seç") : (guideTopicLabels[category] ?? "Başvuru Süreci")}`}</Text>
-                        )}
-                        <Text
-                          style={[
-                            styles.muted,
-                            { color: themeColor("#71579D", "text") },
-                          ]}
-                        >
-                          {value
-                            ? placement
-                            : "Ülke ve konu seç; notun ilgili başvuru adımına bağlansın."}
-                        </Text>
+                          >
+                            {value
+                              ? `${countries.data?.find((c) => c.id === value)?.name ?? "Ülke"} → ${categoryRoot === "documents" && category !== "documents" ? (documentChoices.find((d) => d.id === category)?.name ?? "Belge seç") : (guideTopicLabels[category] ?? "Başvuru Süreci")}`
+                              : "Ülke ve konu seç"}
+                          </Text>
+                          <HelpButton
+                            label="Topluluk notu nerede görünür?"
+                            title="Görüneceği yer"
+                          >
+                            <Text style={styles.text}>
+                              {value
+                                ? placement
+                                : "Ülke ve konu seçtiğinde notunun nerede görüneceği burada gösterilir."}
+                            </Text>
+                            <Text style={styles.text}>
+                              Belge seçenekleri seçtiğin ülkenin kontrol
+                              listesinden gelir. Yayınlanan not aynı paylaşım ve
+                              yorumlarına bağlanır; resmî belge koşullarını
+                              değiştirmez.
+                            </Text>
+                          </HelpButton>
+                        </View>
                       </View>
                     )}
                   />
@@ -842,9 +862,13 @@ export default function Create() {
             <Controller
               control={control}
               name="body"
-              render={({ field: { value } }) => (
-                <Text style={styles.muted}>{value.length} / 8000</Text>
-              )}
+              render={({ field: { value } }) =>
+                kind !== "tip" || value.length >= 7000 ? (
+                  <Text style={styles.muted}>{value.length} / 8000</Text>
+                ) : (
+                  <></>
+                )
+              }
             />
             {kind === "experience" &&
               text("advice", "Başvuracak birine özellikle ne söylersin?", true)}
@@ -864,7 +888,7 @@ export default function Create() {
           </Text>
         )}
         <Message text={message} />
-        <View style={styles.row}>
+        <View style={kind === "tip" ? { gap: 10 } : styles.row}>
           {step > 0 && (
             <Button label="Geri" secondary onPress={() => setStep(step - 1)} />
           )}
@@ -889,15 +913,23 @@ export default function Create() {
             />
           )}
         </View>
-        <Button
-          secondary
-          label="Paylaşım türünü değiştir"
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Paylaşım türünü değiştir"
+          disabled={busy}
           onPress={() => {
             setKind(null);
             setStep(0);
             setValue("body", getValues("body"));
           }}
-        />
+          style={{
+            minHeight: 44,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={styles.muted}>Türü değiştir</Text>
+        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );

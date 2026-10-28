@@ -98,7 +98,7 @@ export default function Layout() {
               <Stack.Screen
                 name="create"
                 options={{
-                  title: "Ne paylaşmak istiyorsun?",
+                  title: "Paylaş",
                   presentation: "modal",
                 }}
               />
