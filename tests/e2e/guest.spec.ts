@@ -665,7 +665,7 @@ test("experience accepts optional narrative, visa history and invitation notes w
   });
   await page.goto("/create?country=spain");
   await page
-    .getByRole("button", { name: "Vize başvurusu deneyimi", exact: true })
+    .getByRole("button", { name: "Vize başvurunu paylaş", exact: true })
     .click();
   await page.getByLabel("Başvuru şehri", { exact: true }).fill("İstanbul");
   await page.getByLabel("Başvuru merkezi", { exact: true }).fill("BLS");
@@ -3288,7 +3288,7 @@ test("profile tabs preserve scroll position and compact dates keep keyboard prog
 
   await page.goto("/create");
   await page
-    .getByRole("button", { name: "Vize başvurusu deneyimi", exact: true })
+    .getByRole("button", { name: "Vize başvurunu paylaş", exact: true })
     .click();
   await page
     .getByRole("button", { name: "Başvuru ülkesi: Ülke seç", exact: true })
@@ -3318,15 +3318,15 @@ test("sharing offers four distinct paths and general stories omit visa fields", 
   });
   await page.goto("/create");
   for (const name of [
-    "Vize başvurusu deneyimi",
-    "Genel deneyim paylaşımı",
-    "? Soru sor",
-    "⚡ Önemli bilgi paylaş",
+    "Vize başvurunu paylaş",
+    "Özgürce paylaş",
+    "Soru sor",
+    "Önemli bilgi paylaş",
   ])
     await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
   await page.screenshot({ path: "/tmp/profile-four-options.png" });
   await page
-    .getByRole("button", { name: "Genel deneyim paylaşımı", exact: true })
+    .getByRole("button", { name: "Özgürce paylaş", exact: true })
     .click();
   await expect(page.getByLabel("Başvuru merkezi", { exact: true })).toHaveCount(
     0,
@@ -4542,7 +4542,7 @@ test("visa validity accepts years and preserves the selected unit across steps",
   });
   await page.goto("/create?country=spain");
   await page
-    .getByRole("button", { name: "Vize başvurusu deneyimi", exact: true })
+    .getByRole("button", { name: "Vize başvurunu paylaş", exact: true })
     .click();
   await page.getByLabel("Başvuru şehri", { exact: true }).fill("İstanbul");
   await page.getByLabel("Başvuru merkezi", { exact: true }).fill("BLS");

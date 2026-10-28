@@ -509,10 +509,10 @@ export default function Create() {
         <Text style={styles.muted}>Paylaşımın yayın öncesi incelenir.</Text>
         {(
           [
-            ["experience", "Vize başvurusu deneyimi"],
-            ["general", "Genel deneyim paylaşımı"],
-            ["question", "? Soru sor"],
-            ["tip", "⚡ Önemli bilgi paylaş"],
+            ["experience", "Vize başvurunu paylaş"],
+            ["general", "Özgürce paylaş"],
+            ["question", "Soru sor"],
+            ["tip", "Önemli bilgi paylaş"],
           ] as const
         ).map(([k, l]) => (
           <Pressable
@@ -584,23 +584,15 @@ export default function Create() {
               />
             </View>
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={styles.pillText}>
-                {k === "general"
-                  ? "Genel deneyim paylaşımı"
-                  : k === "experience"
-                    ? "Vize başvurusu deneyimi"
-                    : k === "question"
-                      ? "Soru sor"
-                      : "Önemli bilgi paylaş"}
-              </Text>
+              <Text style={styles.pillText}>{l}</Text>
               <Text style={[styles.muted, { fontSize: textSize(12) }]}>
                 {k === "general"
-                  ? "Seyahatinden bir hikâye veya öneri."
+                  ? "Hikâye, öneri ya da aklından geçenler."
                   : k === "experience"
-                    ? "Başvurun, sürecin ve sonucun."
+                    ? "Başvuru sürecin ve vize sonucun."
                     : k === "question"
-                      ? "Topluluğun deneyiminden yararlan."
-                      : "İşe yarayan bir detayı paylaş."}
+                      ? "Vize ve seyahat sorularını topluluğa sor."
+                      : "Randevu, belge veya başvuruyla ilgili bir bilgi."}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.muted} />
@@ -628,7 +620,7 @@ export default function Create() {
             {kind === "experience"
               ? ["Başvurun", "Senin durumun", "Sonuç", "Deneyimini anlat"][step]
               : kind === "general"
-                ? "Genel deneyimini paylaş"
+                ? "Özgürce paylaş"
                 : kind === "question"
                   ? "Aklındaki soruyu sor"
                   : "Önemli bilgi paylaş"}
