@@ -27,6 +27,8 @@ export interface ChatMember {
   } | null;
 }
 export interface ChatMessage {
+  shared_post_id?: string | null;
+  image_path?: string | null;
   id: string;
   room_id: string;
   sender_id: string;
@@ -59,6 +61,10 @@ export function chatError(error: unknown): string {
     return "Topluluk sohbeti için önce ülkeyi takip et.";
   if (e?.message?.includes("Room closed"))
     return "Bu grup kapatılmış; yeni mesaj gönderilemiyor.";
+  if (e?.message?.includes("Recipient cannot view"))
+    return "Bu özel paylaşımı alıcı henüz göremiyor.";
+  if (e?.message?.includes("Accepted unblocked"))
+    return "Önce sohbet isteğinin kabul edilmesi gerekiyor.";
   if (e?.code === "42501")
     return "Bu sohbet için erişimin yok veya bu kişiyle mesajlaşma şu anda mümkün değil.";
   return "İşlem tamamlanamadı. Bağlantını kontrol edip tekrar dene.";

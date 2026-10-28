@@ -1,5 +1,5 @@
-import { useAppearance, themeColor } from "../lib/appearance";
-import { useRef, type ElementRef } from "react";
+import { useAppearance, themeColor, textSize } from "../lib/appearance";
+import { useRef, useState, type ElementRef } from "react";
 import { Text, TextInput, View, Platform } from "react-native";
 import { styles, colors } from "./ui";
 export function DateInput({
@@ -14,6 +14,7 @@ export function DateInput({
   error?: string;
 }) {
   useAppearance();
+  const [focused, setFocused] = useState(false);
 
   const month = useRef<ElementRef<typeof TextInput>>(null),
     year = useRef<ElementRef<typeof TextInput>>(null),
@@ -42,15 +43,31 @@ export function DateInput({
   return (
     <View style={{ gap: 7 }}>
       <Text style={styles.muted}>{label}</Text>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View
+        style={[
+          styles.input,
+          {
+            flexDirection: "row",
+            alignItems: "center",
+            alignSelf: "flex-start",
+            padding: 0,
+            paddingHorizontal: 8,
+            minHeight: 44,
+            borderRadius: 12,
+            borderColor: focused
+              ? colors.blue
+              : themeColor("#DDE5F0", "border"),
+            gap: 2,
+          },
+        ]}
+      >
         {["Gün", "Ay", "Yıl"].map((name, index) => (
           <View
             key={name}
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 8,
-              flex: index === 2 ? 1.35 : 1,
+              gap: 2,
             }}
           >
             {index > 0 && <Text style={styles.muted}>/</Text>}
@@ -59,16 +76,26 @@ export function DateInput({
               accessibilityLabel={`${label} · ${name.toLocaleLowerCase("tr-TR")}`}
               value={parts[index]}
               onChangeText={(x) => change(index, x)}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
               keyboardType="number-pad"
               inputMode="numeric"
               placeholder={["GG", "AA", "YYYY"][index]}
               placeholderTextColor={themeColor("#8190A5", "text")}
               maxLength={index === 0 ? 10 : index === 1 ? 2 : 4}
               selectTextOnFocus={Platform.OS !== "web"}
-              style={[
-                styles.input,
-                { flex: 1, textAlign: "center", paddingHorizontal: 8 },
-              ]}
+              style={{
+                width: index === 2 ? 65 : 43,
+                minHeight: 44,
+                paddingVertical: 8,
+                paddingHorizontal: 2,
+                textAlign: "center",
+                fontSize: textSize(15),
+                color: colors.text,
+                ...(Platform.OS === "web"
+                  ? { outline: "none", outlineWidth: 0 }
+                  : {}),
+              }}
               onKeyPress={(e) => {
                 if (
                   e.nativeEvent.key === "Backspace" &&

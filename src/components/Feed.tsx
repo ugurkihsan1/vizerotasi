@@ -5,7 +5,7 @@ import {
   OwnSubmissionNotice,
   CommunityEmpty,
 } from "./HomeSections";
-import { FlatList, View, Text, ScrollView, Pressable } from "react-native";
+import { FlatList, View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useMemo, useState, useEffect, type ReactElement } from "react";
@@ -187,12 +187,6 @@ export function Feed({
       )}
     </View>
   );
-  if (contentOnly)
-    return (
-      <ScrollView style={styles.page} contentContainerStyle={styles.content}>
-        {header}
-      </ScrollView>
-    );
   return (
     <>
       <FlatList
@@ -201,12 +195,12 @@ export function Feed({
         windowSize={9}
         style={styles.page}
         contentContainerStyle={{ padding: 16, paddingBottom: 32, gap: 12 }}
-        data={posts}
+        data={contentOnly ? [] : posts}
         keyExtractor={(p) => p.id}
         renderItem={({ item }) => <PostCard post={item} />}
         ListHeaderComponent={top}
         ListEmptyComponent={
-          !configured ? (
+          contentOnly ? undefined : !configured ? (
             <Empty
               title="Topluluğa şu an ulaşılamıyor"
               body="Biraz sonra yeniden deneyebilirsin."
@@ -253,7 +247,7 @@ export function Feed({
         refreshing={query.isRefetching}
         onRefresh={() => void query.refetch()}
         onEndReached={() => {
-          if (query.hasNextPage && !query.isFetchingNextPage)
+          if (!contentOnly && query.hasNextPage && !query.isFetchingNextPage)
             void query.fetchNextPage();
         }}
         onEndReachedThreshold={0.4}

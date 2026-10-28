@@ -1,3 +1,6 @@
+import { webPath } from "../lib/web-path";
+import { SendPost } from "./SendPost";
+import { DeleteContent } from "./DeleteContent";
 import { themeColor, textSize, useAppearance } from "../lib/appearance";
 
 import { PlaneReaction } from "./PlaneReaction";
@@ -5,7 +8,7 @@ import { VerificationLabel } from "./VerificationLabel";
 import { Ionicons } from "@expo/vector-icons";
 import { CountryFlag } from "./CountryFlag";
 import { processingDays, formatDate } from "../lib/dates";
-import { Text, View, Pressable, Share } from "react-native";
+import { Text, View, Pressable, Share, Platform } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -129,6 +132,7 @@ export function Actions({ post }: { post: Post }) {
           <Ionicons name="chatbubble-outline" size={20} color={colors.muted} />
           <Text style={styles.muted}>{post.comment_count} Yanıt</Text>
         </Pressable>
+        <SendPost post={post} />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={save.active ? "Kaydı kaldır" : "Kaydet"}
@@ -163,7 +167,7 @@ export function ShareButton({ post }: { post: Post }) {
       secondary
       onPress={() => {
         void Share.share({
-          message: `${post.title} — Vize Rotası\nvizerotasi:/${postPath(post)}`,
+          message: `${post.title} — Vize Rotası\n${Platform.OS === "web" ? window.location.origin + webPath(postPath(post)) : "https://ugurkihsan1.github.io/vizerotasi" + postPath(post)}`,
         }).catch(() => {});
       }}
     />
@@ -178,6 +182,7 @@ export function PostCard({
 }) {
   useAppearance();
 
+  const { session } = useAuth();
   const { data: countries } = useCountries();
   const { data: author } = useProfile(post.user_id);
   const country = countries?.find((x) => x.id === post.country_id);
@@ -292,6 +297,9 @@ export function PostCard({
           >
             {kindLabels[post.kind]}
           </Text>
+          {session?.user.id === post.user_id && (
+            <DeleteContent id={post.id} compact redirect={detail} />
+          )}
         </View>
         {detail && (
           <Pressable

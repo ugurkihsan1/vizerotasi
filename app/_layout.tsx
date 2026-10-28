@@ -39,16 +39,12 @@ export default function Layout() {
         persistOptions={{
           persister,
           maxAge: 86400000,
-          buster: "v1",
+          buster: "v2-private-profiles",
           dehydrateOptions: {
             shouldDehydrateQuery: (query) => {
-              const [name, filter] = query.queryKey;
               return (
                 query.state.status === "success" &&
-                (name === "countries" ||
-                  (name === "feed" &&
-                    !(filter as { author?: string; saved?: boolean })?.author &&
-                    !(filter as { saved?: boolean })?.saved))
+                query.queryKey[0] === "countries"
               );
             },
           },

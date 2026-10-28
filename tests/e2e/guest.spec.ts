@@ -2565,6 +2565,7 @@ test("dark appearance persists and adapts forms, cards and larger text without c
 }) => {
   await fixtures(page);
   await page.goto("/settings");
+  await page.getByRole("button", { name: "Görünüm", exact: true }).click();
   await page.getByRole("button", { name: "Karanlık", exact: true }).click();
   await expect(page.getByTestId("app-surface")).toHaveCSS(
     "background-color",
@@ -2579,10 +2580,9 @@ test("dark appearance persists and adapts forms, cards and larger text without c
     )
     .toBe("dark");
   await page.getByRole("switch", { name: "Büyük yazı", exact: true }).click();
-  await expect(page.getByText("Görünüm", { exact: true })).toHaveCSS(
-    "font-size",
-    "21px",
-  );
+  await expect(
+    page.getByRole("dialog").getByText("Görünüm", { exact: true }),
+  ).toHaveCSS("font-size", "21px");
   await page.reload();
   await expect(page.getByTestId("app-surface")).toHaveCSS(
     "background-color",
@@ -2677,7 +2677,6 @@ test("own posts and comments can be deleted only after confirmation and purpose 
   await expect(page.getByText("Kendi yorumum.", { exact: true })).toHaveCount(
     0,
   );
-  await page.getByRole("button", { name: "Detaylar", exact: true }).click();
   await page
     .getByRole("button", { name: "Paylaşımı sil", exact: true })
     .click();
@@ -2924,4 +2923,325 @@ test("important information keeps guidance behind help buttons without losing th
   ).toBe(true);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.screenshot({ path: "/tmp/tip-simple-mobile.png", fullPage: true });
+});
+
+test("settings are grouped and private profiles require a follow request", async ({
+  page,
+}) => {
+  await member(page);
+  let isPrivate = false,
+    relation: string | null = null,
+    email = "";
+  const owner = "00000000-0000-0000-0000-000000000200",
+    peer = "00000000-0000-0000-0000-000000000301";
+  await page.route("https://*.supabase.co/rest/v1/rpc/social_profile", (r) =>
+    r.fulfill({
+      json: {
+        is_private: isPrivate,
+        can_view: !isPrivate,
+        followers: 12,
+        following: 8,
+        relationship: relation,
+      },
+    }),
+  );
+  await page.route("https://*.supabase.co/rest/v1/profiles?**", (r) => {
+    if (r.request().method() === "PATCH") {
+      isPrivate = r.request().postDataJSON().is_private ?? isPrivate;
+      return r.fulfill({ status: 204, body: "" });
+    }
+    const other = new URL(r.request().url()).searchParams.has("username");
+    return r.fulfill({
+      json: {
+        id: other ? peer : owner,
+        username: other ? "private_peer" : "fixture_member",
+        display_name: other ? "Private Peer" : "Test Yolcu",
+        role: "user",
+        membership_level: "Öncü Üye",
+        bio: "",
+        is_private: other || isPrivate,
+        reputation: 0,
+      },
+    });
+  });
+  await page.route("https://*.supabase.co/auth/v1/user**", (r) => {
+    email = r.request().postDataJSON().email;
+    return r.fulfill({ json: { id: owner, email } });
+  });
+  await page.goto("/settings");
+  await expect(page.getByLabel("Biyografi", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Profili düzenle", exact: true }),
+  ).toBeVisible();
+  await page.screenshot({ path: "/tmp/social-settings-final.png" });
+  await page
+    .getByRole("button", { name: "Profili düzenle", exact: true })
+    .click();
+  await expect(page.getByLabel("Biyografi", { exact: true })).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Kapat", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Hesap ve gizlilik", exact: true })
+    .click();
+  await page.getByRole("switch", { name: "Gizli profil", exact: true }).click();
+  await expect.poll(() => isPrivate).toBe(true);
+  await page
+    .getByLabel("Yeni e-posta adresi", { exact: true })
+    .fill("changed@example.com");
+  await page
+    .getByRole("button", { name: "E-postayı değiştir", exact: true })
+    .click();
+  await expect.poll(() => email).toBe("changed@example.com");
+  await page.route("https://*.supabase.co/rest/v1/rpc/social_follow", (r) => {
+    relation = "pending";
+    return r.fulfill({ status: 204, body: "" });
+  });
+  await page.goto("/profile/private_peer");
+  await expect(page.getByText(/Bu profil gizli/)).toBeVisible();
+  await page.getByRole("button", { name: "Takip et", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "İstek gönderildi", exact: true }),
+  ).toBeVisible();
+});
+
+test("posts can be sent from their action row to an existing private chat", async ({
+  page,
+}) => {
+  const { id, state } = await chatFixtures(page);
+  const pid = "00000000-0000-0000-0000-000000000982";
+  const post = {
+    id: pid,
+    user_id: "00000000-0000-0000-0000-000000000300",
+    country_id: "spain",
+    kind: "question",
+    title: "Sigorta hakkında sorum",
+    body: "Başvurum için sigorta süresini öğrenmek istiyorum.",
+    status: "approved",
+    created_at: "2026-10-28T10:00:00Z",
+    helpful_count: 5,
+    comment_count: 0,
+  };
+  await page.route("https://*.supabase.co/rest/v1/feed?**", (r) =>
+    r.fulfill({
+      json: new URL(r.request().url()).searchParams.has("id") ? post : [post],
+    }),
+  );
+  await page.route("https://*.supabase.co/rest/v1/rpc/chat_inbox", (r) =>
+    r.fulfill({
+      json: [
+        {
+          id,
+          kind: "direct",
+          title: "Deniz",
+          status: "active",
+          closed_at: null,
+          unread_count: 0,
+        },
+      ],
+    }),
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/chat_send_attachment",
+    (r) => {
+      const p = r.request().postDataJSON();
+      expect(p.shared_post).toBe(pid);
+      state.messages.push({
+        id: p.client_id,
+        room_id: id,
+        sender_id: "00000000-0000-0000-0000-000000000200",
+        body: "Paylaşım",
+        shared_post_id: pid,
+        created_at: "2026-10-28T10:00:00Z",
+        hidden_at: null,
+      });
+      return r.fulfill({ json: p.client_id });
+    },
+  );
+  await page.goto(`/question/${pid}`);
+  await page
+    .getByRole("button", { name: "Paylaşımı gönder", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Deniz", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/chat/${id}$`));
+  await expect(
+    page.getByRole("link", { name: "Gönderilen paylaşımı aç", exact: true }),
+  ).toBeVisible();
+});
+
+test("accepted direct chats can send gallery photos into private storage", async ({
+  page,
+}) => {
+  const { id, state } = await chatFixtures(page);
+  let path = "";
+  const nestingErrors: string[] = [];
+  page.on("console", (m) => {
+    if (/cannot contain|cannot be a descendant/.test(m.text()))
+      nestingErrors.push(m.text());
+  });
+  await page.route(
+    "https://*.supabase.co/storage/v1/object/chat-media/**",
+    (r) => {
+      path = new URL(r.request().url()).pathname.split("/chat-media/")[1];
+      return r.fulfill({ json: { Key: path } });
+    },
+  );
+  await page.route(
+    "https://*.supabase.co/rest/v1/rpc/chat_send_attachment",
+    (r) => {
+      const p = r.request().postDataJSON();
+      expect(p.photo_path).toBe(path);
+      state.messages.push({
+        id: p.client_id,
+        room_id: id,
+        sender_id: "00000000-0000-0000-0000-000000000200",
+        body: "Fotoğraf",
+        image_path: path,
+        created_at: "2026-10-28T10:00:00Z",
+        hidden_at: null,
+      });
+      return r.fulfill({ json: p.client_id });
+    },
+  );
+  await page.route(
+    "https://*.supabase.co/storage/v1/object/sign/chat-media/**",
+    (r) =>
+      r.request().method() === "POST"
+        ? r.fulfill({
+            json: {
+              signedURL: "/object/sign/chat-media/fixture.png?token=fixture",
+            },
+          })
+        : r.fulfill({
+            contentType: "image/png",
+            body: Buffer.from(
+              "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a5FoAAAAASUVORK5CYII=",
+              "base64",
+            ),
+          }),
+  );
+  await page.goto(`/chat/${id}`);
+  const chooser = page.waitForEvent("filechooser");
+  await page
+    .getByRole("button", { name: "Galeriden fotoğraf ekle", exact: true })
+    .click();
+  await (
+    await chooser
+  ).setFiles({
+    name: "fixture.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a5FoAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  });
+  await expect(
+    page.getByRole("button", { name: "Fotoğrafı kaldır", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Mesaj gönder", exact: true }).click();
+  await expect.poll(() => path).toContain(id);
+  await expect(
+    page.getByRole("button", { name: "Fotoğrafı aç", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: "Sohbet fotoğrafı", exact: true }),
+  ).toBeVisible();
+  expect(nestingErrors).toEqual([]);
+  await page.screenshot({ path: "/tmp/social-chat-photo.png" });
+});
+
+test("profile tabs preserve scroll position and compact dates keep keyboard progression", async ({
+  page,
+}) => {
+  await member(page);
+  const me = "00000000-0000-0000-0000-000000000200";
+  await page.route("https://*.supabase.co/rest/v1/rpc/social_profile", (r) =>
+    r.fulfill({
+      json: {
+        can_view: true,
+        is_private: false,
+        followers: 1,
+        following: 2,
+        relationship: null,
+      },
+    }),
+  );
+  await page.route("https://*.supabase.co/rest/v1/feed?**", (r) =>
+    r.fulfill({
+      json: Array.from({ length: 8 }, (_, i) => ({
+        id: `profile-${i}`,
+        user_id: me,
+        country_id: "spain",
+        kind: "experience",
+        title: `Deneyim ${i}`,
+        body: "Başvuru deneyimim.",
+        status: "approved",
+        created_at: "2026-10-28T10:00:00Z",
+        helpful_count: 0,
+        comment_count: 0,
+      })),
+    }),
+  );
+  await page.goto("/profile");
+  const tab = page.getByRole("button", { name: "Deneyimler", exact: true });
+  await tab.scrollIntoViewIfNeeded();
+  const scroll = await tab.evaluate((el) => {
+    let p = el.parentElement;
+    while (p) {
+      if (
+        p.scrollHeight > p.clientHeight + 150 &&
+        ["auto", "scroll"].includes(getComputedStyle(p).overflowY)
+      ) {
+        p.scrollTop = 120;
+        return p.scrollTop;
+      }
+      p = p.parentElement;
+    }
+    return -1;
+  });
+  expect(scroll).toBeGreaterThan(50);
+  await tab.click();
+  await expect(
+    page.getByRole("button", { name: "Deneyimler", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  const after = await page.evaluate(
+    () =>
+      Array.from(document.querySelectorAll("div")).find(
+        (el) =>
+          el.scrollHeight > el.clientHeight + 150 &&
+          ["auto", "scroll"].includes(getComputedStyle(el).overflowY),
+      )?.scrollTop ?? 0,
+  );
+  expect(after).toBeGreaterThan(50);
+  await page.mouse.move(300, 300);
+  await page.mouse.down();
+  await page.mouse.move(90, 300, { steps: 10 });
+  await page.mouse.up();
+  await expect(
+    page.getByRole("button", { name: "Sorular", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+
+  await page.goto("/create");
+  await page
+    .getByRole("button", { name: "✦ Vize deneyimi paylaş", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Başvuru ülkesi: Ülke seç", exact: true })
+    .click();
+  await page.getByRole("radio", { name: "İspanya", exact: true }).click();
+  await page.getByLabel("Başvuru şehri", { exact: true }).fill("İstanbul");
+  await page.getByLabel("Başvuru merkezi", { exact: true }).fill("BLS");
+  await page.getByRole("button", { name: "Devam", exact: true }).click();
+  await page.getByRole("button", { name: "Devam", exact: true }).click();
+  const day = page.getByLabel("Başvuru tarihi · gün", { exact: true });
+  await expect(day).toHaveCSS("width", "43px");
+  await day.fill("28");
+  await expect(
+    page.getByLabel("Başvuru tarihi · ay", { exact: true }),
+  ).toBeFocused();
+  await expect(
+    page.getByLabel("Başvuru tarihi · ay", { exact: true }),
+  ).toHaveCSS("outline-style", "none");
+  await page.screenshot({ path: "/tmp/social-date-final.png" });
 });

@@ -88,6 +88,7 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
   )[scope];
   const feed = useFeed(
     {
+      discover: !search,
       search: search ? plan.terms.join(" ") : undefined,
       countryIds: search ? plan.countryIds : undefined,
       kind: search ? kind : undefined,
@@ -279,7 +280,7 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
               ? scope === "Tümü"
                 ? "Topluluktan sonuçlar"
                 : `${scope} için sonuçlar`
-              : "Son paylaşımlar"}
+              : "Öne çıkanlar"}
           </Text>
         </>
       )}

@@ -155,3 +155,5 @@ Danimarka rehberi ve ülke topluluğu için [DENMARK_UPGRADE.sql](docs/DENMARK_U
 ### Mobil kontroller
 
 Ayarlar, silme ve yönetici ülke ekleme: [kurulum rehberi](docs/MOBILE_CONTROLS_TR.md). Yeni sunucu yetkileri için [MOBILE_CONTROLS_UPGRADE.sql](docs/MOBILE_CONTROLS_UPGRADE.sql) Supabase SQL Editor’da çalıştırılır. Tema ve diğer cihaz tercihleri SQL gerektirmez.
+
+Sosyal profiller, sohbet fotoğrafları ve son mobil düzenlemeler: [SOCIAL_MOBILE_TR.md](docs/SOCIAL_MOBILE_TR.md).

@@ -1,7 +1,9 @@
 import { useAppearance } from "../lib/appearance";
-import { formatDate } from "../lib/dates";
+import { DeleteContent } from "./DeleteContent";
+import { useAuth } from "../lib/auth";
+import { formatDateTime } from "../lib/dates";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { View, Text } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { router } from "expo-router";
 import { db } from "../lib/supabase";
 import type { Comment } from "../lib/types";
@@ -9,6 +11,7 @@ import { Button, Empty, styles } from "./ui";
 import { statusLabels } from "./PostCard";
 export function ProfileComments({ user }: { user: string }) {
   useAppearance();
+  const { session } = useAuth();
 
   const q = useInfiniteQuery({
     queryKey: ["profile-comments", user],
@@ -29,16 +32,25 @@ export function ProfileComments({ user }: { user: string }) {
   return (
     <View style={{ gap: 12 }}>
       {q.data?.pages.flat().map((c) => (
-        <View key={c.id} style={styles.card}>
+        <View key={c.id} style={[styles.card, { padding: 12, gap: 5 }]}>
+          <View style={[styles.row, { justifyContent: "space-between" }]}>
+            <Text style={styles.muted}>{statusLabels[c.status]}</Text>
+            <Text style={styles.muted}>{formatDateTime(c.created_at)}</Text>
+          </View>
           <Text style={styles.text}>{c.body}</Text>
-          <Text style={styles.muted}>
-            {statusLabels[c.status]} · {formatDate(c.created_at)}
-          </Text>
-          <Button
-            secondary
-            label="Konuşmaya git"
-            onPress={() => router.push(`/experience/${c.post_id}`)}
-          />
+          <View style={[styles.row, { justifyContent: "space-between" }]}>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Konuşmaya git"
+              onPress={() => router.push(`/experience/${c.post_id}`)}
+              style={{ minHeight: 44, justifyContent: "center", flex: 1 }}
+            >
+              <Text style={styles.muted}>Konuşmaya git →</Text>
+            </Pressable>
+            {session?.user.id === c.user_id && (
+              <DeleteContent id={c.id} isComment />
+            )}
+          </View>
         </View>
       ))}
       {!q.data?.pages[0].length && (

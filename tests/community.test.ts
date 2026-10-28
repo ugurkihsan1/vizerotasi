@@ -13,7 +13,10 @@ async function as(user: string | null, sql: string, args: unknown[] = []) {
   await pg.query("select set_config('request.jwt.claim.sub',$1,false)", [
     user ?? "",
   ]);
-  return pg.query(sql, args);
+  return pg.query(sql, args).catch((error: Error) => {
+    error.message = `${sql}: ${error.message}`;
+    throw error;
+  });
 }
 async function user(age = 10, role = "user") {
   const id = randomUUID();
@@ -1101,4 +1104,230 @@ it("country editing is administrator-only, validates URLs and generates a real f
   expect(
     (await as(null, "select flag from countries where id='belgium'")).rows[0],
   ).toMatchObject({ flag: "🇧🇪" });
+});
+
+it("enforces private profile approval in feed, comments and direct post reads", async () => {
+  const owner = await user(),
+    follower = await user(),
+    outsider = await user();
+  const pid = await post(owner);
+  await as(owner, "update profiles set is_private=true where id=$1", [owner]);
+  expect(
+    (await as(null, "select id from feed where id=$1", [pid])).rows,
+  ).toHaveLength(0);
+  expect(
+    (await as(outsider, "select id from posts where id=$1", [pid])).rows,
+  ).toHaveLength(0);
+  await as(follower, "select social_follow($1)", [owner]);
+  expect(
+    (await as(follower, "select id from feed where id=$1", [pid])).rows,
+  ).toHaveLength(0);
+  await expect(
+    as(outsider, "update user_follows set status='accepted'"),
+  ).rejects.toThrow();
+  await as(owner, "select social_follow($1,'accept')", [follower]);
+  expect(
+    (await as(follower, "select id from feed where id=$1", [pid])).rows,
+  ).toHaveLength(1);
+  await as(owner, "select chat_block_user($1,true)", [follower]);
+  expect(
+    (await as(follower, "select id from feed where id=$1", [pid])).rows,
+  ).toHaveLength(0);
+  await as(owner, "select chat_block_user($1,false)", [follower]);
+  await as(follower, "select social_follow($1,'unfollow')", [owner]);
+  expect(
+    (await as(follower, "select id from feed where id=$1", [pid])).rows,
+  ).toHaveLength(0);
+  expect(
+    (await as(owner, "select id from feed where id=$1", [pid])).rows,
+  ).toHaveLength(1);
+});
+it("turns pending requests into followers only when the owner opens the profile", async () => {
+  const owner = await user(),
+    follower = await user(),
+    third = await user();
+  await as(owner, "update profiles set is_private=true where id=$1", [owner]);
+  await as(follower, "select social_follow($1)", [owner]);
+  await as(third, "select social_follow($1,'accept')", [follower]);
+  expect(
+    (
+      await root("select status from user_follows where following_id=$1", [
+        owner,
+      ])
+    ).rows[0],
+  ).toMatchObject({ status: "pending" });
+  await as(owner, "update profiles set is_private=false where id=$1", [owner]);
+  expect(
+    (
+      await root("select status from user_follows where following_id=$1", [
+        owner,
+      ])
+    ).rows[0],
+  ).toMatchObject({ status: "accepted" });
+  await expect(
+    as(follower, "select social_follow($1)", [follower]),
+  ).rejects.toThrow();
+});
+it("keeps photos private to accepted direct-chat participants and scopes reports to a single image", async () => {
+  const a = await user(),
+    b = await user(),
+    outsider = await user(),
+    staff = await user(50, "moderator");
+  const r = await as(a, "select chat_create_private(array[$1]::uuid[],'') id", [
+    b,
+  ]);
+  const room = (r.rows[0] as { id: string }).id;
+  const mid = randomUUID(),
+    path = `${room}/${a}/${mid}.jpg`;
+  await expect(
+    as(
+      a,
+      "insert into storage.objects(id,bucket_id,name,metadata) values($1,'chat-media',$2,$3)",
+      [
+        randomUUID(),
+        path,
+        JSON.stringify({ size: 1000, mimetype: "image/jpeg" }),
+      ],
+    ),
+  ).rejects.toThrow();
+  await as(b, "select chat_answer_invite($1,true)", [room]);
+  const draftPath = `${room}/${a}/${randomUUID()}.png`;
+  await as(
+    a,
+    "insert into storage.objects(id,bucket_id,name,metadata) values($1,'chat-media',$2,$3)",
+    [
+      randomUUID(),
+      draftPath,
+      JSON.stringify({ size: 200, mimetype: "image/png" }),
+    ],
+  );
+  expect(
+    (
+      await as(a, "delete from storage.objects where name=$1 returning name", [
+        draftPath,
+      ])
+    ).rows,
+  ).toHaveLength(1);
+  await as(
+    a,
+    "insert into storage.objects(id,bucket_id,name,metadata) values($1,'chat-media',$2,$3)",
+    [
+      randomUUID(),
+      path,
+      JSON.stringify({ size: 1000, mimetype: "image/jpeg" }),
+    ],
+  );
+  await expect(
+    as(outsider, "select chat_send_attachment($1,$2,null,$3)", [
+      room,
+      mid,
+      path,
+    ]),
+  ).rejects.toThrow();
+  await as(a, "select chat_send_attachment($1,$2,null,$3)", [room, mid, path]);
+  await as(a, "select chat_send_attachment($1,$2,null,$3)", [room, mid, path]);
+  expect(
+    (await as(b, "select name from storage.objects where name=$1", [path]))
+      .rows,
+  ).toHaveLength(1);
+  expect(
+    (
+      await as(outsider, "select name from storage.objects where name=$1", [
+        path,
+      ])
+    ).rows,
+  ).toHaveLength(0);
+  expect(
+    (await as(staff, "select name from storage.objects where name=$1", [path]))
+      .rows,
+  ).toHaveLength(0);
+  await as(b, "select chat_report_message($1,'Unwanted photo')", [mid]);
+  expect(
+    (await as(staff, "select name from storage.objects where name=$1", [path]))
+      .rows,
+  ).toHaveLength(1);
+  await as(a, "select chat_hide_message($1)", [mid]);
+  expect(
+    (await as(b, "select name from storage.objects where name=$1", [path]))
+      .rows,
+  ).toHaveLength(0);
+  expect(
+    (await as(staff, "select name from storage.objects where name=$1", [path]))
+      .rows,
+  ).toHaveLength(1);
+  expect(
+    (
+      await as(a, "delete from storage.objects where name=$1 returning name", [
+        path,
+      ])
+    ).rows,
+  ).toHaveLength(0);
+});
+it("does not copy private posts to unauthorized recipients and hides stale popular content", async () => {
+  const a = await user(),
+    b = await user();
+  const pid = await post(a);
+  const room = (
+    (await as(a, "select chat_create_private(array[$1]::uuid[],'') id", [b]))
+      .rows[0] as { id: string }
+  ).id;
+  await as(b, "select chat_answer_invite($1,true)", [room]);
+  await as(a, "update profiles set is_private=true where id=$1", [a]);
+  await expect(
+    as(a, "select chat_send_attachment($1,$2,$3)", [room, randomUUID(), pid]),
+  ).rejects.toThrow();
+  await as(b, "select social_follow($1)", [a]);
+  await as(a, "select social_follow($1,'accept')", [b]);
+  await as(a, "select chat_send_attachment($1,$2,$3)", [
+    room,
+    randomUUID(),
+    pid,
+  ]);
+  await as(b, "select social_follow($1,'unfollow')", [a]);
+  expect(
+    (await as(b, "select id from feed where id=$1", [pid])).rows,
+  ).toHaveLength(0);
+  await as(a, "update profiles set is_private=false where id=$1", [a]);
+  const old = await post(a);
+  await root(
+    "update posts set created_at=now()-interval '31 days' where id=$1",
+    [old],
+  );
+  const discover = (await as(null, "select id from discover_posts(30,0)"))
+    .rows as { id: string }[];
+  expect(discover.some((x) => x.id === pid)).toBe(true);
+  expect(discover.some((x) => x.id === old)).toBe(false);
+});
+it("ranks recent helpful content globally before pagination and replays the upgrade safely", async () => {
+  const a = await user(),
+    b = await user(),
+    c = await user();
+  const hot = await post(a),
+    aging = await post(a),
+    fresh = await post(a);
+  await root(
+    "update posts set created_at=now()-interval '20 days' where id=$1",
+    [aging],
+  );
+  for (const voter of [b, c])
+    for (const pid of [hot, aging])
+      await as(
+        voter,
+        "insert into helpful_votes(user_id,post_id) values($1,$2)",
+        [voter, pid],
+      );
+  const ranked = (
+    await as(null, "select id from discover_posts(30,0)")
+  ).rows.map((r) => (r as { id: string }).id);
+  expect(ranked.indexOf(hot)).toBeGreaterThanOrEqual(0);
+  expect(ranked.indexOf(hot)).toBeLessThan(ranked.indexOf(aging));
+  expect(ranked.indexOf(fresh)).toBeGreaterThan(ranked.indexOf(hot));
+  await pg.exec("reset role");
+  await pg.exec(readFileSync("docs/SOCIAL_MOBILE_UPGRADE.sql", "utf8"));
+  expect(
+    (await as(a, "select id from posts where id=$1", [hot])).rows,
+  ).toHaveLength(1);
+  await expect(
+    as(a, "select chat_pair_blocked($1,$2)", [b, c]),
+  ).rejects.toThrow();
 });

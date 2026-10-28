@@ -11,9 +11,13 @@ import { Text, Pressable } from "react-native";
 export function DeleteContent({
   id,
   isComment = false,
+  compact = false,
+  redirect = true,
 }: {
   id: string;
   isComment?: boolean;
+  compact?: boolean;
+  redirect?: boolean;
 }) {
   useAppearance();
 
@@ -44,8 +48,8 @@ export function DeleteContent({
       });
       if (r.error) throw r.error;
       if (paths.length && session) {
-        await queueCleanup(session.user.id, paths);
         try {
+          await queueCleanup(session.user.id, paths);
           await cleanupEvidence(session.user.id);
         } catch {
           /* The owner can retry the persisted cleanup from Settings. */
@@ -53,7 +57,7 @@ export function DeleteContent({
       }
       await cache.invalidateQueries();
       setOpen(false);
-      if (!isComment) router.replace("/profile");
+      if (!isComment && redirect) router.replace("/profile");
     } catch (e) {
       const code = (e as { code?: string }).code;
       setError(
@@ -67,10 +71,10 @@ export function DeleteContent({
   }
   return (
     <>
-      {isComment ? (
+      {isComment || compact ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Yorumu sil"
+          accessibilityLabel={isComment ? "Yorumu sil" : "Paylaşımı sil"}
           onPress={() => setOpen(true)}
           style={{
             width: 44,

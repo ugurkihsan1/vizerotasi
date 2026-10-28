@@ -1,8 +1,17 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useSocialProfile } from "../src/lib/social";
 import { webPath } from "../src/lib/web-path";
 import * as Linking from "expo-linking";
 import { pendingCleanup, cleanupEvidence } from "../src/lib/content-cleanup";
 import { useState } from "react";
-import { ScrollView, Text, View, Switch, Platform } from "react-native";
+import {
+  ScrollView,
+  Text,
+  View,
+  Switch,
+  Platform,
+  Pressable,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { pickAvatar, uploadAvatar } from "../src/lib/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -12,12 +21,44 @@ import { db } from "../src/lib/supabase";
 import { useAppearance, setPreferences } from "../src/lib/appearance";
 import {
   styles,
+  colors,
   Button,
   Field,
   Message,
   Chip,
   Sheet,
 } from "../src/components/ui";
+function SettingsSection({
+  title,
+  icon,
+  children,
+}: React.PropsWithChildren<{
+  title: string;
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+}>) {
+  useAppearance();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        onPress={() => setOpen(true)}
+        style={[
+          styles.card,
+          { padding: 16, flexDirection: "row", alignItems: "center", gap: 12 },
+        ]}
+      >
+        <Ionicons name={icon} size={22} color={colors.blue} />
+        <Text style={[styles.pillText, { flex: 1 }]}>{title}</Text>
+        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+      </Pressable>
+      <Sheet visible={open} onClose={() => setOpen(false)} title={title}>
+        {children}
+      </Sheet>
+    </>
+  );
+}
 export default function Settings() {
   useAppearance();
   const { profile } = useAuth();
@@ -31,6 +72,31 @@ function SettingsBody() {
     [bio, setBio] = useState(profile?.bio ?? ""),
     [message, setMessage] = useState(""),
     [privacy, setPrivacy] = useState(false);
+  const [email, setEmail] = useState(session?.user.email ?? ""),
+    [accountBusy, setAccountBusy] = useState(false);
+  const social = useSocialProfile(session?.user.id);
+  const emailRedirect = () =>
+    Platform.OS === "web"
+      ? `${window.location.origin}${webPath("/auth")}`
+      : Linking.createURL("/auth");
+  async function changeEmail() {
+    if (accountBusy) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setMessage("Geçerli e-posta adresi gir.");
+      return;
+    }
+    setAccountBusy(true);
+    const r = await db().auth.updateUser(
+      { email: email.trim() },
+      { emailRedirectTo: emailRedirect() },
+    );
+    setAccountBusy(false);
+    setMessage(
+      r.error
+        ? "E-posta değiştirilemedi. Yeniden giriş yapıp dene."
+        : "E-posta değişikliği için gelen onay bağlantılarını tamamla.",
+    );
+  }
   const prefs = useQuery({
     queryKey: ["preferences", session?.user.id],
     enabled: !!session,
@@ -66,192 +132,254 @@ function SettingsBody() {
   }
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
-      <Text style={styles.heading}>Görünüm</Text>
-      <View style={styles.row}>
-        {(
-          [
-            ["system", "Sistem"],
-            ["light", "Açık"],
-            ["dark", "Karanlık"],
-          ] as const
-        ).map(([value, label]) => (
-          <Chip
-            key={value}
-            label={label}
-            active={appearance.theme === value}
-            onPress={() => preference({ theme: value })}
-          />
-        ))}
-      </View>
-      <View style={styles.card}>
-        {(
-          [
-            ["largeText", "Büyük yazı"],
-            ["reducedMotion", "Hareketi azalt"],
-            ["haptics", "Dokunsal geri bildirim"],
-          ] as const
-        ).map(([key, label]) => (
-          <View
-            key={key}
-            style={[styles.row, { justifyContent: "space-between" }]}
-          >
-            <Text style={styles.text}>{label}</Text>
-            <Switch
-              accessibilityLabel={label}
-              value={appearance[key]}
-              onValueChange={(v) => preference({ [key]: v })}
+      <SettingsSection title="Görünüm" icon="contrast-outline">
+        <View style={styles.row}>
+          {(
+            [
+              ["system", "Sistem"],
+              ["light", "Açık"],
+              ["dark", "Karanlık"],
+            ] as const
+          ).map(([value, label]) => (
+            <Chip
+              key={value}
+              label={label}
+              active={appearance.theme === value}
+              onPress={() => preference({ theme: value })}
             />
-          </View>
-        ))}
-      </View>
+          ))}
+        </View>
+        <View style={styles.card}>
+          {(
+            [
+              ["largeText", "Büyük yazı"],
+              ["reducedMotion", "Hareketi azalt"],
+              ["haptics", "Dokunsal geri bildirim"],
+            ] as const
+          ).map(([key, label]) => (
+            <View
+              key={key}
+              style={[styles.row, { justifyContent: "space-between" }]}
+            >
+              <Text style={styles.text}>{label}</Text>
+              <Switch
+                accessibilityLabel={label}
+                value={appearance[key]}
+                onValueChange={(v) => preference({ [key]: v })}
+              />
+            </View>
+          ))}
+        </View>
+      </SettingsSection>
       {profile && (
         <>
-          <Text style={styles.heading}>Profil</Text>
-          <Button
-            secondary
-            label="Profil fotoğrafını değiştir"
-            onPress={() => void avatar()}
-          />
-          <Field
-            label="Adınız"
-            value={name}
-            onChangeText={setName}
-            maxLength={60}
-          />
-          <Field
-            label="Biyografi"
-            value={bio}
-            onChangeText={setBio}
-            maxLength={300}
-            multiline
-          />
-          <Button
-            label="Profili kaydet"
-            onPress={() => {
-              if (name.trim().length < 2) {
-                setMessage("Adın en az 2 karakter olmalı.");
-                return;
+          <SettingsSection title="Profili düzenle" icon="person-outline">
+            <Message text={message || avatarNotice || ""} />
+            <Button
+              secondary
+              label="Profil fotoğrafını değiştir"
+              onPress={() => void avatar()}
+            />
+            <Field
+              label="Adınız"
+              value={name}
+              onChangeText={setName}
+              maxLength={60}
+            />
+            <Field
+              label="Biyografi"
+              value={bio}
+              onChangeText={setBio}
+              maxLength={300}
+              multiline
+            />
+            <Button
+              label="Profili kaydet"
+              onPress={() => {
+                if (name.trim().length < 2) {
+                  setMessage("Adın en az 2 karakter olmalı.");
+                  return;
+                }
+                void db()
+                  .from("profiles")
+                  .update({ display_name: name.trim(), bio })
+                  .eq("id", profile.id)
+                  .then((r) => {
+                    setMessage(
+                      r.error
+                        ? "Profil kaydedilemedi."
+                        : "Profilin güncellendi.",
+                    );
+                    void cache.invalidateQueries({ queryKey: ["profile"] });
+                  });
+              }}
+            />
+          </SettingsSection>
+          <SettingsSection title="Bildirimler" icon="notifications-outline">
+            <View style={styles.card}>
+              {Object.entries({
+                replies: "Yanıtlar",
+                approvals: "İçerik onayları",
+                country_updates: "Ülke güncellemeleri",
+                badges: "Rozetler",
+              }).map(([key, label]) => (
+                <View
+                  key={key}
+                  style={[styles.row, { justifyContent: "space-between" }]}
+                >
+                  <Text style={styles.text}>{label}</Text>
+                  <Switch
+                    accessibilityLabel={label}
+                    value={prefs.data?.[key] ?? true}
+                    onValueChange={(value) =>
+                      void db()
+                        .from("notification_preferences")
+                        .update({ [key]: value })
+                        .eq("user_id", profile.id)
+                        .then((r) =>
+                          r.error
+                            ? setMessage("Tercih kaydedilemedi.")
+                            : void prefs.refetch(),
+                        )
+                    }
+                  />
+                </View>
+              ))}
+            </View>
+          </SettingsSection>
+          <SettingsSection title="Hesap ve gizlilik" icon="lock-closed-outline">
+            <Message text={message} />
+            <View style={[styles.row, { justifyContent: "space-between" }]}>
+              <Text style={styles.text}>Gizli profil</Text>
+              <Switch
+                accessibilityLabel="Gizli profil"
+                value={social.data?.is_private ?? profile.is_private ?? false}
+                disabled={accountBusy}
+                onValueChange={(v) => {
+                  setAccountBusy(true);
+                  void db()
+                    .from("profiles")
+                    .update({ is_private: v })
+                    .eq("id", profile.id)
+                    .then(async (r) => {
+                      setAccountBusy(false);
+                      if (r.error)
+                        setMessage(
+                          "Gizlilik kaydedilemedi. Sosyal profil SQL güncellemesini kontrol et.",
+                        );
+                      else {
+                        await cache.invalidateQueries({ queryKey: ["social"] });
+                        await cache.invalidateQueries({
+                          queryKey: ["profile"],
+                        });
+                        await cache.invalidateQueries({ queryKey: ["feed"] });
+                      }
+                    });
+                }}
+              />
+            </View>
+            <Text style={styles.muted}>
+              Paylaşımlarını yalnız onayladığın takipçiler görür. Adın,
+              biyografin ve profil fotoğrafın görünür kalır. Herkese açık
+              paylaşımlara yazdığın yorumlar da görünür.
+            </Text>
+            <Field
+              label="Yeni e-posta adresi"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              maxLength={254}
+            />
+            <Button
+              label="E-postayı değiştir"
+              disabled={accountBusy || email.trim() === session?.user.email}
+              onPress={() => void changeEmail()}
+            />
+            <Text style={styles.muted}>
+              E-posta değişikliği, gelen onay bağlantıları tamamlanınca geçerli
+              olur.
+            </Text>
+            <Button
+              secondary
+              label="Engellenen kişiler"
+              onPress={() =>
+                router.push({ pathname: "/messages", params: { blocks: "1" } })
               }
-              void db()
-                .from("profiles")
-                .update({ display_name: name.trim(), bio })
-                .eq("id", profile.id)
-                .then((r) => {
-                  setMessage(
-                    r.error ? "Profil kaydedilemedi." : "Profilin güncellendi.",
+            />
+            <Button
+              secondary
+              label="Şifre sıfırlama bağlantısı gönder"
+              onPress={() => {
+                if (!session?.user.email) return;
+                void db()
+                  .auth.resetPasswordForEmail(session.user.email, {
+                    redirectTo:
+                      Platform.OS === "web"
+                        ? `${window.location.origin}${webPath("/auth")}?recovery=1`
+                        : Linking.createURL("/auth", {
+                            queryParams: { recovery: "1" },
+                          }),
+                  })
+                  .then((r) =>
+                    setMessage(
+                      r.error
+                        ? "Bağlantı gönderilemedi."
+                        : "Şifre sıfırlama bağlantısı e-posta adresine gönderildi.",
+                    ),
                   );
-                  void cache.invalidateQueries({ queryKey: ["profile"] });
-                });
-            }}
-          />
-          <Text style={styles.heading}>Bildirimler</Text>
-          <View style={styles.card}>
-            {Object.entries({
-              replies: "Yanıtlar",
-              approvals: "İçerik onayları",
-              country_updates: "Ülke güncellemeleri",
-              badges: "Rozetler",
-            }).map(([key, label]) => (
-              <View
-                key={key}
-                style={[styles.row, { justifyContent: "space-between" }]}
-              >
-                <Text style={styles.text}>{label}</Text>
-                <Switch
-                  accessibilityLabel={label}
-                  value={prefs.data?.[key] ?? true}
-                  onValueChange={(value) =>
-                    void db()
-                      .from("notification_preferences")
-                      .update({ [key]: value })
-                      .eq("user_id", profile.id)
-                      .then((r) =>
-                        r.error
-                          ? setMessage("Tercih kaydedilemedi.")
-                          : void prefs.refetch(),
-                      )
-                  }
-                />
-              </View>
-            ))}
-          </View>
-          <Button
-            secondary
-            label="Engellenen kişiler"
-            onPress={() =>
-              router.push({ pathname: "/messages", params: { blocks: "1" } })
-            }
-          />
-          <Button
-            secondary
-            label="Şifre sıfırlama bağlantısı gönder"
-            onPress={() => {
-              if (!session?.user.email) return;
-              void db()
-                .auth.resetPasswordForEmail(session.user.email, {
-                  redirectTo:
-                    Platform.OS === "web"
-                      ? `${window.location.origin}${webPath("/auth")}?recovery=1`
-                      : Linking.createURL("/auth", {
-                          queryParams: { recovery: "1" },
-                        }),
-                })
-                .then((r) =>
-                  setMessage(
-                    r.error
-                      ? "Bağlantı gönderilemedi."
-                      : "Şifre sıfırlama bağlantısı e-posta adresine gönderildi.",
-                  ),
-                );
-            }}
-          />
+              }}
+            />
+          </SettingsSection>
         </>
       )}
-      <Text style={styles.heading}>Veri ve gizlilik</Text>
-      {session && !!cleanup.data?.length && (
+      <SettingsSection title="Veri ve uygulama" icon="options-outline">
+        <Message text={message} />
+        {session && !!cleanup.data?.length && (
+          <Button
+            secondary
+            label="Bekleyen ek dosyaları temizle"
+            onPress={() =>
+              void cleanupEvidence(session.user.id)
+                .then(() => {
+                  void cleanup.refetch();
+                  setMessage("Dosyalar temizlendi.");
+                })
+                .catch(() => setMessage("Dosya temizliği tamamlanamadı."))
+            }
+          />
+        )}
         <Button
           secondary
-          label="Bekleyen ek dosyaları temizle"
-          onPress={() =>
-            void cleanupEvidence(session.user.id)
-              .then(() => {
-                void cleanup.refetch();
-                setMessage("Dosyalar temizlendi.");
-              })
-              .catch(() => setMessage("Dosya temizliği tamamlanamadı."))
-          }
+          label="Arama geçmişini temizle"
+          onPress={() => {
+            void AsyncStorage.removeItem(
+              `recent-searches:${session?.user.id ?? "guest"}`,
+            )
+              .then(() => setMessage("Arama geçmişi temizlendi."))
+              .catch(() => setMessage("Geçmiş temizlenemedi."));
+          }}
         />
-      )}
-      <Button
-        secondary
-        label="Arama geçmişini temizle"
-        onPress={() => {
-          void AsyncStorage.removeItem(
-            `recent-searches:${session?.user.id ?? "guest"}`,
-          )
-            .then(() => setMessage("Arama geçmişi temizlendi."))
-            .catch(() => setMessage("Geçmiş temizlenemedi."));
-        }}
-      />
-      <Button
-        secondary
-        label="İçerikleri yenile"
-        onPress={() => {
-          void cache
-            .invalidateQueries()
-            .then(() => setMessage("İçerikler güncellendi."));
-        }}
-      />
-      <Button
-        secondary
-        label="Gizlilik ve topluluk kuralları"
-        onPress={() => setPrivacy(true)}
-      />
-      <Button
-        secondary
-        label="Fotoğraf kaynakları"
-        onPress={() => router.push("/photo-credits")}
-      />
+        <Button
+          secondary
+          label="İçerikleri yenile"
+          onPress={() => {
+            void cache
+              .invalidateQueries()
+              .then(() => setMessage("İçerikler güncellendi."));
+          }}
+        />
+        <Button
+          secondary
+          label="Gizlilik ve topluluk kuralları"
+          onPress={() => setPrivacy(true)}
+        />
+        <Button
+          secondary
+          label="Fotoğraf kaynakları"
+          onPress={() => router.push("/photo-credits")}
+        />
+      </SettingsSection>
       <Message text={message || avatarNotice || ""} />
       {session && (
         <Button

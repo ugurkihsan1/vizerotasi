@@ -134,34 +134,46 @@ function CommentRow({
       style={[
         styles.card,
         {
-          padding: 14,
-          gap: 8,
+          padding: 10,
+          gap: 4,
           borderRadius: 16,
           marginLeft: comment.parent_comment_id ? 22 : 0,
         },
       ]}
     >
-      <View style={styles.row}>
+      <View style={[styles.row, { flexWrap: "nowrap" }]}>
         <Avatar
+          size={28}
           name={author.data?.display_name ?? "Üye"}
           url={author.data?.avatar_url}
         />
-        <View>
-          <Text style={styles.pillText}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.pillText} numberOfLines={1}>
             {author.data?.username ?? "Topluluk üyesi"}
           </Text>
         </View>
+        <Text style={[styles.muted, { fontSize: textSize(10) }]}>
+          {formatDateTime(comment.created_at)}
+        </Text>
       </View>
       <Text style={styles.text}>{comment.body}</Text>
-      <Text style={styles.muted}>
-        {formatDateTime(comment.created_at)}
-        {comment.status !== "approved"
-          ? ` · ${statusLabels[comment.status]}`
-          : ""}
-      </Text>
+      {comment.status !== "approved" && (
+        <Text style={styles.muted}>{statusLabels[comment.status]}</Text>
+      )}
       <View style={styles.row}>
         {!comment.parent_comment_id && comment.status === "approved" && (
-          <Button label="Yanıtla" secondary onPress={onReply} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Yanıtla"
+            onPress={onReply}
+            style={{
+              minHeight: 44,
+              justifyContent: "center",
+              paddingHorizontal: 4,
+            }}
+          >
+            <Text style={styles.muted}>Yanıtla</Text>
+          </Pressable>
         )}
         <Pressable
           accessibilityRole="button"
@@ -279,7 +291,6 @@ export default function DetailScreen() {
             title="Paylaşım detayları"
             onClose={() => setDetails(false)}
           >
-            {session?.user.id === p.user_id && <DeleteContent id={p.id} />}
             {p.kind === "experience" && (
               <View style={styles.card}>
                 <Text style={styles.heading}>Süreç</Text>

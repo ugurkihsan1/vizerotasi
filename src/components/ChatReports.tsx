@@ -1,3 +1,4 @@
+import { ChatPhoto } from "./ChatAttachment";
 import { useAppearance } from "../lib/appearance";
 import { useState } from "react";
 import { Text, View } from "react-native";
@@ -23,7 +24,7 @@ export function ChatReports() {
     queryFn: async () => {
       const r = await db()
         .from("chat_reports")
-        .select("id,body_snapshot,reason,created_at")
+        .select("id,body_snapshot,reason,created_at,image_path_snapshot")
         .is("resolved_at", null)
         .order("created_at")
         .limit(30);
@@ -31,6 +32,7 @@ export function ChatReports() {
       return r.data as {
         id: string;
         body_snapshot: string;
+        image_path_snapshot?: string | null;
         reason: string;
         created_at: string;
       }[];
@@ -56,6 +58,9 @@ export function ChatReports() {
         {q.data?.map((r) => (
           <View key={r.id} style={styles.card}>
             <Text style={styles.text}>{r.body_snapshot}</Text>
+            {r.image_path_snapshot && (
+              <ChatPhoto path={r.image_path_snapshot} />
+            )}
             <Text style={styles.muted}>
               {r.reason} · {formatDateTime(r.created_at)}
             </Text>

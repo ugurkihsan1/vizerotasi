@@ -1,3 +1,11 @@
+import { ChatPhoto, ChatSharedPost } from "../../src/components/ChatAttachment";
+import {
+  pickChatPhoto,
+  sendChatPhoto,
+  discardChatPhoto,
+  type ChatPhotoDraft,
+} from "../../src/lib/chat-photo";
+import { Image } from "expo-image";
 import { useAppearance, themeColor, textSize } from "../../src/lib/appearance";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -95,6 +103,7 @@ function ChatRoomScreen({ id }: { id: string }) {
         inviter.data?.display_name ??
         "Özel sohbet")
       : (room.data?.title ?? "Sohbet");
+  const [photo, setPhoto] = useState<ChatPhotoDraft | null>(null);
   const [atBottom, setAtBottom] = useState(true);
   const [text, setText] = useState(""),
     [busy, setBusy] = useState(false),
@@ -157,6 +166,17 @@ function ChatRoomScreen({ id }: { id: string }) {
   async function call(name: string, args: Record<string, unknown>) {
     const r = await db().rpc(name, args);
     if (r.error) throw r.error;
+    if (name === "chat_block_user")
+      await Promise.all(
+        [
+          "social",
+          "social-list",
+          "feed",
+          "post",
+          "document-notes",
+          "guide-community-tips",
+        ].map((key) => cache.invalidateQueries({ queryKey: [key] })),
+      );
     return r.data;
   }
   async function run(action: () => Promise<void>) {
@@ -174,12 +194,18 @@ function ChatRoomScreen({ id }: { id: string }) {
     }
   }
   async function send() {
-    if (sending.current || !text.trim()) return;
+    if (sending.current || (!text.trim() && !photo)) return;
     sending.current = true;
     setBusy(true);
     setError("");
     const body = text.trim();
     try {
+      if (photo && session) {
+        await sendChatPhoto(photo, id, session.user.id);
+        setPhoto(null);
+        await cache.invalidateQueries({ queryKey: ["chat"] });
+        if (!body) return;
+      }
       if (
         !attempt.current ||
         attempt.current.body !== body ||
@@ -381,14 +407,7 @@ function ChatRoomScreen({ id }: { id: string }) {
                   {day}
                 </Text>
               )}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${m.profiles?.username ?? "Üye"}: ${m.hidden_at ? "Mesaj kaldırıldı" : m.body}`}
-                onPress={() => {
-                  setSelected(m);
-                  setReason("");
-                  setError("");
-                }}
+              <View
                 style={{
                   alignSelf: mine ? "flex-end" : "flex-start",
                   maxWidth: "87%",
@@ -414,30 +433,63 @@ function ChatRoomScreen({ id }: { id: string }) {
                     @{m.profiles?.username ?? "Üye"}
                   </Text>
                 )}
-                <Text
-                  selectable
-                  style={{
-                    fontSize: textSize(15),
-                    lineHeight: 22,
-                    color: mine ? themeColor("#FFF", "text") : colors.text,
-                    fontStyle: m.hidden_at ? "italic" : "normal",
+                {!m.hidden_at && m.image_path && (
+                  <ChatPhoto path={m.image_path} />
+                )}
+                {!m.hidden_at && m.shared_post_id && (
+                  <ChatSharedPost id={m.shared_post_id} />
+                )}
+                {((!m.image_path && !m.shared_post_id) || !!m.hidden_at) && (
+                  <Text
+                    selectable
+                    style={{
+                      fontSize: textSize(15),
+                      lineHeight: 22,
+                      color: mine ? themeColor("#FFF", "text") : colors.text,
+                      fontStyle: m.hidden_at ? "italic" : "normal",
+                    }}
+                  >
+                    {m.hidden_at ? "Mesaj kaldırıldı" : m.body}
+                  </Text>
+                )}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${m.profiles?.username ?? "Üye"}: ${m.hidden_at ? "Mesaj kaldırıldı" : m.body}`}
+                  onPress={() => {
+                    setSelected(m);
+                    setReason("");
+                    setError("");
                   }}
-                >
-                  {m.hidden_at ? "Mesaj kaldırıldı" : m.body}
-                </Text>
-                <Text
+                  hitSlop={8}
                   style={{
-                    fontSize: textSize(10),
-                    color: mine ? themeColor("#D8ECE6", "text") : colors.muted,
                     alignSelf: "flex-end",
+                    minHeight: 28,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
                   }}
                 >
-                  {formatDateTime(m.created_at).split(" ").pop()}
-                  {mine && privateRoom && seenBy(m) > 0
-                    ? ` · ${room.data.kind === "direct" ? "Görüldü" : `${seenBy(m)} kişi gördü`}`
-                    : ""}
-                </Text>
-              </Pressable>
+                  <Text
+                    style={{
+                      fontSize: textSize(10),
+                      color: mine
+                        ? themeColor("#D8ECE6", "text")
+                        : colors.muted,
+                      alignSelf: "flex-end",
+                    }}
+                  >
+                    {formatDateTime(m.created_at).split(" ").pop()}
+                    {mine && privateRoom && seenBy(m) > 0
+                      ? ` · ${room.data.kind === "direct" ? "Görüldü" : `${seenBy(m)} kişi gördü`}`
+                      : ""}
+                  </Text>
+                  <Ionicons
+                    name="ellipsis-horizontal"
+                    size={14}
+                    color={mine ? "#D8ECE6" : colors.muted}
+                  />
+                </Pressable>
+              </View>
             </View>
           );
         }}
@@ -483,7 +535,58 @@ function ChatRoomScreen({ id }: { id: string }) {
         }}
       >
         <Message text={error} />
+        {photo && (
+          <View style={styles.row}>
+            <Image
+              source={`data:${photo.mime};base64,${photo.base64}`}
+              contentFit="contain"
+              style={{ width: 76, height: 76, borderRadius: 10 }}
+            />
+            <Button
+              secondary
+              label="Fotoğrafı kaldır"
+              disabled={busy}
+              onPress={() => {
+                void discardChatPhoto(photo)
+                  .then(() => setPhoto(null))
+                  .catch(() =>
+                    setError("Fotoğraf kaldırılamadı. Yeniden dene."),
+                  );
+              }}
+            />
+          </View>
+        )}
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
+          {room.data.kind === "direct" && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Galeriden fotoğraf ekle"
+              disabled={
+                busy ||
+                !!photo ||
+                !!room.data.closed_at ||
+                directUnavailable ||
+                other?.status !== "active"
+              }
+              onPress={() => {
+                void pickChatPhoto()
+                  .then((p) => p && setPhoto(p))
+                  .catch((e) =>
+                    setError(
+                      e instanceof Error ? e.message : "Fotoğraf seçilemedi.",
+                    ),
+                  );
+              }}
+              style={{
+                width: 44,
+                height: 46,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name="image-outline" size={24} color={colors.blue} />
+            </Pressable>
+          )}
           <TextInput
             accessibilityLabel="Mesajın"
             placeholder="Bir mesaj yaz…"
@@ -508,7 +611,10 @@ function ChatRoomScreen({ id }: { id: string }) {
             accessibilityRole="button"
             accessibilityLabel={busy ? "Gönderiliyor" : "Mesaj gönder"}
             disabled={
-              busy || !text.trim() || !!room.data.closed_at || directUnavailable
+              busy ||
+              (!text.trim() && !photo) ||
+              !!room.data.closed_at ||
+              directUnavailable
             }
             onPress={() => void send()}
             style={{
@@ -519,7 +625,10 @@ function ChatRoomScreen({ id }: { id: string }) {
               alignItems: "center",
               justifyContent: "center",
               opacity:
-                busy || !text.trim() || room.data.closed_at || directUnavailable
+                busy ||
+                (!text.trim() && !photo) ||
+                room.data.closed_at ||
+                directUnavailable
                   ? 0.45
                   : 1,
             }}

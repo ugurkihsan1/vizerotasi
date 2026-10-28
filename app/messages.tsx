@@ -359,7 +359,8 @@ function MessagesScreen({
                 )
                   .then((r) => {
                     if (r.error) throw r.error;
-                    void cache.invalidateQueries({ queryKey: ["chat"] });
+                    for (const key of ["chat", "social", "feed", "post"])
+                      void cache.invalidateQueries({ queryKey: [key] });
                   })
                   .catch((e) => setError(chatError(e)))
                   .finally(() => setBusy(false));

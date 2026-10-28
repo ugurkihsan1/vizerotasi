@@ -15,6 +15,7 @@ export interface Country {
   code: string;
 }
 export interface Profile {
+  is_private?: boolean;
   id: string;
   username: string;
   display_name: string;

@@ -28,7 +28,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Profil fotoğrafını seçebilmen için fotoğraflarına erişim gerekiyor.",
+          "photosPermission": "Profil fotoğrafını ve sohbette paylaşacağın görselleri seçmek için fotoğraflarına erişim gerekiyor.",
           "cameraPermission": false,
           "microphonePermission": false
         }

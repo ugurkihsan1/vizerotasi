@@ -43,6 +43,7 @@ export function useProfile(id?: string) {
   });
 }
 export interface FeedFilter {
+  discover?: boolean;
   prioritizeFollowed?: boolean;
   countryIds?: string[];
   country?: string;
@@ -75,6 +76,30 @@ export function useFeed(filter: FeedFilter = {}, enabled = true) {
       offset: 0,
     },
     queryFn: async ({ pageParam }) => {
+      if (filter.discover) {
+        const r = await db().rpc("discover_posts", {
+          page_size: PAGE_SIZE,
+          page_offset: pageParam.offset,
+        });
+        if (r.error && ["PGRST202", "42883"].includes(r.error.code)) {
+          const fallback = await db()
+            .from("feed")
+            .select("*")
+            .eq("status", "approved")
+            .eq("is_sample", false)
+            .gte(
+              "created_at",
+              new Date(Date.now() - 30 * 86400000).toISOString(),
+            )
+            .order("helpful_count", { ascending: false })
+            .order("created_at", { ascending: false })
+            .range(pageParam.offset, pageParam.offset + PAGE_SIZE - 1);
+          if (fallback.error) throw fallback.error;
+          return fallback.data as Post[];
+        }
+        if (r.error) throw r.error;
+        return r.data as Post[];
+      }
       let ids: string[] | null = null;
       if (filter.saved) {
         const r = await db()
