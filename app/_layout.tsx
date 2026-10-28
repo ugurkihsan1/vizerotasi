@@ -1,3 +1,4 @@
+import { NotificationSync } from "../src/components/NotificationSync";
 import { StatusBar } from "expo-status-bar";
 import {
   useAppearance,
@@ -66,6 +67,7 @@ export default function Layout() {
           <AuthProvider>
             <StatusBar style={appearance.dark ? "light" : "dark"} />
             <ChatSync />
+            <NotificationSync />
             <View
               testID="app-surface"
               style={{

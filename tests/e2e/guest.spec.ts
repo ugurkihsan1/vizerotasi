@@ -665,7 +665,7 @@ test("experience accepts optional narrative, visa history and invitation notes w
   });
   await page.goto("/create?country=spain");
   await page
-    .getByRole("button", { name: "Vize başvurunu paylaş", exact: true })
+    .getByRole("button", { name: "Vize sonucunu paylaş", exact: true })
     .click();
   await page.getByLabel("Başvuru şehri", { exact: true }).fill("İstanbul");
   await page.getByLabel("Başvuru merkezi", { exact: true }).fill("BLS");
@@ -1531,9 +1531,7 @@ test("search finds experiences, critical tips and questions with country-aware f
     page.getByText("Sigortayla ilgili sorum", { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Tümü", exact: true }).click();
-  await page
-    .getByLabel("Ülke, belge, deneyim veya soru ara", { exact: true })
-    .fill("Almanya sigorta");
+  await page.getByLabel("Arama", { exact: true }).fill("Almanya sigorta");
   await expect(
     page.getByText("Ülke: Almanya · Konu: sigorta", { exact: true }),
   ).toBeVisible();
@@ -1545,9 +1543,7 @@ test("search finds experiences, critical tips and questions with country-aware f
   ).toBeVisible();
   expect(requests.at(-1)?.searchParams.get("country_id")).toBe("in.(germany)");
   await page.screenshot({ path: "/tmp/search-community-mobile.png" });
-  await page
-    .getByLabel("Ülke, belge, deneyim veya soru ara", { exact: true })
-    .fill("Almanya");
+  await page.getByLabel("Arama", { exact: true }).fill("Almanya");
   await expect.poll(() => requests.at(-1)?.searchParams.get("or")).toBeNull();
   await expect(
     page.getByText("Sigorta deneyimim", { exact: true }),
@@ -2342,16 +2338,14 @@ test("recent searches are hidden until the mobile search field is focused", asyn
   );
   await page.goto("/discover");
   await expect(page.getByText("Son aramalar", { exact: true })).toHaveCount(0);
-  await page
-    .getByLabel("Ülke, belge, deneyim veya soru ara", { exact: true })
-    .click();
+  await page.getByLabel("Arama", { exact: true }).click();
   await expect(page.getByText("Son aramalar", { exact: true })).toBeVisible();
   await page
     .getByRole("button", { name: "Sigorta aramasını aç", exact: true })
     .click();
-  await expect(
-    page.getByLabel("Ülke, belge, deneyim veya soru ara", { exact: true }),
-  ).toHaveValue("Sigorta");
+  await expect(page.getByLabel("Arama", { exact: true })).toHaveValue(
+    "Sigorta",
+  );
   await expect(page.getByText("Son aramalar", { exact: true })).toHaveCount(0);
 });
 test("Denmark exposes its official checklist, invitation restriction and Copenhagen photo", async ({
@@ -2622,9 +2616,10 @@ test("dark appearance persists and adapts forms, cards and larger text without c
     "rgb(8, 8, 8)",
   );
   await page.goto("/discover");
-  await expect(
-    page.getByLabel("Ülke, belge, deneyim veya soru ara", { exact: true }),
-  ).toHaveCSS("color", "rgb(228, 228, 228)");
+  await expect(page.getByLabel("Arama", { exact: true })).toHaveCSS(
+    "color",
+    "rgb(228, 228, 228)",
+  );
   await expect
     .poll(() =>
       page
@@ -3284,7 +3279,7 @@ test("profile tabs preserve scroll position and compact dates keep keyboard prog
 
   await page.goto("/create");
   await page
-    .getByRole("button", { name: "Vize başvurunu paylaş", exact: true })
+    .getByRole("button", { name: "Vize sonucunu paylaş", exact: true })
     .click();
   await page
     .getByRole("button", { name: "Başvuru ülkesi: Ülke seç", exact: true })
@@ -3314,15 +3309,15 @@ test("sharing offers four distinct paths and general stories omit visa fields", 
   });
   await page.goto("/create");
   for (const name of [
-    "Vize başvurunu paylaş",
-    "Özgürce paylaş",
+    "Vize sonucunu paylaş",
+    "Seyahatini paylaş",
     "Soru sor",
     "Önemli bilgi paylaş",
   ])
     await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
   await page.screenshot({ path: "/tmp/profile-four-options.png" });
   await page
-    .getByRole("button", { name: "Özgürce paylaş", exact: true })
+    .getByRole("button", { name: "Seyahatini paylaş", exact: true })
     .click();
   await expect(page.getByLabel("Başvuru merkezi", { exact: true })).toHaveCount(
     0,
@@ -4536,7 +4531,7 @@ test("visa validity accepts years and preserves the selected unit across steps",
   });
   await page.goto("/create?country=spain");
   await page
-    .getByRole("button", { name: "Vize başvurunu paylaş", exact: true })
+    .getByRole("button", { name: "Vize sonucunu paylaş", exact: true })
     .click();
   await page.getByLabel("Başvuru şehri", { exact: true }).fill("İstanbul");
   await page.getByLabel("Başvuru merkezi", { exact: true }).fill("BLS");
@@ -4960,10 +4955,10 @@ for (const mode of ["room", "inbox"] as const) {
 }
 
 for (const theme of ["light", "dark"] as const) {
-  test(`application buddies uses real opt-in records, filters and existing chat in ${theme} mode`, async ({
+  test(`Discover only shows large vertical country buttons until a search in ${theme} mode`, async ({
     page,
   }) => {
-    const { state, own, peer, third, id, profile } = await chatFixtures(page);
+    await fixtures(page);
     await page.addInitScript(
       (theme) =>
         localStorage.setItem(
@@ -4977,241 +4972,123 @@ for (const theme of ["light", "dark"] as const) {
         ),
       theme,
     );
-    await page.route("https://*.supabase.co/rest/v1/countries?**", (route) =>
-      route.fulfill({
-        json: [{ id: "germany", name: "Almanya", code: "DE", flag: "🇩🇪" }],
-      }),
-    );
-    const month = new Date().toISOString().slice(0, 7) + "-01";
-    const people = [
-      {
-        ...profile(peer),
-        user_id: peer,
-        country_id: "germany",
-        application_city: "İstanbul",
-        destination_city: "Münih",
-        application_month: month,
-        purpose: "Turistik",
-        stage: "appointment_search",
-        total_count: 2,
-      },
-      {
-        ...profile(third),
-        user_id: third,
-        country_id: "germany",
-        application_city: "İstanbul",
-        destination_city: "Berlin",
-        application_month: month,
-        purpose: "Turistik",
-        stage: "documents",
-        total_count: 2,
-      },
-    ];
-    let ownPlan: Record<string, unknown> | null = null;
-    let saved: Record<string, unknown> | undefined;
-    let deleted = 0;
-    await page.route(
-      "https://*.supabase.co/rest/v1/application_buddy_plans?**",
-      (route) => {
-        const params = new URL(route.request().url()).searchParams;
-        expect(params.get("user_id")).toBe(`eq.${own}`);
-        expect(params.get("country_id")).toBe("eq.germany");
-        if (route.request().method() === "DELETE") {
-          ownPlan = null;
-          deleted++;
-          return route.fulfill({ json: [{ user_id: own }] });
-        }
-        return route.fulfill({ json: ownPlan });
-      },
-    );
-    await page.route(
-      "https://*.supabase.co/rest/v1/rpc/find_application_buddies",
-      (route) => {
-        const params = route.request().postDataJSON();
-        expect(params.target_country).toBe("germany");
-        return route.fulfill({
-          json: people
-            .filter(
-              (person) =>
-                (!params.filter_destination ||
-                  person.destination_city === params.filter_destination) &&
-                (!params.filter_city ||
-                  person.application_city === params.filter_city),
-            )
-            .slice(params.page_offset, params.page_offset + params.page_size),
-        });
-      },
-    );
-    await page.route(
-      "https://*.supabase.co/rest/v1/rpc/save_buddy_plan",
-      (route) => {
-        saved = route.request().postDataJSON();
-        ownPlan = {
-          user_id: own,
-          country_id: saved!.target_country,
-          application_city: saved!.plan_city,
-          destination_city: saved!.target_destination,
-          application_month: saved!.target_month,
-          purpose: saved!.target_purpose,
-          stage: saved!.target_stage,
-        };
-        return route.fulfill({ status: 204, body: "" });
-      },
-    );
-    await page.goto("/country/germany?tab=Arkadaşlar");
-    await expect(page.getByTestId(`buddy-${peer}`)).toContainText("Münih");
-    await expect(page.getByTestId(`buddy-${third}`)).toContainText("Berlin");
-    await expect(page.getByText("Prototip", { exact: true })).toHaveCount(0);
-    await expect(page.getByText("Örnek kişiler", { exact: true })).toHaveCount(
+    const renderingErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.text().includes("Unexpected text node"))
+        renderingErrors.push(message.text());
+    });
+    let featured = 0,
+      feeds = 0;
+    page.on("request", (req) => {
+      if (req.url().includes("/rpc/discover_posts")) featured++;
+      if (req.url().includes("/rest/v1/feed?")) feeds++;
+    });
+    await page.goto("/discover");
+    const countries = page.getByRole("link", {
+      name: /topluluğu(?:, takip ediliyor)?$/,
+    });
+    await expect(countries.first()).toBeVisible();
+    await expect(page.getByText("Öne çıkanlar", { exact: true })).toHaveCount(
       0,
     );
-    await page.screenshot({ path: `/tmp/buddies-real-list-${theme}.png` });
-    await page.getByRole("button", { name: "Plan ekle", exact: true }).click();
-    await page.getByLabel("Başvuru yeri", { exact: true }).fill("İstanbul");
-    await page.getByLabel("Gidilecek şehir", { exact: true }).fill("Münih");
+    expect(feeds).toBe(0);
+    expect(featured).toBe(0);
+    expect(renderingErrors).toEqual([]);
+    const first = await countries.nth(0).boundingBox(),
+      third = await countries.nth(2).boundingBox();
+    expect(first!.width).toBeGreaterThan(150);
+    expect(first!.height).toBeGreaterThan(145);
+    expect(third!.y).toBeGreaterThan(first!.y + first!.height);
+    await page.screenshot({ path: `/tmp/discover-countries-${theme}.png` });
+    await page.getByLabel("Arama", { exact: true }).fill("sigorta");
+    await expect.poll(() => feeds).toBeGreaterThan(0);
+    expect(featured).toBe(0);
+    await page.getByLabel("Arama", { exact: true }).fill("");
+    await expect(page.getByText("Ülkeler", { exact: true })).toBeVisible();
     await page
-      .getByRole("button", { name: "Belgeleri hazırlıyorum", exact: true })
-      .click();
-    await page.getByRole("button", { name: "Katıl", exact: true }).click();
-    await expect(page.getByRole("dialog")).toHaveCount(0);
-    expect(saved).toMatchObject({
-      target_country: "germany",
-      plan_city: "İstanbul",
-      target_destination: "Münih",
-      target_month: month,
-      target_stage: "documents",
-    });
-    expect(saved).not.toHaveProperty("user_id");
-    await page.reload();
-    await expect(
-      page.getByText("Başvuru planın", { exact: true }),
-    ).toBeVisible();
-    await page
-      .getByRole("button", {
-        name: "Başvuru arkadaşlarını filtrele",
-        exact: true,
-      })
-      .click();
-    await page
-      .getByLabel("Varış şehri filtresi", { exact: true })
-      .fill("Berlin");
-    await page.getByRole("button", { name: "Uygula", exact: true }).click();
-    await expect(page.getByTestId(`buddy-${peer}`)).toHaveCount(0);
-    await expect(page.getByTestId(`buddy-${third}`)).toBeVisible();
-    await page
-      .getByRole("button", {
-        name: "Başvuru arkadaşı filtrelerini temizle",
-        exact: true,
-      })
-      .click();
-    await page
-      .getByRole("button", { name: "Başvuru planı seçenekleri", exact: true })
-      .click();
-    await page
-      .getByRole("button", { name: "Listeden ayrıl", exact: true })
-      .click();
-    expect(deleted).toBe(0);
-    await page
-      .getByRole("button", { name: "Planımı sil", exact: true })
+      .getByRole("link", { name: "Almanya topluluğu", exact: true })
       .click();
     await expect(
-      page.getByRole("button", { name: "Plan ekle", exact: true }),
-    ).toBeVisible();
-    expect(deleted).toBe(1);
-    await page
-      .getByRole("button", { name: "Deniz kişisine mesaj gönder", exact: true })
-      .click();
-    await expect(page).toHaveURL(new RegExp(`/chat/${id}$`));
-    expect(state.created).toEqual([{ recipients: [peer], room_title: "" }]);
-    expect(state.sends).toHaveLength(0);
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= innerWidth,
-      ),
-    ).toBe(true);
+      page.getByRole("button", { name: "Arkadaşlar", exact: true }),
+    ).toHaveCount(0);
   });
 }
 
-test("buddy participation requires login and a failed save never claims a user joined", async ({
+test("a follow notice updates live and opens the follower profile", async ({
   page,
 }) => {
-  await fixtures(page);
-  await page.goto("/country/spain?tab=Arkadaşlar");
-  await expect(
-    page.getByText("Katılanları görmek için giriş yap.", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Plan ekle", exact: true }),
-  ).toHaveCount(0);
-  await member(page);
-  await page.route(
-    "https://*.supabase.co/rest/v1/application_buddy_plans?**",
-    (route) => route.fulfill({ json: null }),
+  const { own, peer } = await chatFixtures(page);
+  let notices: Record<string, unknown>[] = [];
+  await page.route("https://*.supabase.co/rest/v1/notifications?**", (route) =>
+    route.fulfill({ json: notices }),
   );
-  await page.route(
-    "https://*.supabase.co/rest/v1/rpc/find_application_buddies",
-    (route) => route.fulfill({ json: [] }),
-  );
-  await page.route(
-    "https://*.supabase.co/rest/v1/rpc/save_buddy_plan",
-    (route) =>
-      route.fulfill({
-        status: 503,
-        json: { message: "Fixture network failure" },
-      }),
-  );
-  await page.goto("/country/spain?tab=Arkadaşlar");
-  await page.getByRole("button", { name: "Plan ekle", exact: true }).click();
-  await page.getByLabel("Başvuru yeri", { exact: true }).fill("Ankara");
-  await page.getByLabel("Gidilecek şehir", { exact: true }).fill("Madrid");
-  await page.getByRole("button", { name: "Katıl", exact: true }).click();
-  await expect(
-    page.getByText("Plan kaydedilemedi. Yeniden dene.", { exact: true }),
-  ).toBeVisible();
-  await expect(page.getByRole("dialog")).toBeVisible();
-});
-
-test("missing buddy backend shows an admin setup action instead of fictional participants", async ({
-  page,
-}) => {
-  await member(page);
-  await page.route("https://*.supabase.co/rest/v1/profiles?**", (route) =>
-    route.fulfill({
-      json: {
-        id: "00000000-0000-0000-0000-000000000200",
-        username: "admin_fixture",
-        display_name: "Admin fixture",
-        role: "admin",
-      },
+  let emit: (() => void) | undefined;
+  await page.routeWebSocket(/supabase\.co/, (socket) =>
+    socket.onMessage((raw) => {
+      const frame = JSON.parse(String(raw));
+      const [joinRef, ref, topic, event, payload] = Array.isArray(frame)
+        ? frame
+        : [frame.join_ref, frame.ref, frame.topic, frame.event, frame.payload];
+      const reply = (event: string, payload: unknown) =>
+        socket.send(
+          JSON.stringify(
+            Array.isArray(frame)
+              ? [joinRef, ref, topic, event, payload]
+              : { join_ref: joinRef, ref, topic, event, payload },
+          ),
+        );
+      if (event === "phx_join") {
+        const bindings = (payload.config?.postgres_changes ?? []).map(
+          (binding: Record<string, unknown>, i: number) => ({
+            ...binding,
+            id: i + 1,
+          }),
+        );
+        reply("phx_reply", {
+          status: "ok",
+          response: { postgres_changes: bindings },
+        });
+        if (String(topic).endsWith(`notifications-${own}`)) {
+          expect(bindings[0].filter).toBe(`user_id=eq.${own}`);
+          emit = () =>
+            reply("postgres_changes", {
+              ids: [1],
+              data: {
+                schema: "public",
+                table: "notifications",
+                type: "INSERT",
+                commit_timestamp: new Date().toISOString(),
+                columns: [],
+                record: notices[0],
+                old_record: {},
+              },
+            });
+        }
+      } else if (event === "heartbeat" || event === "phx_leave")
+        reply("phx_reply", { status: "ok", response: {} });
     }),
   );
-  await page.route(
-    "https://*.supabase.co/rest/v1/application_buddy_plans?**",
-    (route) =>
-      route.fulfill({
-        status: 404,
-        json: { code: "PGRST205", message: "Missing fixture table" },
-      }),
-  );
-  await page.route(
-    "https://*.supabase.co/rest/v1/rpc/find_application_buddies",
-    (route) =>
-      route.fulfill({
-        status: 404,
-        json: { code: "PGRST202", message: "Missing fixture RPC" },
-      }),
-  );
-  await page.goto("/country/spain?tab=Arkadaşlar");
-  await expect(
-    page.getByText("Başvuru arkadaşları kurulumu gerekli.", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Kurulum dosyasını aç", exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Plan ekle", exact: true }),
-  ).toHaveCount(0);
-  await expect(
-    page.getByText("Henüz katılan yok.", { exact: true }),
-  ).toHaveCount(0);
+  await page.goto("/notifications");
+  await expect(page.getByText("Bildirim yok", { exact: true })).toBeVisible();
+  await expect.poll(() => !!emit).toBe(true);
+  notices = [
+    {
+      id: "00000000-0000-0000-0000-000000000887",
+      user_id: own,
+      actor_id: peer,
+      kind: "follow",
+      post_id: null,
+      message: "Deniz seni takip etmeye başladı.",
+      read_at: null,
+      created_at: new Date().toISOString(),
+    },
+  ];
+  emit!();
+  await page
+    .getByRole("button", {
+      name: "Deniz seni takip etmeye başladı.",
+      exact: true,
+    })
+    .click();
+  await expect(page).toHaveURL(/profile\/deniz$/);
 });

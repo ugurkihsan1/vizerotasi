@@ -1,4 +1,4 @@
-import { useAppearance, textSize } from "../../src/lib/appearance";
+import { useAppearance, textSize, themeColor } from "../../src/lib/appearance";
 import { SearchMatches } from "../../src/components/SearchMatches";
 import { useEffect, useMemo, useState } from "react";
 import { View, Text, ScrollView, Pressable, FlatList } from "react-native";
@@ -6,7 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../src/lib/auth";
 import { useCountries, useFeed, useFollows } from "../../src/lib/data";
 import { resolveSearch } from "../../src/lib/search";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, router } from "expo-router";
 import { PostCard } from "../../src/components/PostCard";
 import {
   Field,
@@ -17,7 +17,8 @@ import {
   Empty,
   Busy,
 } from "../../src/components/ui";
-import { CountryStory } from "../../src/components/CountryStory";
+import { DestinationPhoto } from "../../src/components/DestinationPhoto";
+import { Ionicons } from "@expo/vector-icons";
 import type { Kind } from "../../src/lib/types";
 const scopes = [
   "Tümü",
@@ -88,12 +89,11 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
   )[scope];
   const feed = useFeed(
     {
-      discover: !search,
       search: search ? plan.terms.join(" ") : undefined,
       countryIds: search ? plan.countryIds : undefined,
       kind: search ? kind : undefined,
     },
-    !auxiliary && validSearch,
+    !!search && !auxiliary && validSearch,
   );
   const posts = feed.data?.pages.flat() ?? [];
   const remember = (value: string) => {
@@ -111,8 +111,8 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
   const header = (
     <View style={{ gap: 18, paddingBottom: 14 }}>
       <Field
-        label="Ülke, belge, deneyim veya soru ara"
-        placeholder="Ülke, konu veya kişi ara"
+        label="Arama"
+        placeholder="Ülke, kişi veya paylaşım ara"
         value={text}
         maxLength={240}
         onChangeText={setText}
@@ -127,7 +127,7 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
         }}
         returnKeyType="search"
       />
-      {search && (
+      {!!search && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -141,27 +141,6 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
               onPress={() => setScope(label)}
             />
           ))}
-        </ScrollView>
-      )}
-      {!search && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8 }}
-        >
-          {["Sigorta", "İlk Schengen", "Banka hesabı", "Öğrenci", "Ret"].map(
-            (x) => (
-              <Chip
-                key={x}
-                label={x}
-                onPress={() => {
-                  setText(x);
-                  setScope("Tümü");
-                  remember(x);
-                }}
-              />
-            ),
-          )}
         </ScrollView>
       )}
       {searchFocused && !search && recent.length > 0 && (
@@ -211,7 +190,7 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
           </View>
         </View>
       )}
-      {search && plan.countryIds.length > 0 && (
+      {!!search && plan.countryIds.length > 0 && (
         <Text style={styles.muted}>
           Ülke: {matched.map((c) => c.name).join(", ")}
           {plan.terms.length
@@ -232,34 +211,67 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
               onPress={() => void countries.refetch()}
             />
           )}
-          {search && !matched.length && !countries.isPending && (
+          {!!search && !matched.length && !countries.isPending && (
             <Text style={styles.muted}>
               Ülke bulunamadı. Ülke adını veya kodunu deneyebilirsin.
             </Text>
           )}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 12 }}
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
           >
             {matched
               .slice()
-              .sort(
-                (a, b) =>
-                  Number(follows.data?.includes(b.id)) -
-                  Number(follows.data?.includes(a.id)),
-              )
-              .map((c) => (
-                <CountryStory
-                  key={c.id}
-                  country={c}
-                  followed={follows.data?.includes(c.id)}
-                />
+              .sort((a, b) => a.name.localeCompare(b.name, "tr"))
+              .map((country) => (
+                <Pressable
+                  key={country.id}
+                  accessibilityRole="link"
+                  accessibilityLabel={`${country.name} topluluğu${follows.data?.includes(country.id) ? ", takip ediliyor" : ""}`}
+                  onPress={() => router.push(`/country/${country.id}`)}
+                  style={{
+                    width: "48%",
+                    overflow: "hidden",
+                    borderWidth: 1,
+                    borderColor: themeColor("#E4E4E4", "border"),
+                    borderRadius: 16,
+                  }}
+                >
+                  <DestinationPhoto id={country.id} height={112} />
+                  <View
+                    style={{
+                      minHeight: 48,
+                      paddingHorizontal: 12,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.pillText,
+                        { flex: 1, fontSize: textSize(15) },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {country.name}
+                    </Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={colors.muted}
+                    />
+                  </View>
+                </Pressable>
               ))}
-          </ScrollView>
+          </View>
         </View>
       )}
-      {search &&
+      {!!search &&
         validSearch &&
         (scope === "Tümü" || scope === "Belgeler" || scope === "Kişiler") && (
           <SearchMatches
@@ -268,19 +280,15 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
             mode={scope === "Belgeler" ? "documents" : "people"}
           />
         )}
-      {search && !validSearch && (
+      {!!search && !validSearch && (
         <Text style={styles.muted}>
           Aramak için bir kelime veya ülke adı yaz.
         </Text>
       )}
-      {!auxiliary && validSearch && (
+      {!!search && !auxiliary && validSearch && (
         <>
           <Text style={styles.heading}>
-            {search
-              ? scope === "Tümü"
-                ? "Topluluktan sonuçlar"
-                : `${scope} için sonuçlar`
-              : "Öne çıkanlar"}
+            {scope === "Tümü" ? "Arama sonuçları" : `${scope} için sonuçlar`}
           </Text>
         </>
       )}
@@ -291,12 +299,12 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
       style={styles.page}
       contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
       keyboardShouldPersistTaps="handled"
-      data={auxiliary || !validSearch ? [] : posts}
+      data={!search || auxiliary || !validSearch ? [] : posts}
       keyExtractor={(p) => p.id}
       renderItem={({ item }) => <PostCard post={item} />}
       ListHeaderComponent={header}
       ListEmptyComponent={
-        auxiliary || !validSearch ? undefined : feed.isPending ? (
+        !search || auxiliary || !validSearch ? undefined : feed.isPending ? (
           <Busy />
         ) : feed.isError ? (
           <Empty
@@ -318,7 +326,7 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
         )
       }
       ListFooterComponent={
-        !auxiliary && validSearch && feed.hasNextPage ? (
+        !!search && !auxiliary && validSearch && feed.hasNextPage ? (
           <Button
             secondary
             label={

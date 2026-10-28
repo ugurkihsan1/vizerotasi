@@ -508,8 +508,8 @@ export default function Create() {
         <Text style={styles.muted}>Paylaşımın yayın öncesi incelenir.</Text>
         {(
           [
-            ["experience", "Vize başvurunu paylaş"],
-            ["general", "Özgürce paylaş"],
+            ["experience", "Vize sonucunu paylaş"],
+            ["general", "Seyahatini paylaş"],
             ["question", "Soru sor"],
             ["tip", "Önemli bilgi paylaş"],
           ] as const
@@ -619,7 +619,7 @@ export default function Create() {
             {kind === "experience"
               ? ["Başvurun", "Senin durumun", "Sonuç", "Deneyimini anlat"][step]
               : kind === "general"
-                ? "Özgürce paylaş"
+                ? "Seyahatini paylaş"
                 : kind === "question"
                   ? "Aklındaki soruyu sor"
                   : "Önemli bilgi paylaş"}

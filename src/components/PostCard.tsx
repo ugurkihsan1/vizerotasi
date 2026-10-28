@@ -25,7 +25,7 @@ import { Button, styles, colors, useGate, Message } from "./ui";
 import { useState } from "react";
 export const kindLabels = {
   experience: "Vize deneyimi",
-  general: "Özgür paylaşım",
+  general: "Seyahat paylaşımı",
   question: "Soru",
   tip: "⚡ Önemli bilgi",
   update: "Ülke güncellemesi",

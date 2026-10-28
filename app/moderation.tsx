@@ -99,7 +99,7 @@ export default function Moderation() {
             {Object.entries({
               all: "Tüm gönderiler",
               experience: "Vize deneyimleri",
-              general: "Özgür paylaşımlar",
+              general: "Seyahat paylaşımları",
               question: "Sorular",
               tip: "Önemli",
               comment: "Yorumlar",

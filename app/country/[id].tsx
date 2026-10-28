@@ -1,4 +1,3 @@
-import { ApplicationBuddies } from "../../src/components/ApplicationBuddies";
 import { VisaFeeSection } from "../../src/components/VisaFeeSection";
 import { CommunityTips } from "../../src/components/CommunityTips";
 import { documentTopicId } from "../../src/lib/guide-topics";
@@ -198,15 +197,12 @@ export default function Country() {
     tab?: string;
   }>();
   const [tab, setTab] = useState(
-    initialTab === "Arkadaşlar"
-      ? "Arkadaşlar"
-      : initialTab === "Belgeler"
-        ? "Belgeler"
-        : initialTab === "Rehber"
-          ? "Rehber"
-          : "Akış",
+    initialTab === "Belgeler"
+      ? "Belgeler"
+      : initialTab === "Rehber"
+        ? "Rehber"
+        : "Akış",
   );
-  const { session } = useAuth();
   const { data: countries } = useCountries();
   const country = countries?.find((c) => c.id === id);
   const documents = useDocuments(id);
@@ -229,7 +225,7 @@ export default function Country() {
   });
   const header = (
     <View style={{ gap: 16 }}>
-      {!["Belgeler", "Arkadaşlar"].includes(tab) && (
+      {tab !== "Belgeler" && (
         <View
           style={{
             borderRadius: 24,
@@ -250,7 +246,7 @@ export default function Country() {
         )}
         <Text style={styles.title}>{country?.name ?? "Ülke topluluğu"}</Text>
       </View>
-      {!["Belgeler", "Arkadaşlar"].includes(tab) && (
+      {tab !== "Belgeler" && (
         <View style={{ flexDirection: "row", gap: 8 }}>
           <View style={{ flex: 1 }}>
             <Follow id={id} />
@@ -260,7 +256,7 @@ export default function Country() {
           </View>
         </View>
       )}
-      {!["Belgeler", "Arkadaşlar"].includes(tab) && (
+      {tab !== "Belgeler" && (
         <View style={styles.row}>
           <Text style={styles.pillText}>
             {stats.data?.experiences ?? "—"} deneyim
@@ -273,19 +269,17 @@ export default function Country() {
           </Text>
         </View>
       )}
-      {!["Belgeler", "Arkadaşlar"].includes(tab) &&
-        stats.data?.average_days != null && (
-          <Text style={styles.muted}>
-            Ortalama sonuç: {stats.data.average_days} gün · Topluluk deneyimleri
-          </Text>
-        )}
+      {tab !== "Belgeler" && stats.data?.average_days != null && (
+        <Text style={styles.muted}>
+          Ortalama sonuç: {stats.data.average_days} gün · Topluluk deneyimleri
+        </Text>
+      )}
       <ScrollTabs
         plain
         labels={
           id === "spain"
             ? [
                 "Akış",
-                "Arkadaşlar",
                 "Deneyimler",
                 "Sorular",
                 "Ret Deneyimleri",
@@ -295,7 +289,6 @@ export default function Country() {
               ]
             : [
                 "Akış",
-                "Arkadaşlar",
                 "Deneyimler",
                 "Sorular",
                 "Önemli",
@@ -313,15 +306,6 @@ export default function Country() {
       />
     </View>
   );
-  if (tab === "Arkadaşlar")
-    return (
-      <ApplicationBuddies
-        key={`${id}:${session?.user.id ?? "guest"}`}
-        countryId={id}
-        countryName={country?.name ?? "Ülke"}
-        header={header}
-      />
-    );
   if (id === "spain" && tab === "Belgeler")
     return <SpainDocuments header={header} />;
   if (id === "spain" && tab === "Rehber") return <SpainGuide header={header} />;

@@ -28,6 +28,7 @@ export function useFollowAction() {
     const r = await db().rpc("social_follow", { target, action });
     if (r.error) throw r.error;
     await Promise.all([
+      cache.invalidateQueries({ queryKey: ["notifications"] }),
       cache.invalidateQueries({ queryKey: ["social"] }),
       cache.invalidateQueries({ queryKey: ["social-list"] }),
       cache.invalidateQueries({ queryKey: ["feed"] }),

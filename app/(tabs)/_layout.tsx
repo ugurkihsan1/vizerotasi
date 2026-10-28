@@ -52,7 +52,7 @@ export default function TabLayout() {
           title: "Keşfet",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? "compass" : "compass-outline"}
+              name={focused ? "search" : "search-outline"}
               size={24}
               color={typeof color === "string" ? color : colors.muted}
             />

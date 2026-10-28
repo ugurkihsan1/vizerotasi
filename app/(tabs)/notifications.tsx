@@ -1,11 +1,12 @@
+import type { Notice } from "../../src/lib/types";
 import { useAppearance, themeColor, isDark } from "../../src/lib/appearance";
 import { formatDateTime } from "../../src/lib/dates";
 import { Ionicons } from "@expo/vector-icons";
 import { FlatList, Text, Pressable, View } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
-import { useState } from "react";
-import { useNotifications, usePost } from "../../src/lib/data";
+import { router, useFocusEffect } from "expo-router";
+import { useState, useCallback } from "react";
+import { useNotifications, usePost, useProfile } from "../../src/lib/data";
 import { useAuth } from "../../src/lib/auth";
 import { db } from "../../src/lib/supabase";
 import {
@@ -16,30 +17,27 @@ import {
   Message,
 } from "../../src/components/ui";
 import { postPath } from "../../src/components/PostCard";
-function NotificationRow({
-  n,
-  onOpen,
-}: {
-  n: {
-    id: string;
-    message: string;
-    post_id: string | null;
-    read_at: string | null;
-    created_at: string;
-  };
-  onOpen: () => void;
-}) {
+function NotificationRow({ n, onOpen }: { n: Notice; onOpen: () => void }) {
   useAppearance();
 
   const post = usePost(n.post_id ?? "");
+  const follow = n.kind === "follow" || /seni takip/i.test(n.message);
+  const actor = useProfile(follow ? (n.actor_id ?? undefined) : undefined);
   const reply = /yanıt/i.test(n.message);
   const badge = /rozet|seviye/i.test(n.message);
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={n.message}
       onPress={() => {
         onOpen();
-        if (post.data) router.push(postPath(post.data));
+        if (follow && n.actor_id) {
+          if (actor.data) router.push(`/profile/${actor.data.username}`);
+          else
+            void actor.refetch().then((result) => {
+              if (result.data) router.push(`/profile/${result.data.username}`);
+            });
+        } else if (post.data) router.push(postPath(post.data));
       }}
       style={[
         styles.card,
@@ -70,11 +68,13 @@ function NotificationRow({
       >
         <Ionicons
           name={
-            reply
-              ? "chatbubble-ellipses-outline"
-              : badge
-                ? "ribbon-outline"
-                : "notifications-outline"
+            follow
+              ? "person-add-outline"
+              : reply
+                ? "chatbubble-ellipses-outline"
+                : badge
+                  ? "ribbon-outline"
+                  : "notifications-outline"
           }
           size={21}
           color={colors.blue}
@@ -113,6 +113,12 @@ export default function Notifications() {
 
   const { session } = useAuth();
   const q = useNotifications();
+  const { refetch } = q;
+  useFocusEffect(
+    useCallback(() => {
+      if (session) void refetch();
+    }, [refetch, session]),
+  );
   const cache = useQueryClient();
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("Tümü");
@@ -129,7 +135,7 @@ export default function Notifications() {
       <View style={styles.content}>
         <Empty
           title="Bildirimler"
-          body="Topluluğa katıl, yanıtları ve gelişmeleri kaçırma."
+          body="Bildirimlerini görmek için giriş yap."
           action="Giriş yap"
           onPress={() => router.push("/auth")}
         />
@@ -234,10 +240,7 @@ export default function Notifications() {
         q.isError ? (
           <ErrorState retry={() => void q.refetch()} />
         ) : (
-          <Empty
-            title="Şimdilik her şey sakin"
-            body="Yanıtlar ve onaylar burada görünecek."
-          />
+          <Empty title="Bildirim yok" />
         )
       }
       refreshing={q.isRefetching}

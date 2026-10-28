@@ -237,6 +237,9 @@ function SettingsBody() {
           <SettingsSection title="Bildirimler" icon="notifications-outline">
             <View style={styles.card}>
               {Object.entries({
+                ...(Object.hasOwn(prefs.data ?? {}, "follows")
+                  ? { follows: "Yeni takipçiler" }
+                  : {}),
                 replies: "Yanıtlar",
                 approvals: "İçerik onayları",
                 country_updates: "Ülke güncellemeleri",

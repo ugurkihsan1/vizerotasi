@@ -1252,7 +1252,7 @@ it("keeps photos private to accepted direct-chat participants and scopes reports
     ).rows,
   ).toHaveLength(0);
 });
-it("shares public posts with accepted chat recipients and hides stale popular content", async () => {
+it("shares public posts with accepted chat recipients after the featured feed is retired", async () => {
   const a = await user(),
     b = await user();
   const pid = await post(a);
@@ -1272,47 +1272,21 @@ it("shares public posts with accepted chat recipients and hides stale popular co
   expect(
     (await as(b, "select id from feed where id=$1", [pid])).rows,
   ).toHaveLength(1);
-  const old = await post(a);
-  await root(
-    "update posts set created_at=now()-interval '31 days' where id=$1",
-    [old],
-  );
-  const discover = (await as(null, "select id from discover_posts(30,0)"))
-    .rows as { id: string }[];
-  expect(discover.some((x) => x.id === pid)).toBe(true);
-  expect(discover.some((x) => x.id === old)).toBe(false);
+  await expect(
+    as(null, "select id from discover_posts(30,0)"),
+  ).rejects.toThrow();
 });
-it("ranks recent helpful content globally before pagination and replays the upgrade safely", async () => {
-  const a = await user(),
-    b = await user(),
-    c = await user();
-  const hot = await post(a),
-    aging = await post(a),
-    fresh = await post(a);
-  await root(
-    "update posts set created_at=now()-interval '20 days' where id=$1",
-    [aging],
-  );
-  for (const voter of [b, c])
-    for (const pid of [hot, aging])
-      await as(
-        voter,
-        "insert into helpful_votes(user_id,post_id) values($1,$2)",
-        [voter, pid],
-      );
-  const ranked = (
-    await as(null, "select id from discover_posts(30,0)")
-  ).rows.map((r) => (r as { id: string }).id);
-  expect(ranked.indexOf(hot)).toBeGreaterThanOrEqual(0);
-  expect(ranked.indexOf(hot)).toBeLessThan(ranked.indexOf(aging));
-  expect(ranked.indexOf(fresh)).toBeGreaterThan(ranked.indexOf(hot));
+it("replaying an older social upgrade can be followed by the current cleanup without losing posts", async () => {
+  const owner = await user();
+  const source = await post(owner);
   await pg.exec("reset role");
   await pg.exec(readFileSync("docs/SOCIAL_MOBILE_UPGRADE.sql", "utf8"));
+  await pg.exec(readFileSync("docs/FOLLOW_NOTIFICATIONS_UPGRADE.sql", "utf8"));
   expect(
-    (await as(a, "select id from posts where id=$1", [hot])).rows,
+    (await as(owner, "select id from posts where id=$1", [source])).rows,
   ).toHaveLength(1);
   await expect(
-    as(a, "select chat_pair_blocked($1,$2)", [b, c]),
+    as(owner, "select id from discover_posts(30,0)"),
   ).rejects.toThrow();
 });
 
@@ -1734,4 +1708,85 @@ it("can reapply the buddy migration without changing existing opt-in records", a
   expect(
     (await root("select count(*) as n from application_buddy_plans")).rows,
   ).toEqual(before.rows);
+});
+
+it("creates a recipient-only follow notification once and removes it on unfollow or block", async () => {
+  const follower = await user(),
+    recipient = await user(),
+    other = await user();
+  await as(follower, "select social_follow($1)", [recipient]);
+  await as(follower, "select social_follow($1)", [recipient]);
+  const notices = await as(
+    recipient,
+    "select actor_id,kind from notifications where kind='follow'",
+  );
+  expect(notices.rows).toEqual([{ actor_id: follower, kind: "follow" }]);
+  expect(
+    (
+      await as(other, "select id from notifications where user_id=$1", [
+        recipient,
+      ])
+    ).rows,
+  ).toHaveLength(0);
+  await as(follower, "select social_follow($1,'unfollow')", [recipient]);
+  expect(
+    (await as(recipient, "select id from notifications where kind='follow'"))
+      .rows,
+  ).toHaveLength(0);
+  await as(follower, "select social_follow($1)", [recipient]);
+  await as(recipient, "select chat_block_user($1,true)", [follower]);
+  expect(
+    (await as(recipient, "select id from notifications where kind='follow'"))
+      .rows,
+  ).toHaveLength(0);
+});
+it("honors the follow notification preference independently of comment preferences", async () => {
+  const follower = await user(),
+    recipient = await user(),
+    second = await user();
+  await as(
+    recipient,
+    "update notification_preferences set follows=false,replies=false where user_id=$1",
+    [recipient],
+  );
+  await as(follower, "select social_follow($1)", [recipient]);
+  expect(
+    (await as(recipient, "select id from notifications where kind='follow'"))
+      .rows,
+  ).toHaveLength(0);
+  await as(
+    recipient,
+    "update notification_preferences set follows=true where user_id=$1",
+    [recipient],
+  );
+  await as(second, "select social_follow($1)", [recipient]);
+  expect(
+    (
+      await as(
+        recipient,
+        "select actor_id from notifications where kind='follow'",
+      )
+    ).rows,
+  ).toEqual([{ actor_id: second }]);
+});
+it("restores recent missed follow notices idempotently while leaving old follows alone", async () => {
+  const recent = await user(),
+    old = await user(),
+    recipient = await user();
+  await root(
+    "insert into user_follows values($1,$2,'accepted',now()-interval '2 days'),($3,$2,'accepted',now()-interval '10 days')",
+    [recent, recipient, old],
+  );
+  await root("delete from notifications where user_id=$1 and kind='follow'", [
+    recipient,
+  ]);
+  await pg.exec(readFileSync("docs/FOLLOW_NOTIFICATIONS_UPGRADE.sql", "utf8"));
+  await pg.exec(readFileSync("docs/FOLLOW_NOTIFICATIONS_UPGRADE.sql", "utf8"));
+  const rows = (
+    await as(
+      recipient,
+      "select actor_id,created_at<(now()-interval '1 day') as original_date from notifications where kind='follow'",
+    )
+  ).rows;
+  expect(rows).toEqual([{ actor_id: recent, original_date: true }]);
 });

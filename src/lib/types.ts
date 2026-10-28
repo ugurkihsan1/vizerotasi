@@ -75,6 +75,8 @@ export interface Comment {
   created_at: string;
 }
 export interface Notice {
+  actor_id?: string | null;
+  kind?: "activity" | "follow";
   id: string;
   message: string;
   post_id: string | null;
