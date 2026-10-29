@@ -17,7 +17,6 @@ import {
   ScrollView,
   View,
   Text,
-  Switch,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -35,7 +34,11 @@ import {
 } from "../src/lib/supabase";
 import { signupSchema } from "../src/lib/schemas";
 import { termsVersion } from "../src/content/legal";
-import { allowsAccountEmail, getPrivacyState } from "../src/lib/privacy";
+import {
+  allowsAccountEmail,
+  makePrivacyPreferences,
+  savePrivacyPreferences,
+} from "../src/lib/privacy";
 import {
   LegalTextModal,
   PrivacyPreferences,
@@ -55,6 +58,7 @@ type AuthValues = {
   password: string;
   display_name: string;
   username: string;
+  transfer: boolean;
   terms: boolean;
   privacy: boolean;
 };
@@ -65,9 +69,16 @@ const signupFieldMessages = {
   username: "3–24 karakter kullan; yalnız küçük harf, rakam ve alt çizgi.",
   email: "Geçerli bir e-posta adresi yaz.",
   password: "En az 8 karakter kullan.",
+  transfer: "Açık rıza tercihini belirtmelisin.",
   terms: "Kullanım koşullarını kabul etmelisin.",
   privacy: "Gizlilik metnini okuduğunu belirtmelisin.",
 };
+
+const signupLegalChoices = [
+  { field: "transfer", label: "Açık Rıza Metni", document: "transfer" },
+  { field: "terms", label: "Kullanım Koşulları", document: "terms" },
+  { field: "privacy", label: "Gizlilik Politikası", document: "privacy" },
+] as const;
 
 export default function Auth() {
   useAppearance();
@@ -109,6 +120,7 @@ export default function Auth() {
     setError,
     clearErrors,
     getValues,
+    watch,
   } = useForm<AuthValues>({
     shouldUnregister: false,
     defaultValues: {
@@ -116,10 +128,13 @@ export default function Auth() {
       password: "",
       display_name: "",
       username: "",
+      transfer: false,
       terms: false,
       privacy: false,
     },
   });
+  const legalChoicesComplete =
+    watch("transfer") && watch("terms") && watch("privacy");
   useEffect(() => {
     const sub = supabase?.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setMode("reset");
@@ -229,7 +244,7 @@ export default function Auth() {
     setMessage("");
     clearErrors();
     try {
-      if ((mode === "signup" || mode === "forgot") && !allowsAccountEmail()) {
+      if (mode === "forgot" && !allowsAccountEmail()) {
         setMessage(
           "E-posta göndermek için Ayarlar → Gizlilik ve izinler bölümünden Google/Gmail tercihini açmalısın.",
         );
@@ -270,6 +285,13 @@ export default function Auth() {
           return !!check.data?.length;
         };
         if (await usernameTaken()) throw { code: "username_taken" };
+        // One receipt for the three deliberately unchecked signup controls.
+        // Never inherit or silently copy an earlier device preference as consent.
+        const legalPreferences = makePrivacyPreferences({
+          supabase: true,
+          google: true,
+          github: Platform.OS === "web",
+        });
         const r = await db().auth.signUp({
           email: value.email,
           password: value.password,
@@ -279,8 +301,9 @@ export default function Auth() {
               username: value.username,
               terms_accepted: true,
               privacy_accepted: true,
+              transfer_accepted: true,
               legal_preferences: {
-                ...getPrivacyState().preferences,
+                ...legalPreferences,
                 termsVersion,
                 source: Platform.OS === "web" ? "web" : "native",
               },
@@ -300,6 +323,13 @@ export default function Auth() {
             }
           }
           throw r.error;
+        }
+        // Keep the local device preference in sync with the server-side
+        // signup receipt; a storage failure must not undo a created account.
+        try {
+          await savePrivacyPreferences(legalPreferences);
+        } catch {
+          // The signed-up user's explicit choices remain in auth metadata.
         }
         let photoNotice = "";
         if (photo && r.data.user) {
@@ -706,67 +736,71 @@ export default function Auth() {
               />
             )}
             {mode === "signup" && signupStep === 2 && (
-              <View style={{ gap: 12 }}>
-                {(["terms", "privacy"] as const).map((name) => (
+              <View style={{ gap: 10 }}>
+                {signupLegalChoices.map(({ field, label, document }) => (
                   <Controller
-                    key={name}
+                    key={field}
                     control={control}
-                    name={name}
+                    name={field}
                     render={({ field: { value, onChange } }) => (
-                      <View>
-                        <View style={[styles.row, { flexWrap: "nowrap" }]}>
-                          <Switch
-                            accessibilityLabel={
-                              name === "terms"
-                                ? "Kullanım koşullarını kabul ediyorum"
-                                : "Gizlilik metnini okudum"
-                            }
-                            value={value}
-                            onValueChange={onChange}
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          minHeight: 48,
+                          gap: 12,
+                        }}
+                      >
+                        <Pressable
+                          accessibilityRole="checkbox"
+                          accessibilityLabel={`${label} onayı`}
+                          accessibilityState={{ checked: value }}
+                          onPress={() => onChange(!value)}
+                          style={{
+                            width: 44,
+                            minHeight: 44,
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Ionicons
+                            name={value ? "checkbox" : "square-outline"}
+                            size={27}
+                            color={colors.blue}
                           />
-                          <Text style={[styles.muted, { flex: 1 }]}>
-                            {name === "terms"
-                              ? "Kullanım koşullarını kabul ediyorum."
-                              : "Gizlilik metnini okudum."}
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="link"
+                          onPress={() => setLegalDocument(document)}
+                          style={{
+                            flex: 1,
+                            minHeight: 44,
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.text,
+                              {
+                                color: colors.blue,
+                                textDecorationLine: "underline",
+                              },
+                            ]}
+                          >
+                            {label}
                           </Text>
-                        </View>
-                        {errors[name] && (
-                          <Text style={{ color: colors.red }}>
-                            {errors[name]?.message}
-                          </Text>
-                        )}
+                        </Pressable>
                       </View>
                     )}
                   />
                 ))}
-                <Pressable
-                  accessibilityRole="link"
-                  onPress={() => setLegalDocument("terms")}
-                  style={{ minHeight: 44, justifyContent: "center" }}
-                >
-                  <Text style={[styles.muted, { color: colors.blue }]}>
-                    Kullanım koşullarını oku
-                  </Text>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="link"
-                  onPress={() => setLegalDocument("privacy")}
-                  style={{ minHeight: 44, justifyContent: "center" }}
-                >
-                  <Text
-                    style={[styles.muted, { textDecorationLine: "underline" }]}
-                  >
-                    Gizlilik metnini oku
-                  </Text>
-                </Pressable>
               </View>
             )}
             <LegalTextModal
               document={legalDocument}
               onClose={() => setLegalDocument(null)}
             />
-            {(mode === "signup" || mode === "forgot") &&
-              !allowsAccountEmail() && (
+            {mode === "forgot" && !allowsAccountEmail() && (
                 <Button
                   secondary
                   label="E-posta tercihini yönet"
@@ -798,7 +832,9 @@ export default function Auth() {
                         ? "Şifremi güncelle"
                         : "Yenileme bağlantısı gönder"
               }
-              disabled={busy}
+              disabled={
+                busy || (mode === "signup" && signupStep === 2 && !legalChoicesComplete)
+              }
               onPress={() =>
                 mode === "signup" && signupStep < 2
                   ? advanceSignup()
