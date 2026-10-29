@@ -1,3 +1,4 @@
+import { Avatar } from "./Avatar";
 import { useState, useRef, useEffect } from "react";
 import {
   Pressable,
@@ -160,22 +161,26 @@ export function SendPost({ post }: { post: Post }) {
               opacity: busy ? 0.5 : 1,
             }}
           >
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                backgroundColor: colors.bg,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Ionicons
-                name={r.kind === "group" ? "people-outline" : "person-outline"}
-                size={22}
-                color={colors.blue}
-              />
-            </View>
+            {r.kind === "group" ? (
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: colors.bg,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons
+                  name="people-outline"
+                  size={22}
+                  color={colors.blue}
+                />
+              </View>
+            ) : (
+              <Avatar name={r.title} size={44} />
+            )}
             <Text
               style={[styles.text, { flex: 1, fontWeight: "600" }]}
               numberOfLines={1}

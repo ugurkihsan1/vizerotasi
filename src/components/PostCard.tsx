@@ -10,7 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { CountryFlag } from "./CountryFlag";
 import { processingDays, relativePostTime } from "../lib/dates";
 import { Text, View, Pressable, Share, Platform } from "react-native";
-import { Image } from "expo-image";
+import { Avatar } from "./Avatar";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import type { Post } from "../lib/types";
@@ -23,6 +23,8 @@ import {
 import { useAuth } from "../lib/auth";
 import { Button, styles, colors, useGate, Message } from "./ui";
 import { useState } from "react";
+export { Avatar } from "./Avatar";
+
 export const kindLabels = {
   experience: "Vize deneyimi",
   general: "Seyahat paylaşımı",
@@ -41,53 +43,6 @@ export const statusLabels = {
   rejected: "Yayına alınmadı",
   needs_revision: "Düzenleme istendi",
 };
-export function Avatar({
-  name,
-  url,
-  size = 40,
-  accent,
-}: {
-  name: string;
-  url?: string | null;
-  size?: number;
-  accent?: string;
-}) {
-  useAppearance();
-
-  return url ? (
-    <Image
-      source={url}
-      style={{ width: size, height: size, borderRadius: size / 2 }}
-      cachePolicy="memory-disk"
-      accessibilityLabel={name}
-    />
-  ) : (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: isDark()
-          ? "#262626"
-          : accent
-            ? `${accent}14`
-            : themeColor("#DCE9FC", "surface"),
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Text
-        style={{
-          fontWeight: "800",
-          color: accent ?? colors.blue,
-          fontSize: size > textSize(50) ? textSize(24) : textSize(14),
-        }}
-      >
-        {name.slice(0, 2).toLocaleUpperCase("tr-TR")}
-      </Text>
-    </View>
-  );
-}
 export function postPath(post: Pick<Post, "kind" | "id">) {
   return `/${post.kind === "experience" ? "experience" : post.kind === "question" ? "question" : "tip"}/${post.id}` as "/experience/[id]";
 }

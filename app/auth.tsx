@@ -1,3 +1,4 @@
+import { Avatar } from "../src/components/Avatar";
 import { Ionicons } from "@expo/vector-icons";
 import { parseAuthCallback } from "../src/lib/auth-callback";
 import { webPath } from "../src/lib/web-path";
@@ -619,22 +620,7 @@ export default function Auth() {
                       accessibilityLabel="Seçilen profil fotoğrafı"
                     />
                   ) : (
-                    <View
-                      style={{
-                        width: 112,
-                        height: 112,
-                        borderRadius: 56,
-                        backgroundColor: themeColor("#E9F3EF", "surface"),
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Ionicons
-                        name="person-outline"
-                        size={48}
-                        color={colors.blue}
-                      />
-                    </View>
+                    <Avatar name="Profil fotoğrafı" size={112} />
                   )}
                   <View
                     style={{
