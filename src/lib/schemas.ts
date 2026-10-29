@@ -85,6 +85,7 @@ export const signupSchema = z.object({
   username: z.string().regex(/^[a-z0-9_]{3,24}$/),
   email: z.email(),
   password: z.string().min(8),
+  transfer: z.literal(true),
   terms: z.literal(true),
   privacy: z.literal(true),
 });
