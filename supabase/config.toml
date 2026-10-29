@@ -25,3 +25,7 @@ file_size_limit = "2MiB"
 [functions.delete-account]
 # Authorization is validated using Auth.getUser in the handler (also supports new JWT signing keys).
 verify_jwt = false
+
+[functions.retention-cleanup]
+# Private scheduler secret is checked by the handler; no client can invoke cleanup.
+verify_jwt = false

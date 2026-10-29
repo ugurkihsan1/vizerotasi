@@ -10,6 +10,7 @@ export function NotificationSync() {
   const user = session?.user.id;
   useEffect(() => {
     if (!user) return;
+    const connection = db();
     let channel: ReturnType<ReturnType<typeof db>["channel"]> | undefined;
     const refresh = () => {
       void cache.invalidateQueries(
@@ -24,7 +25,7 @@ export function NotificationSync() {
         AppState.currentState === "inactive"
       )
         return;
-      channel = db()
+      channel = connection
         .channel(`notifications-${user}`)
         .on(
           "postgres_changes",
@@ -42,7 +43,7 @@ export function NotificationSync() {
     };
     const disconnect = () => {
       if (channel) {
-        void db().removeChannel(channel);
+        void connection.removeChannel(channel);
         channel = undefined;
       }
     };

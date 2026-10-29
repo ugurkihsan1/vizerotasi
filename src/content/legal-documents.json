@@ -1,0 +1,395 @@
+[
+  {
+    "id": "privacy",
+    "shortTitle": "Gizlilik politikası",
+    "filename": "privacy.html",
+    "version": "2026-10-29.1",
+    "title": "Vizesel Gizlilik Politikası ve KVKK Aydınlatma Metni",
+    "updatedAt": "29 Ekim 2026",
+    "sections": [
+      {
+        "heading": "1. Veri sorumluları ve iletişim",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Vizesel, Mustafa Enes Aygün ve Uğur İhsan Kaya tarafından birlikte işletilen bir vize ve seyahat topluluğu uygulamasıdır. Hizmet kapsamında kişisel verilerin işlenme amaçları ve yöntemleri birlikte belirlenir."
+          },
+          {
+            "kind": "paragraph",
+            "text": "**Veri sorumluları:** Mustafa Enes Aygün ve Uğur İhsan Kaya **E-posta:** vizeselapp@gmail.com **Başvuru adresi:** Kazımkarabekir Mahallesi, Damar Sokak, No: 6, Daire: 2, Darıca/Kocaeli, Türkiye"
+          },
+          {
+            "kind": "paragraph",
+            "text": "Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) kapsamında sizi bilgilendirir. Kullanım koşullarından ve gerekiyorsa ayrıca alınacak açık rızadan ayrıdır."
+          }
+        ]
+      },
+      {
+        "heading": "2. İşlenen veriler ve toplama yöntemi",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Veriler; uygulama ve web sitesindeki formlar, profil düzenlemeleri, paylaşımlar, mesajlar, dosya yüklemeleri, destek iletişimi ve hizmet kullanımı sırasında oluşan teknik kayıtlar yoluyla elektronik ortamda toplanır. Diğer kullanıcıların size yanıt vermesi, sizi takip etmesi veya içerikle ilgili şikâyet oluşturması yoluyla da sizinle ilişkili kayıtlar oluşabilir."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Kullandığınız özelliklere göre şu bilgiler işlenebilir:"
+          },
+          {
+            "kind": "list",
+            "items": [
+              "E-posta adresi, kullanıcı adı, ad, profil fotoğrafı ve isteğe bağlı biyografi.",
+              "Paylaşmayı tercih ettiğiniz ülke, şehir, seyahat amacı, vize türü, çalışma/öğrenim durumu, başvuru sonucu, süreler ve diğer deneyim bilgileri.",
+              "Paylaşımlar, sorular, yorumlar, faydalı işaretlemeleri, kaydedilen içerikler, takip ilişkileri, topluluk üyelikleri ve bildirimler.",
+              "Özel ve topluluk sohbetlerinde gönderilen mesajlar ve görseller.",
+              "İnceleme için isteğe bağlı yüklenen destekleyici belgeler ve inceleme durumu.",
+              "Destek talepleri, şikâyetler, oturum bilgileri ve altyapının oluşturduğu IP adresi, bağlantı, hata ve güvenlik kayıtları."
+            ]
+          },
+          {
+            "kind": "paragraph",
+            "text": "Şifreler kimlik doğrulama altyapısı tarafından korunur; uygulama yöneticileri şifrenizi açık metin olarak göremez."
+          }
+        ]
+      },
+      {
+        "heading": "3. Amaçlar ve hukuki sebepler",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Hesap oluşturma, oturum açma, profil, paylaşım ve mesajlaşma için gerekli bilgiler hizmet sözleşmesinin kurulması veya ifası amacıyla işlenir. Talep ettiğiniz belge incelemesinde, ilgili hizmet için gerekli bilgilerle sınırlı işlem yapılır."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Bildirimler, hizmet güvenliği, kötüye kullanımın önlenmesi ve şikâyetlerin değerlendirilmesi; ilgili işlem bakımından sözleşmenin ifası veya temel hak ve özgürlüklerinize zarar vermemek kaydıyla meşru menfaat hukuki sebebine dayanabilir. Destek ve uyuşmazlık kayıtları, talebin yanıtlanması ve gerektiğinde bir hakkın tesisi, kullanılması veya korunması amacıyla işlenir. Resmî talepler ve yasal yükümlülükler için gerekli işlemler, ilgili kanuni şartlara dayanır."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Her hukuki sebep yalnızca şartlarının sağlandığı işlem için kullanılabilir. Açık rıza gerektiren bir işlem söz konusu olduğunda ayrıca bilgilendirme yapılarak açık rıza alınması gerekir. Bu metni okumanız veya uygulamayı kullanmanız tüm işleme ve yurt dışı aktarım faaliyetlerine açık rıza verdiğiniz anlamına gelmez."
+          }
+        ]
+      },
+      {
+        "heading": "4. Görünürlük ve erişim",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Profiliniz ve herkese açık paylaşımlarınız, yorumlarınız ve etkileşimleriniz diğer kullanıcılar ile oturum açmamış ziyaretçiler tarafından görülebilir. E-posta adresiniz profilinizde herkese açık gösterilmez."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Özel mesajlar ve görseller ilgili sohbet katılımcılarına; topluluk sohbetlerindeki içerikler ilgili sohbetin katılımcılarına gösterilir. Mesajlaşma uçtan uca şifreleme taahhüdüyle sunulmaz."
+          },
+          {
+            "kind": "paragraph",
+            "text": "İnceleme için yüklenen destekleyici belgeler herkese açık yayımlanmaz; paylaşım sahibi ve yetkili inceleme yöneticileri tarafından erişilebilir. Teknik hizmetin yürütülmesi, güvenlik veya hukuken geçerli talepler kapsamında gerekli yetkili erişimleri söz konusu olabilir."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Bir paylaşımın incelenmesi veya belgeyle doğrulanması, içeriğin resmî makam açıklaması olduğu ya da vize sonucu garantisi taşıdığı anlamına gelmez."
+          }
+        ]
+      },
+      {
+        "heading": "5. Belge ve görseller",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "İnceleme için gerekli olmayan kimlik ve pasaport numaralarını, hesap numaralarını, barkodları, imzaları ve üçüncü kişilere ait bilgileri yüklemeden önce gizleyin. Paylaşma yetkiniz bulunmayan başkalarına ait belgeleri göndermeyin."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Sağlık bilgileri gibi özel nitelikli kişisel verileri yüklemeyin. Seyahat sağlık sigortası belgesinde sağlık durumuna ilişkin bilgiler bulunuyorsa bu alanları kapatın. Yanlışlıkla böyle bir içerik yüklediyseniz kaldırın veya destek adresimizle iletişime geçin."
+          }
+        ]
+      },
+      {
+        "heading": "6. Alıcılar ve yurt dışına aktarım",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "İlgili hizmet için gerekli kapsamla sınırlı olarak şu alıcılar verileri işleyebilir:"
+          },
+          {
+            "kind": "list",
+            "items": [
+              "İçeriklerin görünürlük kurallarına göre diğer kullanıcılar ve ziyaretçiler.",
+              "Kimlik doğrulama, veritabanı, dosya saklama ve gerçek zamanlı özellikler için Supabase Pte. Ltd. ve alt hizmet sağlayıcıları.",
+              "Mevcut web sürümünün sunulmasında GitHub Pages/GitHub. Ziyaret sırasında bağlantı ve teknik erişim bilgileri bu hizmet kapsamında işlenebilir; uygulama veritabanı GitHub Pages üzerinde tutulmaz.",
+              "E-posta gönderimi ve destek iletişiminde Google/Gmail.",
+              "Hukuki yükümlülük veya geçerli talepler kapsamında yetkili kurumlar ve bir hakkın korunması için gerekli hâllerde ilgili yetkili kişi veya kuruluşlar."
+            ]
+          },
+          {
+            "kind": "paragraph",
+            "text": "Supabase projesinin ana bölgesi Seul, Güney Kore (ap-northeast-2) olarak seçilmiştir. Supabase'in açıklamasına göre ana veritabanı, Auth hizmeti, Storage dosyaları ve bölgesel yedekler seçilen bölgede barındırılır. Bununla birlikte bütün veri işlemleri yalnızca bu ülkede gerçekleşmez. Supabase, Avrupa Birliği'ndeki log altyapısını, küresel destek/operasyon erişimlerini ve yapılandırmaya bağlı küresel dosya dağıtımını da açıklamaktadır. Sözleşmedeki ana veri işleyen kuruluşu Singapur'dadır."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Güncel alt hizmet sağlayıcı listesi: https://supabase.com/legal/customer-resources/subprocessor-list"
+          },
+          {
+            "kind": "paragraph",
+            "text": "Bu altyapılar nedeniyle yurt dışına veri aktarımı söz konusu olabilir. Aktarım için işleme şartlarına ek olarak KVKK'nın 9. maddesindeki uygun şartların karşılanması gerekir. Supabase'in DPA'sı veya bu aydınlatma metni, tek başına Türkiye'ye özgü aktarım şartlarının tamamlandığı anlamına gelmez. Bu metin yurt dışı aktarım sözleşmesi veya açık rıza yerine geçmez."
+          }
+        ]
+      },
+      {
+        "heading": "7. Saklama süreleri",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Veriler ilgili amaç için gerekli süreyle sınırlı saklanır. Hesap ve profil bilgileri, hizmetten yararlandığınız süre boyunca işlenir. Paylaşımlar, yorumlar ve mesajlar ilgili özelliklerin sunulması için tutulur; içerik veya hesap silindiğinde ilgili silme süreci uygulanır. İhtiyacın ortadan kalktığı veriler gereksiz yere tutulmamalıdır."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Destekleyici belgeler inceleme ve buna ilişkin talepler için; destek, şikâyet ve güvenlik kayıtları ise ilgili talebin veya olayın değerlendirilmesi, güvenliğin sağlanması ve gerektiğinde hakların korunması amacıyla saklanır. Saklama gerekliliği bu amaçlar, talebin/incelemenin durumu ve varsa kanuni süreler esas alınarak değerlendirilir."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Bu sürümde belgeler için 30/90 günlük veya yedekler için 30 günlük otomatik silme taahhüdü verilmemektedir. Süresi belirli bir otomatik silme kuralı devreye alındığında bu bölüm gerçek uygulamaya göre güncellenir."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Sağlayıcıların kendi altyapı kayıtları ve yedekleri, ilgili hizmetin planına, sözleşmesine ve teknik silme döngülerine tabidir. Sağlayıcıların tuttuğu bütün kayıtlara Vizesel'in aynı teknik kontrolü uygulayabildiği veya hesabınız silindiğinde bütün sağlayıcı yedeklerinin anında kaldırıldığı taahhüt edilmez."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Hukuki yükümlülük veya devam eden uyuşmazlık nedeniyle saklanması gereken belirli kayıtlar yalnızca ilgili amaç ve gerekli süreyle sınırlı korunabilir. Gerekçe ortadan kalkınca silme, yok etme veya anonimleştirme uygulanır. Bir belgenin silinmesi, ilgili paylaşımın kendiliğinden silindiği anlamına gelmez; paylaşım ayrıca silinebilir."
+          }
+        ]
+      },
+      {
+        "heading": "8. Hesap silme",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Hesabınızı uygulama ayarlarından silebilirsiniz. Hesap silme, hesapla ilişkili veriler ve yüklenen dosyalar için silme sürecini başlatır. İşlem tamamlanmazsa yeniden deneyebilir veya destek isteyebilirsiniz."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Aktif sistemlerden silinen verilerin sağlayıcı yedeklerinde kalan kopyalarının ortadan kalkması, ilgili yedekleme döngüsüne bağlı olabilir. Bir yedekten geri dönüş yapılırsa silme taleplerinin yeniden uygulanması gerekir."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Hesap veya içerik silme; başkalarının önceden aldığı ekran görüntülerini, indirdiği dosyaları veya uygulama dışına kopyaladığı içerikleri geri alamaz."
+          }
+        ]
+      },
+      {
+        "heading": "9. Cihaz izinleri ve yerel saklama",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Fotoğraf veya dosya ekleme özelliklerinde cihazın seçim ve izin mekanizmaları kullanılır. İzinleri cihaz ayarlarından yönetebilirsiniz; izni vermemeniz ilgili özelliği kullanmanızı sınırlayabilir."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Oturumu, tercihleri ve uygulamanın çalışması için gerekli bazı verileri cihazınızda saklayabiliriz. Uygulama verilerinin veya tarayıcı depolamasının temizlenmesi oturumunuzu ve bazı tercihlerinizi sıfırlayabilir."
+          }
+        ]
+      },
+      {
+        "heading": "10. Haklarınız ve başvuru",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "KVKK'nın 11. maddesi kapsamında kişisel verilerinizin işlenip işlenmediğini öğrenme; işlenmişse bilgi isteme; işleme amacını ve amaca uygun kullanılıp kullanılmadığını öğrenme; yurt içinde veya dışında aktarıldığı üçüncü kişileri bilme haklarına sahipsiniz."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Eksik veya yanlış verilerin düzeltilmesini; kanuni şartlar oluştuğunda silinmesini veya yok edilmesini; düzeltme ve silme işlemlerinin verilerin aktarıldığı üçüncü kişilere bildirilmesini talep edebilirsiniz. Yalnızca otomatik sistemlerle yapılan analizler sonucunda aleyhinize sonuç doğmasına itiraz edebilir ve kanuna aykırı işleme nedeniyle uğradığınız zararın giderilmesini isteyebilirsiniz."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Başvurularınızı yukarıdaki iletişim bilgileriyle, mevzuatta öngörülen usullerle iletebilirsiniz. Kimliğinizi doğrulamak için gerekli ve ölçülü bilgiler istenebilir. Şifrenizi göndermeyin. Usulüne uygun başvurular mümkün olan en kısa sürede ve en geç 30 gün içinde yanıtlanır. Ayrıca maliyet gerektiren işlemlerde yalnızca mevzuatta izin verilen ücret uygulanabilir."
+          }
+        ]
+      },
+      {
+        "heading": "11. Güvenlik ve değişiklikler",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Yetkisiz erişimi, hukuka aykırı işlemeyi ve veri kaybını önlemek için uygun teknik ve idari tedbirlerden yararlanılır. Hiçbir internet hizmeti mutlak güvenlik garantisi veremez."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Bu metin hizmet veya mevzuat değişikliklerine göre güncellenebilir. Güncel sürüm uygulama veya web sitesi üzerinden erişilebilir tutulur. Gerekli durumlarda ayrıca bilgilendirme yapılır."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "transfer",
+    "shortTitle": "Yurt dışına aktarım",
+    "filename": "transfer-consent.html",
+    "version": "2026-10-29.1",
+    "title": "Vizesel Yurt Dışına Aktarım Bilgilendirmesi ve Açık Rıza",
+    "updatedAt": "29 Ekim 2026",
+    "sections": [
+      {
+        "heading": "Veri sorumluları",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Mustafa Enes Aygün ve Uğur İhsan Kaya. İletişim: vizeselapp@gmail.com. Başvuru adresi: Kazımkarabekir Mahallesi, Damar Sokak, No: 6, Daire: 2, Darıca/Kocaeli, Türkiye."
+          }
+        ]
+      },
+      {
+        "heading": "Kapsam ve amaç",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Vizesel'in mevcut üyelik, paylaşım ve mesajlaşma altyapısı Supabase üzerinde çalışmaktadır. Hesap oluşturma, giriş, profil, paylaşım/yorum, takip, bildirim ve mesajlaşma özellikleri için bu özelliklerle bağlantılı hesap/profil bilgileri, içerikler, etkileşimler, mesajlar ve gerekli teknik kayıtlar bu altyapıya gönderilir. Şifreler kimlik doğrulama altyapısında korunur; yöneticiler şifrelerinizi açık metin göremez."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Yalnızca ilgili özelliği kullandığınızda yüklediğiniz profil/sohbet görselleri ve destekleyici belgeler de dosya saklama, ilgili kişilere gösterme veya özel inceleme amacıyla işlenir. Fotoğraf ve belge yüklemek ayrı bir tercihtir; bu metin bu özellikleri kullanma zorunluluğu getirmez. Sağlık bilgileri gibi özel nitelikli verileri yüklemeyin; bu taslak bu verilere yönelik toplu rıza içermez."
+          }
+        ]
+      },
+      {
+        "heading": "Alıcılar ve bilinen konumlar",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Supabase hizmeti için yayımlanan sözleşmedeki ana veri işleyen Supabase Pte. Ltd. (Singapur) olup seçili ana veri merkezi Seul, Güney Kore'dir. Supabase; Avrupa Birliği'ndeki log altyapısı, küresel destek/operasyon erişimleri ve yapılandırmaya bağlı küresel dosya dağıtımı da açıklamaktadır. Teknik destek/operasyonlarda Supabase Inc. (ABD) ve açıklanan alt işleyenler görev alabilir. Bütün verilerin yalnızca Güney Kore'de işlendiği taahhüt edilmez."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Güncel alt işleyenler: https://supabase.com/legal/customer-resources/subprocessor-list"
+          },
+          {
+            "kind": "paragraph",
+            "text": "Google/Gmail, doğrulama/şifre sıfırlama e-postaları ve destek iletişiminde e-posta adresi ile ilgili mesaj içeriğini işler. GitHub Pages, mevcut web sitesinin sunulmasında ziyaretçinin IP adresi ve bağlantı bilgilerini işleyebilir; uygulama veritabanı GitHub Pages'e taşınmaz. Bu sağlayıcıların küresel altyapıları nedeniyle ilgili veriler Türkiye dışında işlenebilir. Supabase, Gmail ve GitHub'a aynı veri kümesinin gönderildiği anlamı çıkarılmamalıdır."
+          }
+        ]
+      },
+      {
+        "heading": "Muhtemel riskler",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Verilerin işlendiği ülkelerde Türkiye'dekiyle aynı koruma ve başvuru imkânları bulunmayabilir. Yabancı ülkelerdeki kamu makamları kendi mevzuatlarına göre erişim talep edebilir. Hakların kullanılması veya kararların uygulanması farklı usullere tabi olabilir. Altyapı erişimleri, alt işleyenler ve yedekler nedeniyle veriler birden fazla ülkede işlenebilir. Teknik tedbirler riskleri azaltır; bütün riskleri ortadan kaldırmaz."
+          }
+        ]
+      },
+      {
+        "heading": "Reddetme ve geri çekme",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Mevcut sistemde yurt dışındaki altyapı kullanılmadan hesap, paylaşım ve mesajlaşma özellikleri sunulamamaktadır. Aktarıma izin vermemeniz hâlinde bu özellikler mevcut yapı üzerinden sağlanamaz. Bu açıklama, hizmete erişimin rızaya bağlanmasının hukuken geçerli olduğunu tek başına göstermez."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Rıza tercihinizi geri çekmek için vizeselapp@gmail.com adresine başvurabilirsiniz. Talebiniz üzerine rızaya dayalı gelecekteki işlemler durdurulur. Mevcut altyapıda bunun ilgili özelliklerin durdurulmasını veya hesabın sonlandırılmasını gerektirebileceği size açıklanır. Hesap silme talebi uygulama ayarlarından da başlatılabilir."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Geri çekme ileriye dönük uygulanır; geçmişteki işlemlere ilişkin kanuni haklarınız saklıdır. Kanunen saklanması gereken sınırlı kayıtlar ve yedeklerin teknik silme döngüleri ayrıca değerlendirilir; bütün yedeklerin anında silineceği taahhüt edilmez."
+          }
+        ]
+      },
+      {
+        "heading": "Ayrı tercih ifadeleri",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Bu seçenekler önceden işaretli değildir; kullanım koşulları veya aydınlatmayı okuma kaydıyla birleştirilmez:"
+          },
+          {
+            "kind": "paragraph",
+            "text": "**Supabase — temel özellikler:** Yukarıda açıklanan amaçlar, alıcılar, konumlar, riskler ve hizmet üzerindeki etkiler hakkında bilgilendirildim. Hesap/profil bilgilerimin, paylaşımlarımın, yorumlarımın, etkileşimlerimin, mesajlarımın ve gerekli teknik kayıtların belirtilen Supabase altyapısında yurt dışında işlenmesine ve aktarılmasına açık rıza veriyorum. İsteğe bağlı görsel veya belge yüklemeyi ayrıca seçersem, bu dosyaların belirtilen saklama/gösterme/inceleme amacıyla aynı altyapıya aktarılmasına da rıza veriyorum."
+          },
+          {
+            "kind": "paragraph",
+            "text": "**Google/Gmail — e-posta:** Doğrulama, şifre sıfırlama ve talep ettiğim destek iletişimi amacıyla e-posta adresimin ve ilgili mesaj içeriğinin açıklanan Google/Gmail altyapısında yurt dışında işlenmesine ve aktarılmasına açık rıza veriyorum."
+          },
+          {
+            "kind": "paragraph",
+            "text": "**GitHub Pages — web erişimi:** Web sürümünü sunmak için gerekli IP adresi ve teknik bağlantı bilgilerimin açıklanan GitHub Pages altyapısında yurt dışında işlenmesine ve aktarılmasına açık rıza veriyorum."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Bu tercihler yeni veya ilgisiz işleme amaçlarına, sınırsız gelecekteki sağlayıcılara, reklam/pazarlamaya veya kanuni haklardan vazgeçmeye yönelik izin içermez."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "terms",
+    "shortTitle": "Kullanım koşulları",
+    "filename": "terms.html",
+    "version": "2026-10-29.1",
+    "title": "Vizesel Kullanım Koşulları ve Topluluk Kuralları",
+    "updatedAt": "29 Ekim 2026",
+    "sections": [
+      {
+        "heading": "1. Hizmet",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Vizesel, Mustafa Enes Aygün ve Uğur İhsan Kaya tarafından işletilen bir vize ve seyahat topluluğu uygulamasıdır. İletişim: vizeselapp@gmail.com."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Vizesel bir konsolosluk, resmî başvuru merkezi veya resmî makam değildir. Paylaşımlar kişisel deneyimler içerebilir; bir içeriğin incelenmiş veya belgeyle doğrulanmış olması, herkes için geçerli resmî kural veya vize sonucu garantisi oluşturmaz. Başvuru koşullarını ilgili resmî kaynaktan kontrol edin."
+          }
+        ]
+      },
+      {
+        "heading": "2. Hesap ve içerikler",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Hesap bilgilerinizin doğru olmasından ve şifrenizi korumaktan sorumlusunuz. Başkasını taklit etmeyin veya yetkiniz olmadan başkalarının hesabını kullanmayın."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Yalnızca paylaşma hakkına sahip olduğunuz içerikleri yükleyin. İçeriğiniz üzerindeki haklarınız sizde kalır. İçeriği yayımlamak için seçtiğiniz görünürlük ve hizmet özellikleri kapsamında saklanmasına, gösterilmesine ve iletilmesine izin vermiş olursunuz. Bu izin, kişisel verilerin işlenmesi için gereken kanuni şartların veya açık rızanın yerine geçmez."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Paylaşımlarınızdaki gereksiz kimlik, pasaport, banka ve üçüncü kişi bilgilerini gizleyin. Sağlık bilgileri gibi özel nitelikli kişisel verileri yüklemeyin. Kişisel verilerin işlenmesi Gizlilik Politikası ve KVKK Aydınlatma Metni'nde ayrıca açıklanır."
+          }
+        ]
+      },
+      {
+        "heading": "3. Topluluk kuralları",
+        "blocks": [
+          {
+            "kind": "list",
+            "items": [
+              "Taciz, tehdit, nefret söylemi, dolandırıcılık ve hukuka aykırı içerik yasaktır.",
+              "Spam, sahte hesaplar, yanıltıcı belge veya bilgi ve hizmetin kötüye kullanılması yasaktır.",
+              "Başkalarının kişisel bilgilerini veya özel yazışmalarını paylaşma yetkiniz olmadan yayımlamayın.",
+              "Başkalarının telif, kişilik ve diğer haklarına saygı gösterin."
+            ]
+          },
+          {
+            "kind": "paragraph",
+            "text": "Kurallara aykırı içerikleri uygulamadaki şikâyet seçenekleriyle veya iletişim adresimizden bildirebilirsiniz. Uygun durumlarda kullanıcı engelleme özelliğini kullanabilirsiniz. Bildirimler ve ihlaller değerlendirilerek içerik kaldırılabilir veya hesaba erişim sınırlandırılabilir. İşleme itiraz veya düzeltme talebinizi iletişim adresine iletebilirsiniz."
+          }
+        ]
+      },
+      {
+        "heading": "4. Silme ve değişiklikler",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Kendi içeriklerinizi mevcut silme seçenekleriyle, hesabınızı ise uygulama ayarlarından silebilirsiniz. Kişisel veri taleplerinizi iletişim adresine iletebilirsiniz. Hesap ve veri silmenin kapsamı ile yedeklere ilişkin açıklamalar Gizlilik Politikası'nda yer alır."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Hizmetteki özellikler veya bu koşullar değişebilir. Önemli değişikliklerde gerekli bilgilendirme yapılır; ayrıca onay gereken bir işlem için yalnızca hizmeti kullanmaya devam etmeniz yeterli sayılmaz. Kanundan doğan haklarınız saklıdır."
+          }
+        ]
+      }
+    ]
+  }
+]

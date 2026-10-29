@@ -3,5 +3,9 @@
   "compilerOptions": {
     "strict": true
   },
-  "exclude": ["node_modules", "supabase/functions/delete-account"]
+  "exclude": [
+    "node_modules",
+    "supabase/functions/delete-account",
+    "supabase/functions/retention-cleanup"
+  ]
 }

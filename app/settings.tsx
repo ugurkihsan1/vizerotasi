@@ -1,4 +1,14 @@
 import { DeleteAccount } from "../src/components/DeleteAccount";
+import {
+  LegalTextModal,
+  PrivacyPreferences,
+} from "../src/components/PrivacyPreferences";
+import {
+  retryPrivacyReceipt,
+  usePrivacyReceipt,
+} from "../src/components/PrivacySync";
+import { allowsAccountEmail } from "../src/lib/privacy";
+import type { LegalDocumentId } from "../src/content/legal";
 import { Ionicons } from "@expo/vector-icons";
 import { webPath } from "../src/lib/web-path";
 import * as Linking from "expo-linking";
@@ -74,12 +84,22 @@ function SettingsBody() {
     [privacy, setPrivacy] = useState(false);
   const [email, setEmail] = useState(session?.user.email ?? ""),
     [accountBusy, setAccountBusy] = useState(false);
+  const [legalDocument, setLegalDocument] = useState<LegalDocumentId | null>(
+    null,
+  );
+  const receipt = usePrivacyReceipt();
   const emailRedirect = () =>
     Platform.OS === "web"
       ? `${window.location.origin}${webPath("/auth")}`
       : Linking.createURL("/auth");
   async function changeEmail() {
     if (accountBusy) return;
+    if (!allowsAccountEmail()) {
+      setMessage(
+        "E-posta değişikliği için Gizlilik ve izinler bölümünden Google/Gmail tercihini açmalısın.",
+      );
+      return;
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setMessage("Geçerli e-posta adresi gir.");
       return;
@@ -113,6 +133,21 @@ function SettingsBody() {
     queryKey: ["pending-cleanup", session?.user.id],
     enabled: !!session,
     queryFn: () => pendingCleanup(session!.user.id),
+  });
+  const retention = useQuery({
+    queryKey: ["retention-policy-status"],
+    enabled: profile?.role === "admin",
+    retry: false,
+    queryFn: async () => {
+      const result = await db().rpc("retention_policy_status");
+      if (result.error) throw result.error;
+      return (Array.isArray(result.data) ? result.data[0] : result.data) as {
+        active: boolean;
+        last_success_at: string | null;
+        reviewed_days: number;
+        pending_days: number;
+      };
+    },
   });
   const preference = (value: Parameters<typeof setPreferences>[0]) =>
     void setPreferences(value).catch(() =>
@@ -383,11 +418,6 @@ function SettingsBody() {
         />
         <Button
           secondary
-          label="Gizlilik ve topluluk kuralları"
-          onPress={() => setPrivacy(true)}
-        />
-        <Button
-          secondary
           label="Destek ve iletişim"
           onPress={() => {
             void Linking.openURL(
@@ -404,6 +434,54 @@ function SettingsBody() {
           label="Fotoğraf kaynakları"
           onPress={() => router.push("/photo-credits")}
         />
+      </SettingsSection>
+      <SettingsSection
+        title="Gizlilik ve izinler"
+        icon="shield-checkmark-outline"
+      >
+        <Button
+          secondary
+          label="Gizlilik politikası"
+          onPress={() => setLegalDocument("privacy")}
+        />
+        <Button
+          secondary
+          label="Yurt dışına aktarım metni"
+          onPress={() => setLegalDocument("transfer")}
+        />
+        <Button
+          secondary
+          label="Kullanım koşulları"
+          onPress={() => setLegalDocument("terms")}
+        />
+        <Button
+          secondary
+          label="Tercihleri yönet"
+          onPress={() => setPrivacy(true)}
+        />
+        {!!session && (
+          <Text style={styles.muted}>
+            {receipt === "saved"
+              ? "Tercihlerin hesabına kaydedildi."
+              : receipt === "failed"
+                ? "Tercihler bu cihazda kayıtlı; sunucu kaydı tamamlanamadı."
+                : "Tercihler hesabına kaydediliyor…"}
+          </Text>
+        )}
+        {!!session && receipt === "failed" && (
+          <Button
+            secondary
+            label="Tercih kaydını yeniden dene"
+            onPress={retryPrivacyReceipt}
+          />
+        )}
+        {profile?.role === "admin" && (
+          <Text style={styles.muted}>
+            {retention.data?.active
+              ? "Otomatik belge silme etkin · 30/90 gün"
+              : "Otomatik belge silme henüz doğrulanmadı."}
+          </Text>
+        )}
       </SettingsSection>
       <Message text={message || avatarNotice || ""} />
       {session && (
@@ -422,18 +500,23 @@ function SettingsBody() {
       <Sheet
         visible={privacy}
         onClose={() => setPrivacy(false)}
-        title="Gizlilik ve topluluk"
+        title="Gizlilik tercihleri"
       >
-        <Text style={styles.text}>
-          E-posta adresin profilinde gösterilmez. Paylaşımlarında kimlik ve
-          banka bilgisi paylaşma. Topluluk deneyimleri resmî vize bilgisi
-          değildir.
-        </Text>
-        <Text style={styles.muted}>
-          Özel belgeler yalnız sen ve yetkili yönetim tarafından görülebilir.
-          Spam, taciz ve yanıltıcı içerik yasaktır.
-        </Text>
+        <PrivacyPreferences
+          management
+          accessToken={session?.access_token}
+          userId={session?.user.id}
+          onSaved={() => setPrivacy(false)}
+          onStop={() => {
+            void cache.cancelQueries();
+            cache.clear();
+          }}
+        />
       </Sheet>
+      <LegalTextModal
+        document={legalDocument}
+        onClose={() => setLegalDocument(null)}
+      />
     </ScrollView>
   );
 }

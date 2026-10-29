@@ -1790,3 +1790,272 @@ it("restores recent missed follow notices idempotently while leaving old follows
   ).rows;
   expect(rows).toEqual([{ actor_id: recent, original_date: true }]);
 });
+
+async function retentionFixture() {
+  const author = await user(30),
+    staff = await user(50, "moderator");
+  const id = await post(author, "germany", "tip", "doc-insurance");
+  const path = `${author}/${id}/${randomUUID()}.pdf`;
+  await as(
+    author,
+    "insert into storage.objects(id,bucket_id,name,metadata) values($1,'post-evidence',$2,$3)",
+    [
+      randomUUID(),
+      path,
+      JSON.stringify({ size: 1000, mimetype: "application/pdf" }),
+    ],
+  );
+  const registered = await as(
+    author,
+    "select register_post_evidence($1,$2,'private.pdf') as id",
+    [id, path],
+  );
+  return {
+    author,
+    staff,
+    id,
+    path,
+    eid: (registered.rows[0] as { id: string }).id,
+  };
+}
+async function retentionService(sql: string, args: unknown[] = []) {
+  await pg.exec("reset role;set role service_role");
+  return pg.query(sql, args);
+}
+it("retains pending evidence 90 days and reviewed evidence 30 days without granting public cleanup access", async () => {
+  const f = await retentionFixture();
+  const pending = await root(
+    "select round(extract(epoch from(retention_due_at-created_at))/86400) as days from post_evidence where id=$1",
+    [f.eid],
+  );
+  expect(Number((pending.rows[0] as { days: string }).days)).toBe(90);
+  await as(f.staff, "select review_post_evidence($1,'declined')", [f.id]);
+  const reviewed = await root(
+    "select round(extract(epoch from(e.retention_due_at-v.reviewed_at))/86400) as days from post_evidence e join post_verifications v on v.post_id=e.post_id where e.id=$1",
+    [f.eid],
+  );
+  expect(Number((reviewed.rows[0] as { days: string }).days)).toBe(30);
+  for (const u of [null, f.author, f.staff]) {
+    await expect(
+      as(u, "select * from claim_evidence_cleanup(10)"),
+    ).rejects.toThrow();
+    await expect(
+      as(u, "select * from evidence_cleanup_jobs"),
+    ).rejects.toThrow();
+    await expect(
+      as(u, "select retention_worker_succeeded()"),
+    ).rejects.toThrow();
+  }
+  expect(
+    (await as(null, "select * from retention_policy_status()")).rows[0],
+  ).toMatchObject({ active: false, reviewed_days: 30, pending_days: 90 });
+});
+it("requires Storage deletion before metadata cleanup and preserves verified posts, awards and leased scope", async () => {
+  await root("truncate evidence_cleanup_jobs");
+  const f = await retentionFixture();
+  await as(f.staff, "select review_post_evidence($1,'verified')", [f.id]);
+  const score = (await metrics(f.author)).badge_score;
+  await root(
+    "update post_evidence set retention_due_at=now()-interval '1 second' where id=$1",
+    [f.eid],
+  );
+  const jobs = await retentionService(
+    "select * from claim_evidence_cleanup(100)",
+  );
+  const job = jobs.rows.find(
+    (r) => (r as { evidence_id: string }).evidence_id === f.eid,
+  ) as { job_id: string; lease_token: string };
+  expect(job).toBeTruthy();
+  expect(
+    (await retentionService("select * from claim_evidence_cleanup(100)")).rows,
+  ).toHaveLength(0);
+  await expect(
+    retentionService("select finish_evidence_cleanup($1,$2)", [
+      job.job_id,
+      randomUUID(),
+    ]),
+  ).rejects.toThrow("lease");
+  await expect(
+    retentionService("select finish_evidence_cleanup($1,$2)", [
+      job.job_id,
+      job.lease_token,
+    ]),
+  ).rejects.toThrow("file remains");
+  await expect(
+    as(f.staff, "select review_post_evidence($1,'declined')", [f.id]),
+  ).rejects.toThrow("cleanup in progress");
+  // Emulate Storage API's physical deletion acknowledgement, never SQL in production.
+  await root(
+    "delete from storage.objects where bucket_id='post-evidence' and name=$1",
+    [f.path],
+  );
+  await retentionService("select finish_evidence_cleanup($1,$2)", [
+    job.job_id,
+    job.lease_token,
+  ]);
+  expect(
+    (await root("select id from post_evidence where id=$1", [f.eid])).rows,
+  ).toHaveLength(0);
+  expect(
+    (
+      await root("select status from post_verifications where post_id=$1", [
+        f.id,
+      ])
+    ).rows[0],
+  ).toMatchObject({ status: "verified" });
+  expect(
+    (await root("select status from posts where id=$1", [f.id])).rows[0],
+  ).toMatchObject({ status: "approved" });
+  expect((await metrics(f.author)).badge_score).toBe(score);
+  expect(
+    (
+      await as(
+        f.author,
+        "select evidence_cleanup_path_available($1) as allowed",
+        [f.path],
+      )
+    ).rows[0],
+  ).toMatchObject({ allowed: false });
+  await retentionService("select retention_worker_succeeded()");
+  expect(
+    (await as(null, "select * from retention_policy_status()")).rows[0],
+  ).toMatchObject({ active: true });
+});
+it("retries expired cleanup leases, blocks stale completion, and queues manual evidence removals", async () => {
+  await root("truncate evidence_cleanup_jobs");
+  const f = await retentionFixture();
+  await as(f.author, "select remove_post_evidence($1)", [f.eid]);
+  const [job] = (
+    await retentionService("select * from claim_evidence_cleanup(100)")
+  ).rows as { job_id: string; lease_token: string }[];
+  expect(job).toBeTruthy();
+  await root(
+    "update evidence_cleanup_jobs set lease_until=now()-interval '1 second' where id=$1",
+    [job.job_id],
+  );
+  const [newJob] = (
+    await retentionService("select * from claim_evidence_cleanup(100)")
+  ).rows as { job_id: string; lease_token: string }[];
+  expect(newJob.lease_token).not.toBe(job.lease_token);
+  await retentionService("select retry_evidence_cleanup($1,$2)", [
+    job.job_id,
+    job.lease_token,
+  ]);
+  await expect(
+    retentionService("select finish_evidence_cleanup($1,$2)", [
+      job.job_id,
+      job.lease_token,
+    ]),
+  ).rejects.toThrow("lease");
+  await expect(
+    as(
+      f.author,
+      "insert into storage.objects(id,bucket_id,name,metadata) values($1,'post-evidence',$2,$3)",
+      [
+        randomUUID(),
+        `${f.author}/${f.id}/new.pdf`,
+        JSON.stringify({ size: 1000, mimetype: "application/pdf" }),
+      ],
+    ),
+  ).rejects.toThrow();
+  await root(
+    "delete from storage.objects where bucket_id='post-evidence' and name=$1",
+    [f.path],
+  );
+  await retentionService("select finish_evidence_cleanup($1,$2)", [
+    job.job_id,
+    newJob.lease_token,
+  ]);
+  await pg.exec("reset role");
+  await pg.exec(
+    readFileSync(
+      "supabase/migrations/202610290022_evidence_retention.sql",
+      "utf8",
+    ),
+  );
+  expect(
+    (
+      await root("select id from evidence_cleanup_jobs where id=$1", [
+        job.job_id,
+      ])
+    ).rows,
+  ).toHaveLength(0);
+});
+it("sweeps only abandoned 90-day evidence uploads and keeps fresh, registered, unknown-age and other-bucket files", async () => {
+  await root("truncate evidence_cleanup_jobs");
+  await root(
+    "alter table storage.objects add column if not exists created_at timestamptz",
+  );
+  const f = await retentionFixture();
+  const abandoned = `${f.author}/${f.id}/${randomUUID()}.pdf`;
+  const recent = `${f.author}/${f.id}/${randomUUID()}.pdf`;
+  const unknown = `${f.author}/${f.id}/${randomUUID()}.pdf`;
+  const delayed = `${f.author}/${f.id}/${randomUUID()}.pdf`;
+  for (const [name, bucket, days] of [
+    [abandoned, "post-evidence", 91],
+    [recent, "post-evidence", 89],
+    [unknown, "post-evidence", null],
+    [delayed, "post-evidence", 80],
+    [`${f.author}/private.jpg`, "avatars", 120],
+  ] as const) {
+    await root(
+      "insert into storage.objects(id,bucket_id,name,metadata,created_at) values($1,$2,$3,$4,case when $5::integer is null then null else now()-$5::integer*interval '1 day' end)",
+      [
+        randomUUID(),
+        bucket,
+        name,
+        JSON.stringify({ size: 1000, mimetype: "application/pdf" }),
+        days,
+      ],
+    );
+  }
+  await root(
+    "update storage.objects set created_at=now()-interval '120 days' where name=$1",
+    [f.path],
+  );
+  await as(f.author, "select register_post_evidence($1,$2,'delayed.pdf')", [
+    f.id,
+    delayed,
+  ]);
+  expect(
+    (
+      await root(
+        "select round(extract(epoch from(retention_due_at-now()))/86400) as days from post_evidence where storage_path=$1",
+        [delayed],
+      )
+    ).rows[0],
+  ).toMatchObject({ days: "10" });
+  const jobs = (
+    await retentionService("select * from claim_evidence_cleanup(100)")
+  ).rows as { storage_path: string; job_id: string; lease_token: string }[];
+  const paths = jobs.map((j) => j.storage_path);
+  expect(paths).toContain(abandoned);
+  expect(paths).not.toContain(recent);
+  expect(paths).not.toContain(unknown);
+  expect(paths).not.toContain(f.path);
+  expect(paths).not.toContain(delayed);
+  expect(paths).not.toContain(`${f.author}/private.jpg`);
+  await expect(
+    as(f.author, "select register_post_evidence($1,$2,'too-late.pdf')", [
+      f.id,
+      abandoned,
+    ]),
+  ).rejects.toThrow("cleanup in progress");
+  const job = jobs.find((j) => j.storage_path === abandoned)!;
+  await root("delete from storage.objects where name=$1", [abandoned]);
+  await retentionService("select finish_evidence_cleanup($1,$2)", [
+    job.job_id,
+    job.lease_token,
+  ]);
+  await expect(
+    as(
+      f.author,
+      "insert into storage.objects(id,bucket_id,name,metadata) values($1,'post-evidence',$2,$3)",
+      [
+        randomUUID(),
+        abandoned,
+        JSON.stringify({ size: 1000, mimetype: "application/pdf" }),
+      ],
+    ),
+  ).rejects.toThrow();
+});

@@ -1,4 +1,17 @@
 import { NotificationSync } from "../src/components/NotificationSync";
+import { PrivacyPreferences } from "../src/components/PrivacyPreferences";
+import { PrivacySync } from "../src/components/PrivacySync";
+import {
+  loadPrivacyPreferences,
+  privacyAllowsApp,
+  usePrivacyPreferences,
+} from "../src/lib/privacy";
+import {
+  initializeSupabase,
+  stopSupabase,
+  captureInitialAuthUrl,
+} from "../src/lib/supabase";
+import * as Linking from "expo-linking";
 import { StatusBar } from "expo-status-bar";
 import {
   useAppearance,
@@ -6,14 +19,20 @@ import {
   loadAppearance,
 } from "../src/lib/appearance";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { ChatSync } from "../src/components/ChatEntry";
-import { View } from "react-native";
+import { ActivityIndicator, Platform, ScrollView, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
-import { Stack, ThemeProvider, DarkTheme, DefaultTheme } from "expo-router";
+import {
+  Stack,
+  ThemeProvider,
+  DarkTheme,
+  DefaultTheme,
+  usePathname,
+} from "expo-router";
 import { QueryClient } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "../src/lib/auth";
@@ -27,9 +46,76 @@ const persister = createAsyncStoragePersister({
 });
 export default function Layout() {
   const appearance = useAppearance();
-
+  const privacy = usePrivacyPreferences();
+  const path = usePathname();
   useEffect(() => {
     void loadAppearance();
+    void loadPrivacyPreferences();
+    if (Platform.OS === "web") return;
+    void Linking.getInitialURL().then((url) => {
+      if (url) captureInitialAuthUrl(url);
+    });
+    const listener = Linking.addEventListener("url", ({ url }) =>
+      captureInitialAuthUrl(url),
+    );
+    return () => listener.remove();
+  }, []);
+  useEffect(() => {
+    if (privacy.loaded && !privacyAllowsApp(Platform.OS === "web"))
+      stopSupabase();
+  }, [privacy]);
+  if (path.startsWith("/legal/"))
+    return (
+      <ThemeProvider value={appearance.dark ? DarkTheme : DefaultTheme}>
+        <SafeAreaProvider style={{ backgroundColor: colors.bg }}>
+          <Stack
+            screenOptions={{
+              headerTintColor: colors.navy,
+              headerStyle: { backgroundColor: colors.bg },
+              contentStyle: { backgroundColor: colors.bg },
+            }}
+          />
+        </SafeAreaProvider>
+      </ThemeProvider>
+    );
+  if (!privacy.loaded || !privacyAllowsApp(Platform.OS === "web"))
+    return (
+      <SafeAreaProvider style={{ backgroundColor: colors.bg }}>
+        <StatusBar style={appearance.dark ? "light" : "dark"} />
+        {!privacy.loaded ? (
+          <View style={{ flex: 1, justifyContent: "center" }}>
+            <ActivityIndicator color={colors.navy} />
+          </View>
+        ) : (
+          <ScrollView
+            style={{ backgroundColor: colors.bg }}
+            contentContainerStyle={{
+              padding: 22,
+              paddingTop: 56,
+              paddingBottom: 40,
+              width: "100%",
+              maxWidth: 560,
+              alignSelf: "center",
+            }}
+          >
+            <PrivacyPreferences
+              key={privacy.preferences?.acknowledgedAt ?? "new"}
+            />
+          </ScrollView>
+        )}
+      </SafeAreaProvider>
+    );
+  return <ConnectedLayout />;
+}
+function ConnectedLayout() {
+  useState(() => initializeSupabase());
+  const appearance = useAppearance();
+
+  useEffect(() => {
+    return () => {
+      void client.cancelQueries();
+      client.clear();
+    };
   }, []);
   const baseTheme = appearance.dark ? DarkTheme : DefaultTheme;
   const navigationTheme = {
@@ -68,6 +154,7 @@ export default function Layout() {
             <StatusBar style={appearance.dark ? "light" : "dark"} />
             <ChatSync />
             <NotificationSync />
+            <PrivacySync />
             <View
               testID="app-surface"
               style={{

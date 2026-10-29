@@ -209,6 +209,7 @@ export function useChatRealtime(id?: string, enabled = true) {
     cache = useQueryClient();
   useEffect(() => {
     if (!session || !enabled) return;
+    const connection = db();
     let channel: ReturnType<ReturnType<typeof db>["channel"]> | undefined;
     const refresh = () => {
       // An inbox event must not reload every room and every history page.
@@ -236,7 +237,7 @@ export function useChatRealtime(id?: string, enabled = true) {
         table: "chat_messages",
         ...(id ? { filter: `room_id=eq.${id}` } : {}),
       };
-      channel = db()
+      channel = connection
         .channel(`chat-${session.user.id}-${id ?? "inbox"}`)
         .on("postgres_changes", { ...filter, event: "INSERT" }, refresh)
         .on("postgres_changes", { ...filter, event: "UPDATE" }, refresh)
@@ -252,7 +253,7 @@ export function useChatRealtime(id?: string, enabled = true) {
     const disconnect = () => {
       setConnectedChannel(null);
       if (channel) {
-        void db().removeChannel(channel);
+        void connection.removeChannel(channel);
         channel = undefined;
       }
     };

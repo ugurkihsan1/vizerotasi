@@ -2,8 +2,24 @@ import countryGuideFixtures from "../../src/content/country-guides.json";
 import spainFixture from "../../src/content/spain-tourism.json";
 import { test, expect, type Page } from "@playwright/test";
 import levels from "../../src/content/community-levels.json";
+import { privacyVersion, transferVersion } from "../../src/content/legal";
 // Deterministic UI tests use transport fixtures only; the shipped app uses real Supabase.
 async function fixtures(page: Page, firstVisit = false) {
+  await page.addInitScript(
+    ({ privacyVersion, transferVersion }) =>
+      localStorage.setItem(
+        "vizesel-privacy-preferences-v1",
+        JSON.stringify({
+          privacyVersion,
+          transferVersion,
+          supabase: true,
+          google: true,
+          github: true,
+          acknowledgedAt: new Date().toISOString(),
+        }),
+      ),
+    { privacyVersion, transferVersion },
+  );
   await page.routeWebSocket(/supabase\.co/, (socket) => socket.close());
   if (!firstVisit)
     await page.addInitScript(() =>
@@ -824,7 +840,7 @@ test("signup photo stays local through email confirmation and uploads only after
     .click();
   await page
     .getByRole("switch", {
-      name: "Gizlilik politikasını kabul ediyorum",
+      name: "Gizlilik metnini okudum",
       exact: true,
     })
     .click();
@@ -3433,7 +3449,7 @@ async function fillSignup(page: Page) {
     .click();
   await page
     .getByRole("switch", {
-      name: "Gizlilik politikasını kabul ediyorum",
+      name: "Gizlilik metnini okudum",
       exact: true,
     })
     .click();

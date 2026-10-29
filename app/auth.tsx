@@ -34,8 +34,22 @@ import {
   clearInitialAuthUrl,
 } from "../src/lib/supabase";
 import { signupSchema } from "../src/lib/schemas";
+import { termsVersion } from "../src/content/legal";
+import { allowsAccountEmail, getPrivacyState } from "../src/lib/privacy";
+import {
+  LegalTextModal,
+  PrivacyPreferences,
+} from "../src/components/PrivacyPreferences";
+import type { LegalDocumentId } from "../src/content/legal";
 import { authErrorMessage } from "../src/lib/auth-errors";
-import { styles, Button, Field, Message, colors } from "../src/components/ui";
+import {
+  styles,
+  Button,
+  Field,
+  Message,
+  colors,
+  Sheet,
+} from "../src/components/ui";
 type AuthValues = {
   email: string;
   password: string;
@@ -52,7 +66,7 @@ const signupFieldMessages = {
   email: "Geçerli bir e-posta adresi yaz.",
   password: "En az 8 karakter kullan.",
   terms: "Kullanım koşullarını kabul etmelisin.",
-  privacy: "Gizlilik politikasını kabul etmelisin.",
+  privacy: "Gizlilik metnini okuduğunu belirtmelisin.",
 };
 
 export default function Auth() {
@@ -70,7 +84,7 @@ export default function Auth() {
   const [callbackDismissed, setCallbackDismissed] = useState(false);
   const callbackSource = callbackDismissed
     ? null
-    : Platform.OS === "web" && parseAuthCallback(initialAuthUrl)
+    : parseAuthCallback(initialAuthUrl)
       ? initialAuthUrl
       : callbackUrl;
   const initialCallback = parseAuthCallback(callbackSource);
@@ -83,6 +97,10 @@ export default function Auth() {
   const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const [sent, setSent] = useState(false);
   const [photo, setPhoto] = useState<AvatarDraft | null>(null);
+  const [legalDocument, setLegalDocument] = useState<LegalDocumentId | null>(
+    null,
+  );
+  const [emailPreferences, setEmailPreferences] = useState(false);
   const cache = useQueryClient();
   const {
     control,
@@ -211,6 +229,12 @@ export default function Auth() {
     setMessage("");
     clearErrors();
     try {
+      if ((mode === "signup" || mode === "forgot") && !allowsAccountEmail()) {
+        setMessage(
+          "E-posta göndermek için Ayarlar → Gizlilik ve izinler bölümünden Google/Gmail tercihini açmalısın.",
+        );
+        return;
+      }
       if (mode === "signup") {
         const parsed = signupSchema.safeParse({
           ...v,
@@ -255,6 +279,11 @@ export default function Auth() {
               username: value.username,
               terms_accepted: true,
               privacy_accepted: true,
+              legal_preferences: {
+                ...getPrivacyState().preferences,
+                termsVersion,
+                source: Platform.OS === "web" ? "web" : "native",
+              },
             },
             emailRedirectTo: redirect(),
           },
@@ -690,7 +719,7 @@ export default function Auth() {
                             accessibilityLabel={
                               name === "terms"
                                 ? "Kullanım koşullarını kabul ediyorum"
-                                : "Gizlilik politikasını kabul ediyorum"
+                                : "Gizlilik metnini okudum"
                             }
                             value={value}
                             onValueChange={onChange}
@@ -698,7 +727,7 @@ export default function Auth() {
                           <Text style={[styles.muted, { flex: 1 }]}>
                             {name === "terms"
                               ? "Kullanım koşullarını kabul ediyorum."
-                              : "Gizlilik politikasını kabul ediyorum."}
+                              : "Gizlilik metnini okudum."}
                           </Text>
                         </View>
                         {errors[name] && (
@@ -712,15 +741,48 @@ export default function Auth() {
                 ))}
                 <Pressable
                   accessibilityRole="link"
-                  onPress={() => router.push("/settings")}
+                  onPress={() => setLegalDocument("terms")}
                   style={{ minHeight: 44, justifyContent: "center" }}
                 >
                   <Text style={[styles.muted, { color: colors.blue }]}>
-                    Koşullar ve gizlilik hakkında
+                    Kullanım koşullarını oku
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="link"
+                  onPress={() => setLegalDocument("privacy")}
+                  style={{ minHeight: 44, justifyContent: "center" }}
+                >
+                  <Text
+                    style={[styles.muted, { textDecorationLine: "underline" }]}
+                  >
+                    Gizlilik metnini oku
                   </Text>
                 </Pressable>
               </View>
             )}
+            <LegalTextModal
+              document={legalDocument}
+              onClose={() => setLegalDocument(null)}
+            />
+            {(mode === "signup" || mode === "forgot") &&
+              !allowsAccountEmail() && (
+                <Button
+                  secondary
+                  label="E-posta tercihini yönet"
+                  onPress={() => setEmailPreferences(true)}
+                />
+              )}
+            <Sheet
+              visible={emailPreferences}
+              onClose={() => setEmailPreferences(false)}
+              title="E-posta tercihi"
+            >
+              <PrivacyPreferences
+                management
+                onSaved={() => setEmailPreferences(false)}
+              />
+            </Sheet>
             <Message text={message} />
             <Button
               label={
