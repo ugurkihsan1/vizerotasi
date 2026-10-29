@@ -56,7 +56,7 @@ export function getPrivacyState() {
   return state;
 }
 export function privacyAllowsApp(web: boolean) {
-  return !state.preferences || (state.preferences.supabase && (!web || state.preferences.github));
+  return !!state.preferences?.supabase && (!web || state.preferences.github);
 }
 export function usePrivacyPreferences() {
   return useSyncExternalStore(
@@ -120,5 +120,5 @@ export function makePrivacyPreferences(
   };
 }
 export function allowsAccountEmail() {
-  return state.preferences?.google !== false;
+  return state.preferences?.google === true;
 }
