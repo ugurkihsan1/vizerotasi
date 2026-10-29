@@ -87,6 +87,7 @@ export const signupSchema = z.object({
   password: z.string().min(8),
   terms: z.literal(true),
   privacy: z.literal(true),
+  transfer: z.literal(true),
 });
 export const privacyWarning =
   "Pasaport, T.C. kimlik, telefon, açık adres veya banka hesap bilgilerini paylaşma.";
