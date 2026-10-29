@@ -1,40 +1,13 @@
-import { useAppearance, themeColor, textSize } from "../lib/appearance";
-import { View, Text } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { colors } from "./ui";
-export function Brand() {
-  useAppearance();
+import { Image, View } from "react-native";
 
+export function Brand() {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-      <View
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: 12,
-          backgroundColor: themeColor("#182E43", "surface"),
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Ionicons
-          name="navigate"
-          size={19}
-          color={themeColor("#D8F0E9", "text")}
-        />
-      </View>
-      <View>
-        <Text
-          style={{
-            fontWeight: "800",
-            fontSize: textSize(18),
-            letterSpacing: -0.6,
-            color: colors.navy,
-          }}
-        >
-          Vizesel<Text style={{ color: colors.blue }}>・</Text>
-        </Text>
-      </View>
+    <View style={{ justifyContent: "center" }}>
+      <Image
+        source={require("../../assets/brand/vizesel-logo-hd.png")}
+        accessibilityLabel="Vizesel"
+        style={{ width: 112, height: 66, resizeMode: "contain" }}
+      />
     </View>
   );
 }
