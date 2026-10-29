@@ -1,14 +1,10 @@
 import { NotificationSync } from "../src/components/NotificationSync";
-import { PrivacyPreferences } from "../src/components/PrivacyPreferences";
 import { PrivacySync } from "../src/components/PrivacySync";
 import {
   loadPrivacyPreferences,
-  privacyAllowsApp,
-  usePrivacyPreferences,
 } from "../src/lib/privacy";
 import {
   initializeSupabase,
-  stopSupabase,
   captureInitialAuthUrl,
 } from "../src/lib/supabase";
 import * as Linking from "expo-linking";
@@ -22,7 +18,7 @@ import {
 import { useEffect, useState } from "react";
 
 import { ChatSync } from "../src/components/ChatEntry";
-import { ActivityIndicator, Platform, ScrollView, View } from "react-native";
+import { Platform, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
@@ -46,7 +42,6 @@ const persister = createAsyncStoragePersister({
 });
 export default function Layout() {
   const appearance = useAppearance();
-  const privacy = usePrivacyPreferences();
   const path = usePathname();
   useEffect(() => {
     void loadAppearance();
@@ -60,10 +55,6 @@ export default function Layout() {
     );
     return () => listener.remove();
   }, []);
-  useEffect(() => {
-    if (privacy.loaded && !privacyAllowsApp(Platform.OS === "web"))
-      stopSupabase();
-  }, [privacy]);
   if (path.startsWith("/legal/"))
     return (
       <ThemeProvider value={appearance.dark ? DarkTheme : DefaultTheme}>
@@ -77,33 +68,6 @@ export default function Layout() {
           />
         </SafeAreaProvider>
       </ThemeProvider>
-    );
-  if (!privacy.loaded || !privacyAllowsApp(Platform.OS === "web"))
-    return (
-      <SafeAreaProvider style={{ backgroundColor: colors.bg }}>
-        <StatusBar style={appearance.dark ? "light" : "dark"} />
-        {!privacy.loaded ? (
-          <View style={{ flex: 1, justifyContent: "center" }}>
-            <ActivityIndicator color={colors.navy} />
-          </View>
-        ) : (
-          <ScrollView
-            style={{ backgroundColor: colors.bg }}
-            contentContainerStyle={{
-              padding: 22,
-              paddingTop: 56,
-              paddingBottom: 40,
-              width: "100%",
-              maxWidth: 560,
-              alignSelf: "center",
-            }}
-          >
-            <PrivacyPreferences
-              key={privacy.preferences?.acknowledgedAt ?? "new"}
-            />
-          </ScrollView>
-        )}
-      </SafeAreaProvider>
     );
   return <ConnectedLayout />;
 }
