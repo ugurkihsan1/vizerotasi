@@ -78,31 +78,37 @@ export default function Layout() {
         </SafeAreaProvider>
       </ThemeProvider>
     );
-  if (!privacy.loaded || !privacyAllowsApp(Platform.OS === "web"))
+  // No first-launch legal pop-up: visitors can use the public app immediately.
+  if (!privacy.loaded)
     return (
       <SafeAreaProvider style={{ backgroundColor: colors.bg }}>
         <StatusBar style={appearance.dark ? "light" : "dark"} />
-        {!privacy.loaded ? (
-          <View style={{ flex: 1, justifyContent: "center" }}>
-            <ActivityIndicator color={colors.navy} />
-          </View>
-        ) : (
-          <ScrollView
-            style={{ backgroundColor: colors.bg }}
-            contentContainerStyle={{
-              padding: 22,
-              paddingTop: 56,
-              paddingBottom: 40,
-              width: "100%",
-              maxWidth: 560,
-              alignSelf: "center",
-            }}
-          >
-            <PrivacyPreferences
-              key={privacy.preferences?.acknowledgedAt ?? "new"}
-            />
-          </ScrollView>
-        )}
+        <View style={{ flex: 1, justifyContent: "center" }}>
+          <ActivityIndicator color={colors.navy} />
+        </View>
+      </SafeAreaProvider>
+    );
+  // A user who explicitly refused or withdrew remains offline until changing
+  // that decision. This is not displayed to first-time visitors.
+  if (privacy.preferences && !privacyAllowsApp(Platform.OS === "web"))
+    return (
+      <SafeAreaProvider style={{ backgroundColor: colors.bg }}>
+        <StatusBar style={appearance.dark ? "light" : "dark"} />
+        <ScrollView
+          style={{ backgroundColor: colors.bg }}
+          contentContainerStyle={{
+            padding: 22,
+            paddingTop: 56,
+            paddingBottom: 40,
+            width: "100%",
+            maxWidth: 560,
+            alignSelf: "center",
+          }}
+        >
+          <PrivacyPreferences
+            key={privacy.preferences.acknowledgedAt}
+          />
+        </ScrollView>
       </SafeAreaProvider>
     );
   return <ConnectedLayout />;
