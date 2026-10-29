@@ -34,10 +34,11 @@ import {
   clearInitialAuthUrl,
 } from "../src/lib/supabase";
 import { signupSchema } from "../src/lib/schemas";
-import { termsVersion, privacyVersion, transferVersion } from "../src/content/legal";
-import { getPrivacyState, makePrivacyPreferences, savePrivacyPreferences } from "../src/lib/privacy";
+import { termsVersion } from "../src/content/legal";
+import { allowsAccountEmail, getPrivacyState } from "../src/lib/privacy";
 import {
   LegalTextModal,
+  PrivacyPreferences,
 } from "../src/components/PrivacyPreferences";
 import type { LegalDocumentId } from "../src/content/legal";
 import { authErrorMessage } from "../src/lib/auth-errors";
@@ -56,7 +57,6 @@ type AuthValues = {
   username: string;
   terms: boolean;
   privacy: boolean;
-  transfer: boolean;
 };
 type Mode = "login" | "signup" | "forgot" | "reset";
 type Confirmation = "checking" | "verified" | "error" | null;
@@ -66,8 +66,7 @@ const signupFieldMessages = {
   email: "Geçerli bir e-posta adresi yaz.",
   password: "En az 8 karakter kullan.",
   terms: "Kullanım koşullarını kabul etmelisin.",
-  privacy: "Gizlilik ve aydınlatma metnini okuduğunu belirtmelisin.",
-  transfer: "Açık rıza metnini kabul etmelisin.",
+  privacy: "Gizlilik metnini okuduğunu belirtmelisin.",
 };
 
 export default function Auth() {
@@ -101,6 +100,7 @@ export default function Auth() {
   const [legalDocument, setLegalDocument] = useState<LegalDocumentId | null>(
     null,
   );
+  const [emailPreferences, setEmailPreferences] = useState(false);
   const cache = useQueryClient();
   const {
     control,
@@ -118,7 +118,6 @@ export default function Auth() {
       username: "",
       terms: false,
       privacy: false,
-      transfer: false,
     },
   });
   useEffect(() => {
@@ -230,6 +229,12 @@ export default function Auth() {
     setMessage("");
     clearErrors();
     try {
+      if ((mode === "signup" || mode === "forgot") && !allowsAccountEmail()) {
+        setMessage(
+          "E-posta göndermek için Ayarlar → Gizlilik ve izinler bölümünden Google/Gmail tercihini açmalısın.",
+        );
+        return;
+      }
       if (mode === "signup") {
         const parsed = signupSchema.safeParse({
           ...v,
@@ -274,16 +279,9 @@ export default function Auth() {
               username: value.username,
               terms_accepted: true,
               privacy_accepted: true,
-              transfer_consent_accepted: true,
               legal_preferences: {
                 ...getPrivacyState().preferences,
-                privacyVersion,
-                transferVersion,
                 termsVersion,
-                supabase: true,
-                google: true,
-                github: Platform.OS === "web",
-                acknowledgedAt: new Date().toISOString(),
                 source: Platform.OS === "web" ? "web" : "native",
               },
             },
@@ -303,13 +301,6 @@ export default function Auth() {
           }
           throw r.error;
         }
-        await savePrivacyPreferences(
-          makePrivacyPreferences({
-            supabase: true,
-            google: true,
-            github: Platform.OS === "web",
-          }),
-        ).catch(() => {});
         let photoNotice = "";
         if (photo && r.data.user) {
           try {
@@ -716,7 +707,7 @@ export default function Auth() {
             )}
             {mode === "signup" && signupStep === 2 && (
               <View style={{ gap: 12 }}>
-                {(["terms", "privacy", "transfer"] as const).map((name) => (
+                {(["terms", "privacy"] as const).map((name) => (
                   <Controller
                     key={name}
                     control={control}
@@ -728,9 +719,7 @@ export default function Auth() {
                             accessibilityLabel={
                               name === "terms"
                                 ? "Kullanım koşullarını kabul ediyorum"
-                                : name === "privacy"
-                                  ? "Gizlilik metnini okudum"
-                                  : "Açık rıza metnini kabul ediyorum"
+                                : "Gizlilik metnini okudum"
                             }
                             value={value}
                             onValueChange={onChange}
@@ -738,9 +727,7 @@ export default function Auth() {
                           <Text style={[styles.muted, { flex: 1 }]}>
                             {name === "terms"
                               ? "Kullanım koşullarını kabul ediyorum."
-                              : name === "privacy"
-                                ? "Gizlilik ve aydınlatma metnini okudum."
-                                : "Yurt dışına veri aktarımı açık rıza metnini okudum ve kabul ediyorum."}
+                              : "Gizlilik metnini okudum."}
                           </Text>
                         </View>
                         {errors[name] && (
@@ -772,19 +759,30 @@ export default function Auth() {
                     Gizlilik metnini oku
                   </Text>
                 </Pressable>
-                <Pressable
-                  accessibilityRole="link"
-                  onPress={() => setLegalDocument("transfer")}
-                  style={{ minHeight: 44, justifyContent: "center" }}
-                >
-                  <Text style={[styles.muted, { color: colors.blue }]}>Açık rıza metnini oku</Text>
-                </Pressable>
               </View>
             )}
             <LegalTextModal
               document={legalDocument}
               onClose={() => setLegalDocument(null)}
             />
+            {(mode === "signup" || mode === "forgot") &&
+              !allowsAccountEmail() && (
+                <Button
+                  secondary
+                  label="E-posta tercihini yönet"
+                  onPress={() => setEmailPreferences(true)}
+                />
+              )}
+            <Sheet
+              visible={emailPreferences}
+              onClose={() => setEmailPreferences(false)}
+              title="E-posta tercihi"
+            >
+              <PrivacyPreferences
+                management
+                onSaved={() => setEmailPreferences(false)}
+              />
+            </Sheet>
             <Message text={message} />
             <Button
               label={
