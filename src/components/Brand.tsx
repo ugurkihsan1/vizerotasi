@@ -11,7 +11,7 @@ export function Brand({ cover = false }: { cover?: boolean }) {
       style={{
         flexDirection: cover ? "column" : "row",
         alignItems: "center",
-        alignSelf: cover ? "center" : "flex-start",
+        alignSelf: cover ? "center" : "auto",
         gap: cover ? 14 : 7,
       }}
     >
