@@ -416,7 +416,7 @@ export default function Auth() {
           },
         ]}
       >
-        <Brand />
+        <Brand cover />
         <View
           style={[styles.card, { padding: 28, gap: 18, alignItems: "center" }]}
         >
@@ -483,7 +483,7 @@ export default function Auth() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={{ paddingBottom: 8 }}>
-          <Brand />
+          <Brand cover />
         </View>
         <View style={{ gap: 8 }}>
           <Text style={styles.title}>

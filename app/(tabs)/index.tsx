@@ -1,7 +1,10 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Brand } from "../../src/components/Brand";
+import { MessagesEntry } from "../../src/components/ChatEntry";
 import { useAppearance, textSize } from "../../src/lib/appearance";
 import { useAuth } from "../../src/lib/auth";
-import { useState } from "react";
-import { ScrollView, View, Pressable, Text } from "react-native";
+import { useRef, useState } from "react";
+import { ScrollView, View, Pressable, Text, Animated, type NativeSyntheticEvent, type NativeScrollEvent } from "react-native";
 import { router } from "expo-router";
 import { Feed } from "../../src/components/Feed";
 import { Onboarding } from "../../src/components/Onboarding";
@@ -12,6 +15,20 @@ export default function Home() {
   useAppearance();
 
   const { session } = useAuth();
+  const insets = useSafeAreaInsets();
+  const [headerY] = useState(() => new Animated.Value(0));
+  const lastOffset = useRef(0);
+  const hidden = useRef(false);
+  const onFeedScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const y = Math.max(0, event.nativeEvent.contentOffset.y);
+    const delta = y - lastOffset.current;
+    lastOffset.current = y;
+    if (Math.abs(delta) < 0.5) return;
+    const next = y > 56 && delta > 0;
+    if (next === hidden.current) return;
+    hidden.current = next;
+    Animated.timing(headerY, { toValue: next ? -60 : 0, duration: 150, useNativeDriver: true }).start();
+  };
   const [scope, setScope] = useState("Tümü"),
     groups = useGroups();
   const followedGroups = groups.data?.filter(
@@ -79,11 +96,12 @@ export default function Home() {
   );
   const general = ["Tümü", "Deneyimler", "Sorular"].includes(scope);
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, paddingTop: insets.top }}>
       {general ? (
         <Feed
           key={scope}
           homeTabs={tabs}
+          onScroll={onFeedScroll}
           homeKind={
             scope === "Deneyimler"
               ? "experience"
@@ -93,13 +111,17 @@ export default function Home() {
           }
         />
       ) : (
-        <GroupScreen
+        <View style={{ flex: 1, paddingTop: 56 }}><GroupScreen
           onDeleted={() => setScope("Tümü")}
           key={`${scope}:${session?.user.id ?? "guest"}`}
           id={scope}
           top={tabs}
-        />
+        /></View>
       )}
+      <Animated.View style={{ position: "absolute", top: insets.top, left: 0, right: 0, height: 56, backgroundColor: colors.bg, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", transform: [{ translateY: general ? headerY : 0 }] }}>
+        <Brand />
+        <MessagesEntry />
+      </Animated.View>
       <Onboarding />
     </View>
   );

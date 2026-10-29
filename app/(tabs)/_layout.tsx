@@ -1,6 +1,5 @@
 import { useAppearance, themeColor, textSize } from "../../src/lib/appearance";
 import { MessagesEntry } from "../../src/components/ChatEntry";
-import { Brand } from "../../src/components/Brand";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs, router } from "expo-router";
 import { Pressable, Text, View } from "react-native";
@@ -36,7 +35,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Akış",
-          headerTitle: () => <Brand />,
+          headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "home" : "home-outline"}

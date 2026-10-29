@@ -1,11 +1,10 @@
 import { useAppearance, textSize } from "../lib/appearance";
 import { ApplicationOverview } from "./ApplicationOverview";
 import {
-  HomeWelcome,
   OwnSubmissionNotice,
   CommunityEmpty,
 } from "./HomeSections";
-import { FlatList, View, Text, Pressable } from "react-native";
+import { FlatList, View, Text, Pressable, type NativeSyntheticEvent, type NativeScrollEvent } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useMemo, useState, useEffect, type ReactElement } from "react";
@@ -27,6 +26,7 @@ import {
 } from "./ui";
 export function Feed({
   homeTabs,
+  onScroll,
   homeKind,
   country,
   author,
@@ -37,6 +37,7 @@ export function Feed({
   contentOnly = false,
 }: {
   homeTabs?: ReactElement;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   homeKind?: "experience" | "question";
   country?: string;
   author?: string;
@@ -115,7 +116,6 @@ export function Feed({
       {header}
       {primary && (
         <View style={{ gap: 18 }}>
-          {!header && <HomeWelcome />}
           {!header && <ApplicationOverview />}
           {!header && <OwnSubmissionNotice />}
         </View>
@@ -190,11 +190,13 @@ export function Feed({
   return (
     <>
       <FlatList
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         initialNumToRender={PAGE_SIZE}
         maxToRenderPerBatch={PAGE_SIZE}
         windowSize={9}
         style={styles.page}
-        contentContainerStyle={{ padding: 16, paddingBottom: 32, gap: 12 }}
+        contentContainerStyle={{ padding: 16, paddingTop: onScroll ? 72 : 16, paddingBottom: 32, gap: 12 }}
         data={contentOnly ? [] : posts}
         keyExtractor={(p) => p.id}
         renderItem={({ item }) => <PostCard post={item} />}
