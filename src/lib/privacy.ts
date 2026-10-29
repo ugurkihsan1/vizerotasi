@@ -55,8 +55,14 @@ export function parsePrivacyPreferences(
 export function getPrivacyState() {
   return state;
 }
+/**
+ * Public browsing does not require a signup decision. An explicitly saved
+ * refusal/withdrawal continues to block the remote SDK on this device.
+ * Account creation has its own required, unchecked legal choices.
+ */
 export function privacyAllowsApp(web: boolean) {
-  return !!state.preferences?.supabase && (!web || state.preferences.github);
+  const saved = state.preferences;
+  return !saved || (saved.supabase && (!web || saved.github));
 }
 export function usePrivacyPreferences() {
   return useSyncExternalStore(
@@ -120,5 +126,7 @@ export function makePrivacyPreferences(
   };
 }
 export function allowsAccountEmail() {
-  return state.preferences?.google === true;
+  // No account-related email choice has been made on a first visit. Signup
+  // records it explicitly at the end of the flow, not here.
+  return state.preferences?.google !== false;
 }
