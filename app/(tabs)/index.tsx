@@ -18,16 +18,13 @@ export default function Home() {
   const insets = useSafeAreaInsets();
   const [headerY] = useState(() => new Animated.Value(0));
   const lastOffset = useRef(0);
-  const hidden = useRef(false);
+  const hiddenDistance = useRef(0);
   const onFeedScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = Math.max(0, event.nativeEvent.contentOffset.y);
     const delta = y - lastOffset.current;
     lastOffset.current = y;
-    if (Math.abs(delta) < 0.5) return;
-    const next = y > 56 && delta > 0;
-    if (next === hidden.current) return;
-    hidden.current = next;
-    Animated.timing(headerY, { toValue: next ? -60 : 0, duration: 150, useNativeDriver: true }).start();
+    hiddenDistance.current = y <= 0 ? 0 : Math.max(0, Math.min(56, hiddenDistance.current + delta));
+    headerY.setValue(-hiddenDistance.current);
   };
   const [scope, setScope] = useState("Tümü"),
     groups = useGroups();
