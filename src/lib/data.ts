@@ -6,6 +6,7 @@ import {
   useQuery,
   useQueryClient,
   useMutation,
+  type InfiniteData,
 } from "@tanstack/react-query";
 import { db, configured } from "./supabase";
 import { useAuth } from "./auth";
@@ -70,6 +71,11 @@ export function useFeed(filter: FeedFilter = {}, enabled = true) {
       configured &&
       enabled &&
       (!filter.prioritizeFollowed || !follows.isPending),
+    // A feed changes only when the reader refreshes or requests another page.
+    staleTime: Infinity,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     initialPageParam: {
       phase: priority.length ? "followed" : "others",
       offset: 0,
@@ -259,9 +265,29 @@ export function useToggle(
       return { old };
     },
     onError: (_e, _v, c) => cache.setQueryData(queryKey, c?.old),
+    onSuccess: (_data, next, context) => {
+      if (table !== "helpful_votes" || column !== "post_id") return;
+      const delta = Number(next) - Number(context?.old ?? false);
+      const update = (post: Post) =>
+        post.id === target
+          ? { ...post, helpful_count: Math.max(0, post.helpful_count + delta) }
+          : post;
+      cache.setQueriesData<InfiniteData<Post[]>>(
+        { queryKey: ["feed"] },
+        (data) =>
+          data && {
+            ...data,
+            pages: data.pages.map((page) => page.map(update)),
+          },
+      );
+      cache.setQueriesData<Post>(
+        { queryKey: ["post", target] },
+        (post) => post && update(post),
+      );
+    },
     onSettled: () => {
       cache.invalidateQueries({ queryKey });
-      cache.invalidateQueries({ queryKey: ["feed"] });
+      cache.invalidateQueries({ queryKey: ["feed"], refetchType: "none" });
       cache.invalidateQueries({ queryKey: ["post"] });
       cache.invalidateQueries({ queryKey: ["follows"] });
       cache.invalidateQueries({ queryKey: ["chat"] });

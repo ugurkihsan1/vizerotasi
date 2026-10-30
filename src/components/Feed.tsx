@@ -1,16 +1,21 @@
 import { useAppearance, textSize } from "../lib/appearance";
 import { ApplicationOverview } from "./ApplicationOverview";
+import { OwnSubmissionNotice, CommunityEmpty } from "./HomeSections";
 import {
-  OwnSubmissionNotice,
-  CommunityEmpty,
-} from "./HomeSections";
-import { FlatList, View, Text, Pressable, type NativeSyntheticEvent, type NativeScrollEvent } from "react-native";
+  FlatList,
+  View,
+  Text,
+  Pressable,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useMemo, useState, useEffect, type ReactElement } from "react";
 import { useFeed, useFollows, PAGE_SIZE, type FeedFilter } from "../lib/data";
 import { useAuth } from "../lib/auth";
 import { rankFeed } from "../lib/ranking";
+import { retainFeedOrder } from "../lib/feed-order";
 import { configured } from "../lib/supabase";
 import { PostCard } from "./PostCard";
 import {
@@ -64,33 +69,63 @@ export function Feed({
     Number(!!city) +
     Number(!!result) +
     Number(critical);
-  const query = useFeed(
-    {
-      ...baseFilter,
-      prioritizeFollowed: !country && !author && !saved && !search,
-      country,
-      author,
-      saved,
-      search,
-      first,
-      employment: employment || undefined,
-      city: city || undefined,
-      kind: critical
-        ? "tip"
-        : selected === "Deneyimler"
-          ? "experience"
-          : selected === "Sorular"
-            ? "question"
-            : (homeKind ?? baseFilter.kind),
-      result: result || baseFilter.result,
-    },
-    !contentOnly,
-  );
+  const filter: FeedFilter = {
+    ...baseFilter,
+    prioritizeFollowed: !country && !author && !saved && !search,
+    country,
+    author,
+    saved,
+    search,
+    first,
+    employment: employment || undefined,
+    city: city || undefined,
+    kind: critical
+      ? "tip"
+      : selected === "Deneyimler"
+        ? "experience"
+        : selected === "Sorular"
+          ? "question"
+          : (homeKind ?? baseFilter.kind),
+    result: result || baseFilter.result,
+  };
+  const query = useFeed(filter, !contentOnly);
   const { data: follows } = useFollows();
-  const posts = useMemo(() => {
+  const ranked = useMemo(() => {
     const items = query.data?.pages.flat() ?? [];
     return newest ? items : rankFeed(items, follows ?? []);
   }, [query.data, newest, follows]);
+  const [refreshVersion, setRefreshVersion] = useState(0);
+  const scope = JSON.stringify([
+    filter,
+    session?.user.id,
+    newest,
+    refreshVersion,
+  ]);
+  const pageCount = query.data?.pages.length ?? 0;
+  const [order, setOrder] = useState({
+    scope,
+    pageCount: 0,
+    ids: [] as string[],
+  });
+  const ids = retainFeedOrder(
+    order.scope === scope ? order.ids : [],
+    ranked,
+    order.scope !== scope || pageCount > order.pageCount || !order.ids.length,
+  );
+  if (
+    order.scope !== scope ||
+    order.pageCount !== pageCount ||
+    ids.length !== order.ids.length ||
+    ids.some((id, i) => id !== order.ids[i])
+  ) {
+    setOrder({ scope, pageCount, ids });
+  }
+  const byId = new Map(ranked.map((post) => [post.id, post]));
+  const posts = ids.map((id) => byId.get(id)!);
+  const refresh = async () => {
+    const result = await query.refetch();
+    if (!result.isError) setRefreshVersion((version) => version + 1);
+  };
   const { isPending, isError, hasNextPage, isFetchingNextPage, fetchNextPage } =
     query;
   useEffect(() => {
@@ -196,7 +231,12 @@ export function Feed({
         maxToRenderPerBatch={PAGE_SIZE}
         windowSize={9}
         style={styles.page}
-        contentContainerStyle={{ padding: 16, paddingTop: onScroll ? 56 : 16, paddingBottom: 32, gap: 12 }}
+        contentContainerStyle={{
+          padding: 16,
+          paddingTop: onScroll ? 56 : 16,
+          paddingBottom: 32,
+          gap: 12,
+        }}
         data={contentOnly ? [] : posts}
         keyExtractor={(p) => p.id}
         renderItem={({ item }) => <PostCard post={item} />}
@@ -247,7 +287,7 @@ export function Feed({
           )
         }
         refreshing={query.isRefetching}
-        onRefresh={() => void query.refetch()}
+        onRefresh={() => void refresh()}
         onEndReached={() => {
           if (!contentOnly && query.hasNextPage && !query.isFetchingNextPage)
             void query.fetchNextPage();
