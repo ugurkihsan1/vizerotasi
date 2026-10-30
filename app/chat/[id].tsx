@@ -432,6 +432,51 @@ function ChatRoomScreen({ id }: { id: string }) {
       <Stack.Screen
         options={{
           title: roomTitle,
+          headerBackButtonDisplayMode: "minimal",
+          headerTitleAlign: room.data.kind === "direct" ? "left" : "center",
+          headerTitle:
+            room.data.kind === "direct"
+              ? () => (
+                  <View
+                    testID="chat-header-person"
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                      maxWidth: 230,
+                    }}
+                  >
+                    <Avatar
+                      name={roomTitle}
+                      url={other?.profiles?.avatar_url}
+                      size={34}
+                    />
+                    <View style={{ flexShrink: 1, gap: 1 }}>
+                      <Text
+                        numberOfLines={1}
+                        style={{
+                          color: colors.navy,
+                          fontSize: textSize(15),
+                          fontWeight: "600",
+                        }}
+                      >
+                        {roomTitle}
+                      </Text>
+                      {!!other?.profiles?.username && (
+                        <Text
+                          numberOfLines={1}
+                          style={{
+                            color: colors.muted,
+                            fontSize: textSize(11),
+                          }}
+                        >
+                          @{other.profiles.username}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                )
+              : undefined,
           headerRight: () => (
             <Pressable
               accessibilityRole="button"
