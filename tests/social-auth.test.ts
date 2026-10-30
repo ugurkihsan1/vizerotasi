@@ -11,6 +11,10 @@ const mocks = vi.hoisted(() => ({
   apple: vi.fn(),
   available: vi.fn(),
   digest: vi.fn(),
+  nativeGoogle: vi.fn(),
+}));
+vi.mock("../src/lib/native-google", () => ({
+  nativeGoogleIdToken: mocks.nativeGoogle,
 }));
 vi.mock("react-native", () => ({ Platform: mocks.platform }));
 vi.mock("expo-linking", () => ({
@@ -45,6 +49,7 @@ vi.mock("../src/lib/supabase", () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.platform.OS = "ios";
+  mocks.nativeGoogle.mockResolvedValue("native-google-id-token");
   mocks.available.mockResolvedValue(true);
   mocks.digest.mockResolvedValue("hashed-nonce");
   mocks.apple.mockResolvedValue({
@@ -91,37 +96,38 @@ it("does not sign in after Apple cancellation or a mismatched state", async () =
   expect(mocks.idToken).not.toHaveBeenCalled();
 });
 
-it("completes Google in the system authentication browser and persists its session", async () => {
+it("completes native Google without opening Supabase in an authentication browser", async () => {
   expect(await signInSocial("google")).toBe("signed-in");
-  expect(mocks.oauth).toHaveBeenCalledWith({
+  expect(mocks.idToken).toHaveBeenCalledWith({
     provider: "google",
-    options: {
-      redirectTo: "vizerotasi://auth?oauth=1",
-      skipBrowserRedirect: true,
-      queryParams: { prompt: "select_account" },
-    },
+    token: "native-google-id-token",
   });
-  expect(mocks.setSession).toHaveBeenCalledWith({
-    access_token: "access",
-    refresh_token: "refresh",
-  });
+  expect(mocks.oauth).not.toHaveBeenCalled();
+  expect(mocks.browser).not.toHaveBeenCalled();
+});
+it("does not create a session after native Google is dismissed", async () => {
+  mocks.nativeGoogle.mockResolvedValueOnce(null);
+  expect(await signInSocial("google")).toBe("cancelled");
+  expect(mocks.idToken).not.toHaveBeenCalled();
+  expect(mocks.browser).not.toHaveBeenCalled();
 });
 
 it("treats browser dismissal as cancellation and rejects provider errors or missing tokens", async () => {
+  mocks.platform.OS = "android";
   mocks.browser.mockResolvedValueOnce({ type: "cancel" });
-  expect(await signInSocial("google")).toBe("cancelled");
+  expect(await signInSocial("apple")).toBe("cancelled");
   mocks.browser.mockResolvedValueOnce({
     type: "success",
     url: "vizerotasi://auth#error=access_denied",
   });
-  await expect(signInSocial("google")).rejects.toMatchObject({
+  await expect(signInSocial("apple")).rejects.toMatchObject({
     code: "access_denied",
   });
   mocks.browser.mockResolvedValueOnce({
     type: "success",
     url: "vizerotasi://auth?oauth=1",
   });
-  await expect(signInSocial("google")).rejects.toMatchObject({
+  await expect(signInSocial("apple")).rejects.toMatchObject({
     code: "social_auth_failed",
   });
   expect(mocks.setSession).not.toHaveBeenCalled();

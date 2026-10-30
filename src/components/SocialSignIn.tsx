@@ -3,7 +3,7 @@ import { Platform, Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
-import { router } from "expo-router";
+import { finishAuth } from "../lib/auth-navigation";
 import { signInSocial, type SocialProvider } from "../lib/social-auth";
 import { authErrorMessage } from "../lib/auth-errors";
 import { useAppearance, themeColor } from "../lib/appearance";
@@ -27,7 +27,7 @@ export function SocialSignIn({
     onError("");
     try {
       const result = await signInSocial(next);
-      if (result === "signed-in") router.replace("/");
+      if (result === "signed-in") finishAuth();
     } catch (error) {
       onError(authErrorMessage(error));
     } finally {

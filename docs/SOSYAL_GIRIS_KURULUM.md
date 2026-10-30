@@ -38,6 +38,15 @@ https://ebnkdgvngufxarkwiyxt.supabase.co/auth/v1/callback
 
 Client secret uygulamanın `.env` dosyasına, `EXPO_PUBLIC_*` değişkenlerine veya GitHub'a konmaz.
 
+### iPhone'da Google'ın yerel giriş ekranı
+
+Google Auth Platform → Clients → Create client → **iOS**, Bundle ID **com.vizesel.app**. Proje sahibi tarafından oluşturulan iOS Client ID ve Supabase Google sağlayıcısında kullanılan Web Client ID, `src/config/google-signin.public.json` dosyasında kayıtlıdır. Bunlar herkese açık istemci tanımlayıcılarıdır; client secret içermez. iOS uygulaması Google SDK'sından aldığı ID tokenini Supabase'e gönderir. Google Web client ID değişirse bu dosyayı da güncelle.
+
+Expo yapılandırması iOS Client ID'den geri dönüş URL şemasını üretir. İstersen `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` ve `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` ile değerleri değiştirebilirsin; bu durumda aynı değerleri build sırasında da kullan. Bu değişiklik yeni native build gerektirir; Expo Go ile denenmez. Web ve Android mevcut tarayıcı üzerinden OAuth akışını kullanır.
+
+iOS'un sistem izin metni uygulamadan yeniden yazılamaz. Google SDK'sı da cihaz ve oturum durumuna göre Google alan adı için bir sistem izni gösterebilir; Google girişini başlatırken Supabase'in teknik alan adıyla tarayıcı oturumu açılmaz.
+
+
 ## 4. Apple — iPhone uygulaması
 
 Bu bölüm Apple Developer hesabının **sahibi** tarafından yapılır; bireysel hesapta App Store Connect Admin rolü imzalama portalına erişim sağlamaz.

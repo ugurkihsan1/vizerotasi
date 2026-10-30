@@ -201,7 +201,7 @@ function ConnectedLayout() {
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen
                   name="auth"
-                  options={{ title: "Topluluğa katıl", presentation: "modal" }}
+                  options={{ title: "Topluluğa katıl", presentation: "card" }}
                 />
                 <Stack.Screen
                   name="create"

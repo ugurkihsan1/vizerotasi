@@ -1,3 +1,4 @@
+import { finishAuth } from "../src/lib/auth-navigation";
 import { SocialSignIn } from "../src/components/SocialSignIn";
 import { Avatar } from "../src/components/Avatar";
 import { Ionicons } from "@expo/vector-icons";
@@ -181,7 +182,7 @@ export default function Auth() {
             clearInitialAuthUrl();
             if (Platform.OS === "web")
               window.history.replaceState({}, "", webPath("/auth"));
-            router.replace("/");
+            finishAuth();
           }
           return;
         }
@@ -361,7 +362,7 @@ export default function Auth() {
           }
         }
         if (r.data.session) {
-          router.replace("/");
+          finishAuth();
           return;
         }
         setSent(true);
@@ -393,14 +394,14 @@ export default function Auth() {
         }
         const r = await db().auth.updateUser({ password: v.password });
         if (r.error) throw r.error;
-        router.replace("/");
+        finishAuth();
       } else {
         const r = await db().auth.signInWithPassword({
           email: v.email.trim(),
           password: v.password,
         });
         if (r.error) throw r.error;
-        router.replace("/");
+        finishAuth();
       }
     } catch (e) {
       const text = authErrorMessage(e);

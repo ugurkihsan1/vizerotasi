@@ -11,6 +11,8 @@ export function authErrorMessage(error: unknown) {
   )
     return "Bu kullanıcı adı alınmış. Başka bir kullanıcı adı seç.";
   switch (e?.code) {
+    case "google_native_not_configured":
+      return "Google ile giriş ayarları henüz tamamlanmadı. E-posta veya Apple ile devam edebilirsin.";
     case "provider_disabled":
     case "oauth_provider_not_supported":
       return "Bu giriş seçeneği henüz kullanıma açılmadı. E-posta ile devam edebilirsin.";
