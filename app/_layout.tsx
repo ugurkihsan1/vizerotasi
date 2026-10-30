@@ -70,6 +70,7 @@ export default function Layout() {
         <SafeAreaProvider style={{ backgroundColor: colors.bg }}>
           <Stack
             screenOptions={{
+              headerBackButtonDisplayMode: "minimal",
               headerTintColor: colors.navy,
               headerStyle: { backgroundColor: colors.bg },
               contentStyle: { backgroundColor: colors.bg },
@@ -173,6 +174,7 @@ function ConnectedLayout() {
             >
               <Stack
                 screenOptions={{
+                  headerBackButtonDisplayMode: "minimal",
                   headerTintColor: colors.navy,
                   headerStyle: {
                     backgroundColor: themeColor("#FFF", "surface"),
