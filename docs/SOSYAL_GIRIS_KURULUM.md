@@ -1,6 +1,6 @@
 # Vizesel — Apple ve Google girişini açma
 
-Kod, yeni kullanıcıların profilini ve üç onayını tamamlamasını; mevcut kullanıcıların doğrudan girişini destekler. Aşağıdaki panel ayarları yapılmadan sağlayıcı düğmeleri gerçek hesaplarla çalışmaz. Bu ayarları uygulama kodu açamaz.
+Apple/Google ile ilk üyelikte önce kullanıcı adı, ardından ad, isteğe bağlı profil fotoğrafı ve üç onay istenir. E-posta ve şifre yeniden sorulmaz. Profilini tamamlamış kullanıcılar sonraki girişlerde bu adımları tekrar görmez. Aşağıdaki panel ayarları yapılmadan sağlayıcı düğmeleri gerçek hesaplarla çalışmaz. Bu ayarları uygulama kodu açamaz.
 
 ## 1. Supabase veritabanı
 
