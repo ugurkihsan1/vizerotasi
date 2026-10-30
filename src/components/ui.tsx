@@ -8,7 +8,7 @@ import {
 } from "../lib/appearance";
 
 import { Ionicons } from "@expo/vector-icons";
-import { useState, type PropsWithChildren } from "react";
+import { useState, useRef, type PropsWithChildren } from "react";
 import {
   View,
   Text,
@@ -268,11 +268,13 @@ export function Field({
 export function Sheet({
   visible,
   onClose,
+  onDismiss,
   title,
   children,
 }: PropsWithChildren<{
   visible: boolean;
   onClose: () => void;
+  onDismiss?: () => void;
   title: string;
 }>) {
   const { motionReduced } = useAppearance();
@@ -283,6 +285,7 @@ export function Sheet({
       transparent
       animationType={motionReduced ? "none" : "slide"}
       onRequestClose={onClose}
+      onDismiss={onDismiss}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -435,12 +438,19 @@ export function Busy() {
 export function useGate() {
   const { session } = useAuth();
   const [open, setOpen] = useState(false);
+  const pendingAuth = useRef(false);
+  const afterDismiss = () => {
+    if (!pendingAuth.current) return;
+    pendingAuth.current = false;
+    router.push("/auth");
+  };
   return {
     require: (action: () => void) => (session ? action() : setOpen(true)),
     view: (
       <Sheet
         visible={open}
         onClose={() => setOpen(false)}
+        onDismiss={afterDismiss}
         title="Topluluğa katıl"
       >
         <Text style={styles.text}>
@@ -449,8 +459,11 @@ export function useGate() {
         <Button
           label="Giriş yap / Üye ol"
           onPress={() => {
+            pendingAuth.current = true;
             setOpen(false);
-            router.push("/auth");
+            // iOS must finish dismissing its native modal before navigation.
+            // Android does not emit Modal.onDismiss; navigate after the close render.
+            if (Platform.OS === "android") requestAnimationFrame(afterDismiss);
           }}
         />
       </Sheet>

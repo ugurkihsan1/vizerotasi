@@ -40,9 +40,11 @@ Client secret uygulamanın `.env` dosyasına, `EXPO_PUBLIC_*` değişkenlerine v
 
 ### iPhone'da Google'ın yerel giriş ekranı
 
-Google Auth Platform → Clients → Create client → **iOS**, Bundle ID **com.vizesel.app**. Proje sahibi tarafından oluşturulan iOS Client ID ve Supabase Google sağlayıcısında kullanılan Web Client ID, `src/config/google-signin.public.json` dosyasında kayıtlıdır. Bunlar herkese açık istemci tanımlayıcılarıdır; client secret içermez. iOS uygulaması Google SDK'sından aldığı ID tokenini Supabase'e gönderir. Google Web client ID değişirse bu dosyayı da güncelle.
+Google Auth Platform → Clients → Create client → **iOS**, Bundle ID **com.vizesel.app**. Supabase Google sağlayıcısının Client IDs alanında Web Client ID ilk sırada, iOS Client ID ikinci sırada olacak şekilde ikisini de kaydet. Proje sahibi tarafından oluşturulan iOS Client ID ve Supabase Google sağlayıcısında kullanılan Web Client ID, `src/config/google-signin.public.json` dosyasında kayıtlıdır. Bunlar herkese açık istemci tanımlayıcılarıdır; client secret içermez. iOS uygulaması Google SDK'sından aldığı ID tokenini Supabase'e gönderir. Google Web client ID değişirse bu dosyayı da güncelle.
 
 Expo yapılandırması iOS Client ID'den geri dönüş URL şemasını üretir. İstersen `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` ve `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` ile değerleri değiştirebilirsin; bu durumda aynı değerleri build sırasında da kullan. Bu değişiklik yeni native build gerektirir; Expo Go ile denenmez. Web ve Android mevcut tarayıcı üzerinden OAuth akışını kullanır.
+
+Google iOS SDK'sı kimlik tokenine nonce ekler. `plugins/with-google-signin-nonce.cjs`, RN Google Sign-In 17 sarmalayıcısına bu alanı ileten yerel adaptörü uygular: her girişte yeni nonce üretilir, SHA-256 özeti Google'a, ham değeri Supabase'e gönderilir. Supabase'in nonce kontrolünü kapatmaya gerek yoktur. Yerel adaptör yeni build sırasında uygulanır; yalnız web yayını veya JavaScript güncellemesi mevcut iOS binary'sini düzeltmez.
 
 iOS'un sistem izin metni uygulamadan yeniden yazılamaz. Google SDK'sı da cihaz ve oturum durumuna göre Google alan adı için bir sistem izni gösterebilir; Google girişini başlatırken Supabase'in teknik alan adıyla tarayıcı oturumu açılmaz.
 

@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   nativeGoogle: vi.fn(),
 }));
 vi.mock("../src/lib/native-google", () => ({
-  nativeGoogleIdToken: mocks.nativeGoogle,
+  nativeGoogleCredential: mocks.nativeGoogle,
 }));
 vi.mock("react-native", () => ({ Platform: mocks.platform }));
 vi.mock("expo-linking", () => ({
@@ -49,7 +49,10 @@ vi.mock("../src/lib/supabase", () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.platform.OS = "ios";
-  mocks.nativeGoogle.mockResolvedValue("native-google-id-token");
+  mocks.nativeGoogle.mockResolvedValue({
+    token: "native-google-id-token",
+    nonce: "raw-google-nonce",
+  });
   mocks.available.mockResolvedValue(true);
   mocks.digest.mockResolvedValue("hashed-nonce");
   mocks.apple.mockResolvedValue({
@@ -101,6 +104,7 @@ it("completes native Google without opening Supabase in an authentication browse
   expect(mocks.idToken).toHaveBeenCalledWith({
     provider: "google",
     token: "native-google-id-token",
+    nonce: "raw-google-nonce",
   });
   expect(mocks.oauth).not.toHaveBeenCalled();
   expect(mocks.browser).not.toHaveBeenCalled();

@@ -447,7 +447,7 @@ export default function Create() {
         <Empty
           title="Paylaşım yapmak için giriş yap"
           action="Giriş yap / Üye ol"
-          onPress={() => router.push("/auth")}
+          onPress={() => router.replace("/auth")}
         />
       </View>
     );

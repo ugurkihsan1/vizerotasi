@@ -1,4 +1,4 @@
-import { nativeGoogleIdToken } from "./native-google";
+import { nativeGoogleCredential } from "./native-google";
 import { Platform } from "react-native";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
@@ -18,11 +18,11 @@ export async function signInSocial(
 ) {
   const client = db();
   if (provider === "google" && Platform.OS === "ios") {
-    const token = await nativeGoogleIdToken();
-    if (!token) return "cancelled" as const;
+    const credential = await nativeGoogleCredential();
+    if (!credential) return "cancelled" as const;
     const result = await client.auth.signInWithIdToken({
       provider: "google",
-      token,
+      ...credential,
     });
     if (result.error) throw result.error;
     return "signed-in" as const;

@@ -9,13 +9,15 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       (Array.isArray(plugin) ? plugin[0] : plugin) !==
       "@react-native-google-signin/google-signin",
   );
-  if (iosClientId)
+  if (iosClientId) {
     plugins.push([
       "@react-native-google-signin/google-signin",
       {
         iosUrlScheme: iosClientId.split(".").reverse().join("."),
       },
     ]);
+    plugins.push("./plugins/with-google-signin-nonce.cjs");
+  }
   return {
     ...config,
     plugins,

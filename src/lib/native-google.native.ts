@@ -1,3 +1,4 @@
+import * as Crypto from "expo-crypto";
 import { Platform } from "react-native";
 import {
   GoogleSignin,
@@ -7,7 +8,10 @@ import {
 import config from "../config/google-signin.public.json";
 
 /** Google owns the native sign-in UI; Supabase receives only the resulting ID token. */
-export async function nativeGoogleIdToken(): Promise<string | null> {
+export async function nativeGoogleCredential(): Promise<{
+  token: string;
+  nonce?: string;
+} | null> {
   const iosClientId =
     process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? config.iosClientId;
   const webClientId =
@@ -24,10 +28,21 @@ export async function nativeGoogleIdToken(): Promise<string | null> {
       await GoogleSignin.hasPlayServices({
         showPlayServicesUpdateDialog: true,
       });
-    const response = await GoogleSignin.signIn();
+    const options: NonNullable<Parameters<typeof GoogleSignin.signIn>[0]> & {
+      nonce?: string;
+    } = {};
+    let nonce: string | undefined;
+    if (Platform.OS === "ios") {
+      nonce = Crypto.randomUUID();
+      options.nonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        nonce,
+      );
+    }
+    const response = await GoogleSignin.signIn(options);
     if (response.type === "cancelled") return null;
     if (!response.data.idToken) throw { code: "social_auth_failed" };
-    return response.data.idToken;
+    return { token: response.data.idToken, ...(nonce ? { nonce } : {}) };
   } catch (error) {
     if (isErrorWithCode(error) && error.code === statusCodes.SIGN_IN_CANCELLED)
       return null;
