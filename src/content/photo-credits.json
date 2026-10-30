@@ -163,5 +163,20 @@
     "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2a/Rosenborg_Palace%2C_Copenhagen%2C_Denmark%2C_20220617_0913_6707.jpg",
     "changes": "Kart gösteriminde kadraj kırpılabilir.",
     "sha256": "84e94eed1d43f5dc27e91824f5d41b413e09d2f70fe38b232cca1a2161858350"
+  },
+  {
+    "id": "belgium",
+    "country": "Belçika",
+    "landmark": "Grand-Place, Brüksel",
+    "file": "belgium.jpg",
+    "originalTitle": "File:Grand-Place, Brussels - panorama, June 2018.jpg",
+    "author": "Celuici",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Grand-Place,_Brussels_-_panorama,_June_2018.jpg",
+    "downloadUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/26/Grand-Place%2C_Brussels_-_panorama%2C_June_2018.jpg/1280px-Grand-Place%2C_Brussels_-_panorama%2C_June_2018.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/26/Grand-Place%2C_Brussels_-_panorama%2C_June_2018.jpg",
+    "changes": "Wikimedia küçük önizlemesi; uygulama kartlarında sığdırılarak kırpılır. İçerik değiştirilmedi.",
+    "sha256": "ad3ea961812b8d2b89d78387135c2b0ff17da5e0ec1bfac74bc79d552f21f15e"
   }
 ]

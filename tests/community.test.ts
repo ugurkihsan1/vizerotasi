@@ -1032,6 +1032,50 @@ it("provisions Denmark additively and preserves existing checklist edits on reru
     ).rows[0],
   ).toMatchObject({ body: "An existing administrator checklist edit." });
 });
+it("provisions Belgium's checklist and preserves administrator edits on rerun", async () => {
+  expect(
+    (
+      await as(
+        null,
+        "select code,is_schengen from countries where id='belgium'",
+      )
+    ).rows[0],
+  ).toMatchObject({ code: "BE", is_schengen: true });
+  expect(
+    (
+      await as(
+        null,
+        "select id from country_documents where country_id='belgium'",
+      )
+    ).rows,
+  ).toHaveLength(13);
+  await root(
+    "update country_documents set body='Existing administrator checklist edit.' where country_id='belgium' and sort_order=1",
+  );
+  await root(
+    "update countries set summary='Existing administrator guide.' where id='belgium'",
+  );
+  await pg.exec(readFileSync("docs/BELGIUM_UPGRADE.sql", "utf8"));
+  await pg.exec(readFileSync("docs/BELGIUM_UPGRADE.sql", "utf8"));
+  expect(
+    (
+      await as(
+        null,
+        "select id from country_documents where country_id='belgium'",
+      )
+    ).rows,
+  ).toHaveLength(13);
+  expect(
+    (
+      await root(
+        "select body from country_documents where country_id='belgium' and sort_order=1",
+      )
+    ).rows[0],
+  ).toMatchObject({ body: "Existing administrator checklist edit." });
+  expect(
+    (await root("select summary from countries where id='belgium'")).rows[0],
+  ).toMatchObject({ summary: "Existing administrator guide." });
+});
 it("only the author can remove a post or comment and dependent rows disappear", async () => {
   const author = await user(),
     other = await user(),

@@ -11,6 +11,9 @@ export function flagSvg(code: string) {
     colors.map((c, i) => rect(i * 10, 0, 10, 20, c)).join("");
   let body = "";
   switch (code) {
+    case "BE":
+      body = vertical(["#111111", "#FDDA24", "#EF3340"]);
+      break;
     case "DK":
       body =
         rect(0, 0, 30, 20, "#C8102E") +

@@ -7,6 +7,7 @@ import {
 it("ships source-linked Turkish checklists for every other application country and Norway", () => {
   expect(countryGuides.map((c) => c.id).sort()).toEqual(
     [
+      "belgium",
       "denmark",
       "germany",
       "estonia",
@@ -29,7 +30,11 @@ it("ships source-linked Turkish checklists for every other application country a
       ids.add(d.id);
       expect(d.source_updated_at).toBeNull();
       expect(d.source_checked_at).toBe(
-        c.id === "denmark" ? "2026-10-27" : "2026-10-22",
+        c.id === "belgium"
+          ? "2026-10-30"
+          : c.id === "denmark"
+            ? "2026-10-27"
+            : "2026-10-22",
       );
       expect(c.sources.some((s) => s.url === d.source_url)).toBe(true);
       expect(new URL(d.source_url).protocol).toBe("https:");
