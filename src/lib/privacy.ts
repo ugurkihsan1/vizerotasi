@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSyncExternalStore } from "react";
+import { Platform } from "react-native";
 import { privacyVersion, transferVersion } from "../content/legal";
 
 export const privacyStorageKey = "vizesel-privacy-preferences-v1";
@@ -77,7 +78,13 @@ export function usePrivacyPreferences() {
   );
 }
 export function loadPrivacyPreferences() {
-  if (!listening && typeof window !== "undefined") {
+  // React Native exposes `window` too, but it is not a browser Window.
+  if (
+    !listening &&
+    Platform.OS === "web" &&
+    typeof window !== "undefined" &&
+    typeof window.addEventListener === "function"
+  ) {
     listening = true;
     window.addEventListener("storage", (event) => {
       if (event.key === privacyStorageKey || event.key === null) {
