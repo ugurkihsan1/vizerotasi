@@ -11,6 +11,8 @@ export function authErrorMessage(error: unknown) {
   )
     return "Bu kullanıcı adı alınmış. Başka bir kullanıcı adı seç.";
   switch (e?.code) {
+    case "unsafe_auth_redirect":
+      return "Güvenli olmayan giriş bağlantısı engellendi. Lütfen yeniden dene.";
     case "google_native_not_configured":
       return "Google ile giriş ayarları henüz tamamlanmadı. E-posta veya Apple ile devam edebilirsin.";
     case "provider_disabled":

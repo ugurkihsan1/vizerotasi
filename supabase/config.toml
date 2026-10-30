@@ -12,7 +12,14 @@ major_version = 17
 [auth]
 enabled = true
 site_url = "http://localhost:8081"
-additional_redirect_urls = ["vizerotasi://**", "http://localhost:8081/auth**"]
+additional_redirect_urls = [
+  "vizerotasi://auth",
+  "vizerotasi://auth?oauth=1",
+  "vizerotasi://auth?recovery=1",
+  "http://localhost:8081/auth",
+  "http://localhost:8081/auth?oauth=1",
+  "http://localhost:8081/auth?recovery=1",
+]
 enable_signup = true
 minimum_password_length = 8
 [auth.email]

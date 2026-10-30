@@ -36,6 +36,7 @@ vi.mock("expo-crypto", () => ({
   CryptoDigestAlgorithm: { SHA256: "SHA-256" },
 }));
 vi.mock("../src/lib/supabase", () => ({
+  supabaseProjectUrl: "https://test-project.supabase.co",
   db: () => ({
     auth: {
       signInWithOAuth: mocks.oauth,
@@ -63,10 +64,12 @@ beforeEach(() => {
   mocks.idToken.mockResolvedValue({ error: null });
   mocks.updateUser.mockResolvedValue({ error: null });
   mocks.setSession.mockResolvedValue({ error: null });
-  mocks.oauth.mockResolvedValue({
-    data: { url: "https://auth.example.invalid/authorize" },
+  mocks.oauth.mockImplementation(async ({ provider, options }) => ({
+    data: {
+      url: `https://test-project.supabase.co/auth/v1/authorize?provider=${provider}&redirect_to=${encodeURIComponent(options.redirectTo)}`,
+    },
     error: null,
-  });
+  }));
   mocks.browser.mockResolvedValue({
     type: "success",
     url: "vizerotasi://auth?oauth=1#access_token=access&refresh_token=refresh",
@@ -122,7 +125,7 @@ it("treats browser dismissal as cancellation and rejects provider errors or miss
   expect(await signInSocial("apple")).toBe("cancelled");
   mocks.browser.mockResolvedValueOnce({
     type: "success",
-    url: "vizerotasi://auth#error=access_denied",
+    url: "vizerotasi://auth?oauth=1#error=access_denied",
   });
   await expect(signInSocial("apple")).rejects.toMatchObject({
     code: "access_denied",
@@ -146,11 +149,48 @@ it("redirects web users to the provider and leaves callback consumption to the w
   try {
     expect(await signInSocial("apple")).toBe("redirecting");
     expect(assign).toHaveBeenCalledWith(
-      "https://auth.example.invalid/authorize",
+      expect.stringMatching(
+        /^https:\/\/test-project\.supabase\.co\/auth\/v1\/authorize\?provider=apple&redirect_to=/,
+      ),
     );
     expect(mocks.browser).not.toHaveBeenCalled();
     expect(mocks.setSession).not.toHaveBeenCalled();
   } finally {
     vi.unstubAllGlobals();
   }
+});
+
+it("never opens an untrusted OAuth URL on web or Android", async () => {
+  const assign = vi.fn();
+  vi.stubGlobal("window", {
+    location: { origin: "https://example.invalid", assign },
+  });
+  try {
+    for (const platform of ["web", "android"]) {
+      mocks.platform.OS = platform;
+      mocks.oauth.mockResolvedValueOnce({
+        data: { url: "https://evil.example/auth/v1/authorize" },
+        error: null,
+      });
+      await expect(signInSocial("google")).rejects.toMatchObject({
+        code: "unsafe_auth_redirect",
+      });
+    }
+    expect(assign).not.toHaveBeenCalled();
+    expect(mocks.browser).not.toHaveBeenCalled();
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+it("does not consume tokens returned to a different callback address", async () => {
+  mocks.platform.OS = "android";
+  mocks.browser.mockResolvedValueOnce({
+    type: "success",
+    url: "https://evil.example/auth?oauth=1#access_token=access&refresh_token=refresh",
+  });
+  await expect(signInSocial("google")).rejects.toMatchObject({
+    code: "unsafe_auth_redirect",
+  });
+  expect(mocks.setSession).not.toHaveBeenCalled();
 });

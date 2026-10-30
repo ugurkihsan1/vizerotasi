@@ -19,6 +19,7 @@ const config = resolvePublicConfig(
   publicConfig,
 );
 export const configured = !!config;
+export const supabaseProjectUrl = config?.url ?? null;
 // Capture the auth redirect before the SDK consumes and clears its URL fragment.
 export let initialAuthUrl =
   Platform.OS === "web" && typeof window !== "undefined"

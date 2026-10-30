@@ -23,13 +23,36 @@ it("rejects reversed fields and service-role secrets", () => {
     isPublicSupabaseConfig(fallback.url + "/rest/v1", fallback.publishableKey),
   ).toBe(false);
 });
-it("supports a coherent project override without mixing projects", () => {
+it("rejects environment overrides pointing to a different project", () => {
   const override = {
     url: "https://other.supabase.co",
     key: "sb_publishable_other_fixture_public_key",
   };
-  expect(resolvePublicConfig(override, fallback)).toEqual(override);
+  expect(resolvePublicConfig(override, fallback)).toEqual({
+    url: fallback.url,
+    key: fallback.publishableKey,
+  });
   expect(resolvePublicConfig({ url: override.url }, fallback)?.url).toBe(
     fallback.url,
   );
+});
+it("allows key rotation for the pinned project only", () => {
+  const override = {
+    url: fallback.url + "/",
+    key: "sb_publishable_rotated_fixture_public_key",
+  };
+  expect(resolvePublicConfig(override, fallback)).toEqual({
+    ...override,
+    url: fallback.url,
+  });
+});
+it("rejects non-Supabase, credential-bearing and nonstandard port endpoints", () => {
+  for (const url of [
+    "https://evil.example",
+    "https://test-project.supabase.co.evil.example",
+    "https://evil.example@" + new URL(fallback.url).host,
+    "https://user:secret@" + new URL(fallback.url).host,
+    fallback.url + ":8443",
+  ])
+    expect(isPublicSupabaseConfig(url, fallback.publishableKey)).toBe(false);
 });

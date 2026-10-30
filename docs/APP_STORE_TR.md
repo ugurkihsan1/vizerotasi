@@ -36,7 +36,7 @@ npx eas-cli@latest build:configure
 
 Depo zaten bilgisayarındaysa yeniden klonlama; doğru klasörde `git pull` ve `npm ci` kullan. `eas init` gerçek Expo hesabında proje oluşturur/bağlar ve `extra.eas.projectId` bilgisini kaydeder; bu ID önceden uydurulmadı. `eas.json` içinde üretim ve dahili test profilleri hazır. Komutların oluşturduğu proje bağlantısı değişikliklerini depoya kaydet.
 
-Supabase bağlantısında yalnız URL ve publishable/anon anahtarı kullanılır. Mevcut public yapılandırma paketlenir; başka projeye geçiyorsan Expo’nun production ortamına `EXPO_PUBLIC_SUPABASE_URL` ve `EXPO_PUBLIC_SUPABASE_ANON_KEY` ekle. Bunlar istemciye açık değerlerdir. Service-role veya veritabanı parolasını mobil pakete koyma.
+Supabase bağlantısında yalnız URL ve publishable/anon anahtarı kullanılır. Mevcut public yapılandırma paketlenir ve sunucu bu projeye sabitlenir. Başka projeye geçiyorsan `src/config/supabase.public.json` dosyasını kod incelemesiyle güncelle. Expo production ortamındaki `EXPO_PUBLIC_SUPABASE_URL` ve `EXPO_PUBLIC_SUPABASE_ANON_KEY` yalnız aynı proje için anahtar yenilemesinde kullanılabilir. Bunlar istemciye açık değerlerdir. Service-role veya veritabanı parolasını mobil pakete koyma.
 
 ## 3. Gerçek iOS uygulamasını derle
 

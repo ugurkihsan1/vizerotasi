@@ -4,9 +4,10 @@ import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
-import { db } from "./supabase";
+import { db, supabaseProjectUrl } from "./supabase";
 import { webPath } from "./web-path";
 import { parseAuthCallback } from "./auth-callback";
+import { isTrustedAuthReturnUrl, isTrustedOAuthUrl } from "./auth-urls";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -87,13 +88,20 @@ export async function signInSocial(
     },
   });
   if (error) throw error;
-  if (!data.url) throw { code: "social_auth_failed" };
+  if (
+    !data.url ||
+    !supabaseProjectUrl ||
+    !isTrustedOAuthUrl(data.url, supabaseProjectUrl, provider, redirectTo)
+  )
+    throw { code: "unsafe_auth_redirect" };
   if (Platform.OS === "web") {
     window.location.assign(data.url);
     return "redirecting" as const;
   }
   const response = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
   if (response.type !== "success") return "cancelled" as const;
+  if (!isTrustedAuthReturnUrl(response.url, redirectTo))
+    throw { code: "unsafe_auth_redirect" };
   const callback = parseAuthCallback(response.url);
   if (callback?.error) throw { code: callback.error };
   if (!callback?.accessToken || !callback.refreshToken)

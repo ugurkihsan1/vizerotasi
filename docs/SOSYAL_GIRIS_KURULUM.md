@@ -13,14 +13,22 @@ Vizesel projesi → **SQL Editor → New query**.
 
 ## 2. Dönüş adresleri
 
-Supabase → **Authentication → URL Configuration → Redirect URLs**. Mevcut adresleri silmeden ekle:
+Supabase → **Authentication → URL Configuration → Redirect URLs**. Üretimde geniş wildcard (`*` / `**`) girişlerini ve tanımadığın alan adlarını kaldır; mevcut uygulama için yalnız şu tam adresleri kullan:
 
 ```text
-vizerotasi://**
-https://ugurkihsan1.github.io/vizerotasi/auth**
+vizerotasi://auth
+vizerotasi://auth?oauth=1
+vizerotasi://auth?recovery=1
+https://ugurkihsan1.github.io/vizerotasi/auth
+https://ugurkihsan1.github.io/vizerotasi/auth?oauth=1
+https://ugurkihsan1.github.io/vizerotasi/auth?recovery=1
 ```
 
-`vizesel.pages.dev` mevcut durumda destek sitesidir; uygulama giriş dönüş adresi olarak kullanılmaz. Uygulamayı başka bir adrese taşırsan gerçek uygulamanın `/auth**` adresini de listeye ekle. Supabase Site URL alanındaki çalışan uygulama adresini koru.
+**Site URL:** `https://ugurkihsan1.github.io/vizerotasi/`.
+
+`vizesel.pages.dev` mevcut durumda destek sitesidir; uygulama giriş dönüş adresi olarak kullanılmaz. Uygulamayı başka bir adrese taşırsan yeni uygulamanın aynı üç tam `/auth` adresini kullan. Yerel geliştirme adreslerini üretim projesine ekleme; `supabase/config.toml` yalnız yerel geliştirme içindir ve buluttaki panel ayarlarını kendiliğinden değiştirmez.
+
+Uygulama, Supabase adresini `src/config/supabase.public.json` içindeki projeye sabitler. Ortam değişkenleri başka bir sunucuya veya Supabase projesine yönlendiremez; aynı proje için açık anahtar yenilemesi yapılabilir. Proje taşınırsa bu dosya kod incelemesiyle güncellenmelidir. Tarayıcıya açılacak OAuth adresinin aynı projenin `/auth/v1/authorize` yolu olması; sağlayıcı ve `redirect_to` değerinin başlatılan akışla eşleşmesi zorunludur. Farklı adresler, çift parametreler ve beklenmeyen dönüş adresleri engellenir. Bu istemci kontrolleri, Supabase panelindeki dar dönüş adresi listesinin yerine geçmez.
 
 ## 3. Google
 
