@@ -12,10 +12,12 @@ import {
 import { Image } from "expo-image";
 import { useAppearance, themeColor, textSize } from "../../src/lib/appearance";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useHeaderHeight } from "expo-router/react-navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AppState,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -70,6 +72,25 @@ function ChatRoomScreen({ id }: { id: string }) {
   useAppearance();
 
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
+  const [keyboardVisible, setKeyboardVisible] = useState(() =>
+    Keyboard.isVisible(),
+  );
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    const shown = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKeyboardVisible(true),
+    );
+    const hidden = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardVisible(false),
+    );
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, []);
   const { session, profile, loading } = useAuth(),
     cache = useQueryClient();
   const [focused, setFocused] = useState(false),
@@ -427,7 +448,7 @@ function ChatRoomScreen({ id }: { id: string }) {
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.bg }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 56 + insets.top : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
     >
       <Stack.Screen
         options={{
@@ -668,7 +689,7 @@ function ChatRoomScreen({ id }: { id: string }) {
       <View
         style={{
           paddingHorizontal: 16,
-          paddingBottom: Math.max(insets.bottom, 14),
+          paddingBottom: keyboardVisible ? 6 : Math.max(insets.bottom, 14),
           paddingTop: 10,
           backgroundColor: themeColor("#FFF", "surface"),
           borderTopWidth: 1,
