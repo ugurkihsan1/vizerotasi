@@ -5,7 +5,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { FlatList, Text, Pressable, View } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { router, useFocusEffect } from "expo-router";
-import { useState, useCallback } from "react";
+import { useIsFocused } from "expo-router/react-navigation";
+import { markNotificationsRead } from "../../src/lib/notification-read";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNotifications, usePost, useProfile } from "../../src/lib/data";
 import { useAuth } from "../../src/lib/auth";
 import { db } from "../../src/lib/supabase";
@@ -122,13 +124,52 @@ export default function Notifications() {
   const cache = useQueryClient();
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("Tümü");
+  const isFocused = useIsFocused();
+  const reading = useRef(new Set<string>());
+  const userId = session?.user.id;
+  const markRead = useCallback(
+    async (ids: string[]) => {
+      if (!userId) return;
+      const pending = ids.filter((id) => !reading.current.has(id));
+      if (!pending.length) return;
+      pending.forEach((id) => reading.current.add(id));
+      try {
+        const result = await markNotificationsRead(db(), userId, pending);
+        const timestamps = new Map(result.map((row) => [row.id, row.read_at]));
+        cache.setQueryData<Notice[]>(["notifications", userId], (old) =>
+          old?.map((notice) =>
+            timestamps.has(notice.id)
+              ? { ...notice, read_at: timestamps.get(notice.id)! }
+              : notice,
+          ),
+        );
+        if (result.length < pending.length)
+          void cache.invalidateQueries({ queryKey: ["notifications", userId] });
+        setError("");
+      } catch {
+        setError("Bildirimler güncellenemedi. Yeniden deneyebilirsin.");
+      } finally {
+        pending.forEach((id) => reading.current.delete(id));
+      }
+    },
+    [cache, userId],
+  );
+  useEffect(() => {
+    if (!isFocused) return;
+    let active = true;
+    const ids = (q.data ?? [])
+      .filter((notice) => !notice.read_at)
+      .map((notice) => notice.id);
+    void Promise.resolve().then(() => {
+      if (active) return markRead(ids);
+    });
+    return () => {
+      active = false;
+    };
+  }, [isFocused, q.data, markRead]);
   const unread = (q.data ?? []).filter((n) => !n.read_at).length;
-  const notices = (q.data ?? []).filter((n) =>
-    filter === "Okunmamış"
-      ? !n.read_at
-      : filter === "Yanıtlar"
-        ? /yanıt/i.test(n.message)
-        : true,
+  const notices = (q.data ?? []).filter((notice) =>
+    filter === "Yanıtlar" ? /yanıt/i.test(notice.message) : true,
   );
   if (!session)
     return (
@@ -161,20 +202,13 @@ export default function Notifications() {
             {!!unread && (
               <Pressable
                 accessibilityRole="button"
-                onPress={() => {
-                  void db()
-                    .from("notifications")
-                    .update({ read_at: new Date().toISOString() })
-                    .eq("user_id", session.user.id)
-                    .is("read_at", null)
-                    .then((r) => {
-                      if (r.error) setError("Bildirimler güncellenemedi.");
-                      else
-                        void cache.invalidateQueries({
-                          queryKey: ["notifications"],
-                        });
-                    });
-                }}
+                onPress={() =>
+                  void markRead(
+                    (q.data ?? [])
+                      .filter((notice) => !notice.read_at)
+                      .map((notice) => notice.id),
+                  )
+                }
                 style={{ minHeight: 44, justifyContent: "center" }}
               >
                 <Text style={{ color: colors.blue, fontWeight: "600" }}>
@@ -184,7 +218,7 @@ export default function Notifications() {
             )}
           </View>
           <View style={styles.row}>
-            {["Tümü", "Yanıtlar", "Okunmamış"].map((value) => (
+            {["Tümü", "Yanıtlar"].map((value) => (
               <Pressable
                 key={value}
                 accessibilityRole="button"
@@ -224,15 +258,7 @@ export default function Notifications() {
         <NotificationRow
           n={n}
           onOpen={() => {
-            void db()
-              .from("notifications")
-              .update({ read_at: new Date().toISOString() })
-              .eq("id", n.id)
-              .then((r) => {
-                if (r.error) setError("Bildirim güncellenemedi.");
-                else
-                  void cache.invalidateQueries({ queryKey: ["notifications"] });
-              });
+            if (!n.read_at) void markRead([n.id]);
           }}
         />
       )}

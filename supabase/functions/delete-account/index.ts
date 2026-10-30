@@ -1,4 +1,6 @@
+import { socialAuthenticationTime } from "../_shared/social-session.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
+import { revokeAppleAuthorization } from "../_shared/apple-revoke.ts";
 import { deletionHandler } from "../_shared/delete-account.ts";
 
 const url = Deno.env.get("SUPABASE_URL")!;
@@ -11,9 +13,26 @@ Deno.serve(
   deletionHandler({
     async user(token) {
       const r = await admin.auth.getUser(token);
-      return !r.error && r.data.user?.email
-        ? { id: r.data.user.id, email: r.data.user.email }
-        : null;
+      if (r.error || !r.data.user?.email) return null;
+      const proof = await admin.auth.getClaims(token);
+      if (proof.error || proof.data?.claims.sub !== r.data.user.id) return null;
+      return {
+        id: r.data.user.id,
+        email: r.data.user.email,
+        providers: r.data.user.app_metadata.providers ?? [
+          r.data.user.app_metadata.provider,
+        ],
+        reauthenticatedAt:
+          socialAuthenticationTime(proof.data.claims.amr) ?? undefined,
+      };
+    },
+    async revokeApple(authorizationCode) {
+      const clientId =
+        Deno.env.get("APPLE_NATIVE_CLIENT_ID") ?? "com.vizesel.app";
+      const clientSecret = Deno.env.get("APPLE_NATIVE_CLIENT_SECRET");
+      if (!clientSecret)
+        throw new Error("Apple deletion configuration missing");
+      await revokeAppleAuthorization(authorizationCode, clientId, clientSecret);
     },
     async password(email, password, id) {
       // Separate client: password verification must not replace the admin JWT.

@@ -1,3 +1,4 @@
+import { SocialProfileSetup } from "../src/components/SocialProfileSetup";
 import { NotificationSync } from "../src/components/NotificationSync";
 import { PrivacyPreferences } from "../src/components/PrivacyPreferences";
 import { PrivacySync } from "../src/components/PrivacySync";
@@ -106,9 +107,7 @@ export default function Layout() {
             alignSelf: "center",
           }}
         >
-          <PrivacyPreferences
-            key={privacy.preferences.acknowledgedAt}
-          />
+          <PrivacyPreferences key={privacy.preferences.acknowledgedAt} />
         </ScrollView>
       </SafeAreaProvider>
     );
@@ -162,6 +161,7 @@ function ConnectedLayout() {
             <ChatSync />
             <NotificationSync />
             <PrivacySync />
+            <SocialProfileSetup />
             <View
               testID="app-surface"
               style={{

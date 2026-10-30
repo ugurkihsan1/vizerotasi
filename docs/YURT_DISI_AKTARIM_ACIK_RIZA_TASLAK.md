@@ -1,6 +1,6 @@
 # Vizesel Yurt Dışına Aktarım Bilgilendirmesi ve Açık Rıza
 
-**Sürüm: 29 Ekim 2026**
+**Sürüm: 30 Ekim 2026**
 
 ## Veri sorumluları
 
@@ -19,6 +19,8 @@ Supabase hizmeti için yayımlanan sözleşmedeki ana veri işleyen Supabase Pte
 Güncel alt işleyenler: https://supabase.com/legal/customer-resources/subprocessor-list
 
 Google/Gmail, doğrulama/şifre sıfırlama e-postaları ve destek iletişiminde e-posta adresi ile ilgili mesaj içeriğini işler. GitHub Pages, mevcut web sitesinin sunulmasında ziyaretçinin IP adresi ve bağlantı bilgilerini işleyebilir; uygulama veritabanı GitHub Pages'e taşınmaz. Bu sağlayıcıların küresel altyapıları nedeniyle ilgili veriler Türkiye dışında işlenebilir. Supabase, Gmail ve GitHub'a aynı veri kümesinin gönderildiği anlamı çıkarılmamalıdır.
+
+Apple veya Google ile giriş seçeneğini kullanmanız hâlinde sağlayıcının hesap tanımlayıcısı, e-posta adresi ve mevcutsa ad bilgisi kimlik doğrulama ve hesap oluşturma amacıyla işlenir. Sağlayıcı, giriş sırasındaki hesap ve bağlantı bilgilerini küresel altyapısında işleyebilir. Apple veya Google şifreniz Vizesel’e gönderilmez; bu seçenekleri kullanmadan e-posta ve şifre ile devam edebilirsiniz.
 
 ## Muhtemel riskler
 

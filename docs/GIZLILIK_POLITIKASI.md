@@ -1,6 +1,6 @@
 # Vizesel Gizlilik Politikası ve KVKK Aydınlatma Metni
 
-**Son güncelleme: 29 Ekim 2026**
+**Son güncelleme: 30 Ekim 2026**
 
 ## 1. Veri sorumluları ve iletişim
 
@@ -27,6 +27,8 @@ Kullandığınız özelliklere göre şu bilgiler işlenebilir:
 
 Şifreler kimlik doğrulama altyapısı tarafından korunur; uygulama yöneticileri şifrenizi açık metin olarak göremez.
 
+Apple veya Google ile giriş yapmayı seçerseniz, sağlayıcının ilettiği hesap tanımlayıcısı, e-posta adresi ve mevcutsa adınız oturum açma ve profil oluşturma amacıyla işlenir. Apple’ın e-posta gizleme özelliğini kullanabilirsiniz. Apple veya Google şifreniz Vizesel’e iletilmez. Bu giriş seçenekleri isteğe bağlıdır; e-posta ve şifre ile kayıt seçeneği devam eder.
+
 ## 3. Amaçlar ve hukuki sebepler
 
 Hesap oluşturma, oturum açma, profil, paylaşım ve mesajlaşma için gerekli bilgiler hizmet sözleşmesinin kurulması veya ifası amacıyla işlenir. Talep ettiğiniz belge incelemesinde, ilgili hizmet için gerekli bilgilerle sınırlı işlem yapılır.
@@ -37,7 +39,7 @@ Her hukuki sebep yalnızca şartlarının sağlandığı işlem için kullanıla
 
 ## 4. Görünürlük ve erişim
 
-Profiliniz ve herkese açık paylaşımlarınız, yorumlarınız ve etkileşimleriniz diğer kullanıcılar ile oturum açmamış ziyaretçiler tarafından görülebilir. E-posta adresiniz profilinizde herkese açık gösterilmez.
+Profiliniz ve herkese açık paylaşımlarınız, yorumlarınız ve etkileşimleriniz diğer kullanıcılar ile oturum açmamış ziyaretçiler tarafından görülebilir. E-posta adresiniz profilinizde herkese açık gösterilmez. Bir paylaşımı faydalı olarak işaretlediğinizde adınız, kullanıcı adınız ve profil fotoğrafınız ilgili paylaşımın faydalı bulanlar listesinde gösterilebilir.
 
 Özel mesajlar ve görseller ilgili sohbet katılımcılarına; topluluk sohbetlerindeki içerikler ilgili sohbetin katılımcılarına gösterilir. Mesajlaşma uçtan uca şifreleme taahhüdüyle sunulmaz.
 
@@ -58,7 +60,7 @@ Sağlık bilgileri gibi özel nitelikli kişisel verileri yüklemeyin. Seyahat s
 - İçeriklerin görünürlük kurallarına göre diğer kullanıcılar ve ziyaretçiler.
 - Kimlik doğrulama, veritabanı, dosya saklama ve gerçek zamanlı özellikler için Supabase Pte. Ltd. ve alt hizmet sağlayıcıları.
 - Mevcut web sürümünün sunulmasında GitHub Pages/GitHub. Ziyaret sırasında bağlantı ve teknik erişim bilgileri bu hizmet kapsamında işlenebilir; uygulama veritabanı GitHub Pages üzerinde tutulmaz.
-- E-posta gönderimi ve destek iletişiminde Google/Gmail.
+- E-posta gönderimi ve destek iletişiminde Google/Gmail. İlgili giriş yöntemini seçtiğinizde kimlik doğrulama için Apple veya Google; sağlayıcı bu işlemde hesap ve bağlantı bilgilerini kendi gizlilik politikası kapsamında işleyebilir. Küresel altyapıları nedeniyle bu işlemler Türkiye dışında gerçekleşebilir.
 - Hukuki yükümlülük veya geçerli talepler kapsamında yetkili kurumlar ve bir hakkın korunması için gerekli hâllerde ilgili yetkili kişi veya kuruluşlar.
 
 Supabase projesinin ana bölgesi Seul, Güney Kore (ap-northeast-2) olarak seçilmiştir. Supabase'in açıklamasına göre ana veritabanı, Auth hizmeti, Storage dosyaları ve bölgesel yedekler seçilen bölgede barındırılır. Bununla birlikte bütün veri işlemleri yalnızca bu ülkede gerçekleşmez. Supabase, Avrupa Birliği'ndeki log altyapısını, küresel destek/operasyon erişimlerini ve yapılandırmaya bağlı küresel dosya dağıtımını da açıklamaktadır. Sözleşmedeki ana veri işleyen kuruluşu Singapur'dadır.

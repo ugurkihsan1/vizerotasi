@@ -1,8 +1,10 @@
+import { socialAuthenticationTime } from "../../supabase/functions/_shared/social-session";
 import { useRef, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, View, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
+import { signInSocial, type SocialProvider } from "../lib/social-auth";
 import { useAuth } from "../lib/auth";
 import { db } from "../lib/supabase";
 import { useAppearance, isDark } from "../lib/appearance";
@@ -17,6 +19,14 @@ export function DeleteAccount() {
     [confirmation, setConfirmation] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const providers = session?.user.app_metadata.providers ?? [
+    session?.user.app_metadata.provider,
+  ];
+  const socialProvider: SocialProvider | undefined = providers.includes("apple")
+    ? "apple"
+    : session?.user.app_metadata.provider === "google"
+      ? "google"
+      : undefined;
   const pending = useRef(false);
   const confirmed =
     confirmation.trim().toLocaleUpperCase("tr").replace(/İ/g, "I") === "SIL";
@@ -28,13 +38,47 @@ export function DeleteAccount() {
     setError("");
   }
   async function remove() {
-    if (pending.current || !session || !confirmed || !password) return;
+    if (
+      pending.current ||
+      !session ||
+      !confirmed ||
+      (!socialProvider && !password)
+    )
+      return;
     pending.current = true;
     setBusy(true);
     setError("");
     try {
+      let appleCode: string | undefined;
+      if (socialProvider) {
+        if (socialProvider === "apple" && Platform.OS !== "ios") {
+          setError("Apple hesabını silmek için iOS uygulamasından devam et.");
+          return;
+        }
+        const proof = await db().auth.getClaims();
+        const authenticatedAt = socialAuthenticationTime(
+          proof.data?.claims.amr,
+        );
+        const recent =
+          authenticatedAt !== null && Date.now() - authenticatedAt < 240000;
+        if (socialProvider === "apple" || !recent) {
+          const result = await signInSocial(socialProvider, (code) => {
+            appleCode = code;
+          });
+          if (result !== "signed-in") return;
+        }
+        const verified = await db().auth.getUser();
+        if (verified.error || verified.data.user?.id !== session.user.id) {
+          setError("Hesabını silebilmek için aynı hesapla giriş yapmalısın.");
+          return;
+        }
+      }
       const r = await db().functions.invoke("delete-account", {
-        body: { password, confirmation: "SİL" },
+        body: {
+          ...(socialProvider ? {} : { password }),
+          confirmation: "SİL",
+          ...(appleCode ? { apple_authorization_code: appleCode } : {}),
+        },
       });
       let code = r.data?.code;
       if (r.error?.context?.json) {
@@ -43,13 +87,16 @@ export function DeleteAccount() {
       }
       if (r.error || code !== "deleted") {
         setError(
-          code === "invalid_password"
-            ? "Şifren doğru değil. Kontrol edip yeniden dene."
-            : code === "unauthorized"
-              ? "Oturumun sona ermiş. Yeniden giriş yap."
-              : code === "NOT_FOUND" || r.error?.context?.status === 404
-                ? "Hesap silme şu anda kullanılamıyor. Biraz sonra yeniden dene."
-                : "Silme işlemi tamamlanamadı. Yeniden dene; bazı dosyaların kaldırılmış olabilir.",
+          code === "reauthentication_required" ||
+            code === "apple_reauthentication_required"
+            ? "Hesabını doğrulamak için yeniden giriş yapıp tekrar dene."
+            : code === "invalid_password"
+              ? "Şifren doğru değil. Kontrol edip yeniden dene."
+              : code === "unauthorized"
+                ? "Oturumun sona ermiş. Yeniden giriş yap."
+                : code === "NOT_FOUND" || r.error?.context?.status === 404
+                  ? "Hesap silme şu anda kullanılamıyor. Biraz sonra yeniden dene."
+                  : "Silme işlemi tamamlanamadı. Yeniden dene; bazı dosyaların kaldırılmış olabilir.",
         );
         return;
       }
@@ -96,15 +143,23 @@ export function DeleteAccount() {
           Hesabın, paylaşımların, yorumların, mesajların ve yüklediğin dosyalar
           kalıcı olarak silinir. Bu işlem geri alınamaz.
         </Text>
-        <Field
-          label="Mevcut şifren"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoCapitalize="none"
-          autoComplete="current-password"
-          editable={!busy}
-        />
+        {socialProvider ? (
+          <Text style={styles.muted}>
+            Hesabını silmeden önce{" "}
+            {socialProvider === "apple" ? "Apple" : "Google"} hesabınla
+            doğrulama yapman gerekebilir.
+          </Text>
+        ) : (
+          <Field
+            label="Mevcut şifren"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoComplete="current-password"
+            editable={!busy}
+          />
+        )}
         <Field
           label="Onaylamak için SİL yaz"
           value={confirmation}
@@ -119,7 +174,7 @@ export function DeleteAccount() {
           accessibilityLabel={
             busy ? "Hesabın siliniyor" : "Hesabımı kalıcı olarak sil"
           }
-          disabled={busy || !confirmed || !password}
+          disabled={busy || !confirmed || (!socialProvider && !password)}
           onPress={() => void remove()}
           style={{
             minHeight: 48,
@@ -127,7 +182,8 @@ export function DeleteAccount() {
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: colors.red,
-            opacity: busy || !confirmed || !password ? 0.45 : 1,
+            opacity:
+              busy || !confirmed || (!socialProvider && !password) ? 0.45 : 1,
           }}
         >
           <Text

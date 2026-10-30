@@ -1,5 +1,6 @@
 import { formatVisaDuration } from "../lib/visa-duration";
 import { webPath } from "../lib/web-path";
+import { PostReactions } from "./PostReactions";
 import { SendPost } from "./SendPost";
 import { DeleteContent } from "./DeleteContent";
 import { themeColor, textSize, useAppearance, isDark } from "../lib/appearance";
@@ -65,22 +66,28 @@ export function Actions({ post }: { post: Post }) {
   return (
     <View style={{ gap: 8 }}>
       <View style={[styles.row, { justifyContent: "space-between" }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${post.helpful_count} Faydalı`}
-          accessibilityState={{ selected: vote.active }}
-          disabled={session?.user.id === post.user_id || vote.pending}
-          onPress={() => gate.require(() => void act(vote.toggle))}
-          style={{
-            minHeight: 44,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          <PlaneReaction active={vote.active} />
-          <Text style={styles.muted}>{post.helpful_count} Faydalı</Text>
-        </Pressable>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              vote.active ? "Faydalı işaretini kaldır" : "Faydalı bul"
+            }
+            accessibilityState={{ selected: vote.active }}
+            disabled={session?.user.id === post.user_id || vote.pending}
+            onPress={() => gate.require(() => void act(vote.toggle))}
+            style={{
+              minWidth: 44,
+              minHeight: 44,
+              justifyContent: "center",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <PlaneReaction active={vote.active} />
+          </Pressable>
+          <PostReactions postId={post.id} count={post.helpful_count} />
+        </View>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`${post.comment_count} Yanıt`}

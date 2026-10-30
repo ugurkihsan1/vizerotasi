@@ -1,6 +1,12 @@
 export type AccountFile = { bucket_id: string; object_name: string };
 export interface DeletionBackend {
-  user(token: string): Promise<{ id: string; email: string } | null>;
+  user(token: string): Promise<{
+    id: string;
+    email: string;
+    providers?: string[];
+    reauthenticatedAt?: number;
+  } | null>;
+  revokeApple?(authorizationCode: string): Promise<void>;
   password(email: string, password: string, id: string): Promise<boolean>;
   begin(id: string): Promise<void>;
   files(id: string): Promise<AccountFile[]>;
@@ -29,7 +35,11 @@ export function deletionHandler(backend: DeletionBackend) {
     // Bound the request before parsing a secret-bearing body. Never log it.
     const raw = await request.text();
     if (raw.length > 4096) return reply(413, "invalid_request");
-    let body: { confirmation?: unknown; password?: unknown };
+    let body: {
+      confirmation?: unknown;
+      password?: unknown;
+      apple_authorization_code?: unknown;
+    };
     try {
       body = JSON.parse(raw);
     } catch {
@@ -38,16 +48,40 @@ export function deletionHandler(backend: DeletionBackend) {
     if (
       !body ||
       body.confirmation !== "SİL" ||
-      typeof body.password !== "string" ||
-      !body.password ||
-      body.password.length > 1024
+      (body.password !== undefined &&
+        (typeof body.password !== "string" || body.password.length > 1024))
     )
       return reply(400, "confirmation_required");
     try {
       const user = await backend.user(token);
       if (!user) return reply(401, "unauthorized");
-      if (!(await backend.password(user.email, body.password, user.id)))
-        return reply(403, "invalid_password");
+      if (typeof body.password === "string" && body.password) {
+        if (!(await backend.password(user.email, body.password, user.id)))
+          return reply(403, "invalid_password");
+      } else {
+        // The verified JWT supplies the current session’s authentication timestamp.
+        const signedIn = user.reauthenticatedAt ?? NaN;
+        if (
+          !user.providers?.some(
+            (provider) => provider === "google" || provider === "apple",
+          ) ||
+          !Number.isFinite(signedIn) ||
+          Date.now() - signedIn > 300000 ||
+          signedIn > Date.now() + 5000
+        )
+          return reply(403, "reauthentication_required");
+      }
+      if (user.providers?.includes("apple")) {
+        if (
+          typeof body.apple_authorization_code !== "string" ||
+          !body.apple_authorization_code ||
+          body.apple_authorization_code.length > 2048
+        )
+          return reply(400, "apple_reauthentication_required");
+        if (!backend.revokeApple)
+          return reply(503, "apple_configuration_required");
+        await backend.revokeApple(body.apple_authorization_code);
+      }
       // The caller's verified identity is the only target; body.user_id is ignored.
       await backend.begin(user.id);
       for (let batch = 0; batch < 25; batch++) {

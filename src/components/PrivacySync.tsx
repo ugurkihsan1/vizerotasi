@@ -35,11 +35,12 @@ export function usePrivacyReceipt() {
     : "pending";
 }
 export function PrivacySync() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const { preferences } = usePrivacyPreferences();
   const user = session?.user.id;
+  const canSync = !!profile && !profile.needs_onboarding;
   useEffect(() => {
-    if (!user || !preferences) return;
+    if (!user || !preferences || !canSync) return;
     const connection = db();
     const key = `${user}:${preferences.acknowledgedAt}`;
     let active = true;
@@ -91,6 +92,6 @@ export function PrivacySync() {
       retry = undefined;
       foreground.remove();
     };
-  }, [user, preferences]);
+  }, [user, preferences, canSync]);
   return null;
 }

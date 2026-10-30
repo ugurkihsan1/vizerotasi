@@ -288,6 +288,8 @@ export function useToggle(
     onSettled: () => {
       cache.invalidateQueries({ queryKey });
       cache.invalidateQueries({ queryKey: ["feed"], refetchType: "none" });
+      if (table === "helpful_votes")
+        cache.invalidateQueries({ queryKey: ["post-reactions", target] });
       cache.invalidateQueries({ queryKey: ["post"] });
       cache.invalidateQueries({ queryKey: ["follows"] });
       cache.invalidateQueries({ queryKey: ["chat"] });

@@ -10,14 +10,14 @@ const documents = [
     file: "GIZLILIK_POLITIKASI.md",
     shortTitle: "Gizlilik politikası",
     filename: "privacy.html",
-    version: "2026-10-29.1",
+    version: "2026-10-30.1",
   },
   {
     id: "transfer",
     file: "YURT_DISI_AKTARIM_ACIK_RIZA_TASLAK.md",
     shortTitle: "Yurt dışına aktarım",
     filename: "transfer-consent.html",
-    version: "2026-10-29.1",
+    version: "2026-10-30.1",
   },
   {
     id: "terms",

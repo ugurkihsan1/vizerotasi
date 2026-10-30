@@ -1,3 +1,4 @@
+import { SocialSignIn } from "../src/components/SocialSignIn";
 import { Avatar } from "../src/components/Avatar";
 import { Ionicons } from "@expo/vector-icons";
 import { parseAuthCallback } from "../src/lib/auth-callback";
@@ -84,7 +85,11 @@ const signupLegalChoices = [
 export default function Auth() {
   useAppearance();
 
-  const params = useLocalSearchParams<{ mode?: string; recovery?: string }>();
+  const params = useLocalSearchParams<{
+    mode?: string;
+    recovery?: string;
+    oauth?: string;
+  }>();
   const callbackUrl = Linking.useURL();
   const [mode, setMode] = useState<Mode>(
     params.recovery === "1"
@@ -170,6 +175,16 @@ export default function Auth() {
           }
           return;
         }
+        if (params.oauth === "1" || !callback.type) {
+          if (active) {
+            setConfirmation(null);
+            clearInitialAuthUrl();
+            if (Platform.OS === "web")
+              window.history.replaceState({}, "", webPath("/auth"));
+            router.replace("/");
+          }
+          return;
+        }
         if (callback.type !== "signup" && callback.type !== "email_change") {
           if (active) {
             setConfirmation(null);
@@ -194,7 +209,7 @@ export default function Auth() {
     return () => {
       active = false;
     };
-  }, [callbackSource]);
+  }, [callbackSource, params.oauth]);
   const changeMode = (next: Mode) => {
     setMode(next);
     setSignupStep(0);
@@ -575,6 +590,14 @@ export default function Auth() {
               ))}
             </View>
           )}
+        {!sent &&
+          (mode === "login" || (mode === "signup" && signupStep === 0)) && (
+            <SocialSignIn
+              disabled={busy}
+              onBusyChange={setBusy}
+              onError={setMessage}
+            />
+          )}
         {!sent && (
           <>
             {mode === "signup" && signupStep === 2 && (
@@ -787,12 +810,12 @@ export default function Auth() {
               onClose={() => setLegalDocument(null)}
             />
             {mode === "forgot" && !allowsAccountEmail() && (
-                <Button
-                  secondary
-                  label="E-posta tercihini yönet"
-                  onPress={() => setEmailPreferences(true)}
-                />
-              )}
+              <Button
+                secondary
+                label="E-posta tercihini yönet"
+                onPress={() => setEmailPreferences(true)}
+              />
+            )}
             <Sheet
               visible={emailPreferences}
               onClose={() => setEmailPreferences(false)}
@@ -819,7 +842,8 @@ export default function Auth() {
                         : "Yenileme bağlantısı gönder"
               }
               disabled={
-                busy || (mode === "signup" && signupStep === 2 && !legalChoicesComplete)
+                busy ||
+                (mode === "signup" && signupStep === 2 && !legalChoicesComplete)
               }
               onPress={() =>
                 mode === "signup" && signupStep < 2

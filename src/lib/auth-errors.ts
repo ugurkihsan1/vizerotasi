@@ -11,6 +11,21 @@ export function authErrorMessage(error: unknown) {
   )
     return "Bu kullanıcı adı alınmış. Başka bir kullanıcı adı seç.";
   switch (e?.code) {
+    case "provider_disabled":
+    case "oauth_provider_not_supported":
+      return "Bu giriş seçeneği henüz kullanıma açılmadı. E-posta ile devam edebilirsin.";
+    case "validation_failed":
+      return /provider|oauth/i.test(e?.message ?? "")
+        ? "Bu giriş seçeneği henüz kullanıma açılmadı. E-posta ile devam edebilirsin."
+        : "Girdiğin bilgileri kontrol edip yeniden dene.";
+    case "social_auth_failed":
+    case "bad_oauth_callback":
+    case "bad_oauth_state":
+    case "invalid_nonce":
+    case "invalid_id_token":
+      return "Giriş tamamlanamadı. Apple veya Google hesabınla yeniden dene.";
+    case "access_denied":
+      return "Giriş izni verilmedi. Dilersen yeniden deneyebilirsin.";
     case "username_check_failed":
       return "Kullanıcı adı kontrol edilemedi. Biraz sonra yeniden dene.";
     case "invalid_credentials":

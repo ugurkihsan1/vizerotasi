@@ -15,6 +15,7 @@ export interface Country {
   code: string;
 }
 export interface Profile {
+  needs_onboarding?: boolean;
   is_private?: boolean;
   id: string;
   username: string;

@@ -3,9 +3,9 @@
     "id": "privacy",
     "shortTitle": "Gizlilik politikası",
     "filename": "privacy.html",
-    "version": "2026-10-29.1",
+    "version": "2026-10-30.1",
     "title": "Vizesel Gizlilik Politikası ve KVKK Aydınlatma Metni",
-    "updatedAt": "29 Ekim 2026",
+    "updatedAt": "30 Ekim 2026",
     "sections": [
       {
         "heading": "1. Veri sorumluları ve iletişim",
@@ -49,6 +49,10 @@
           {
             "kind": "paragraph",
             "text": "Şifreler kimlik doğrulama altyapısı tarafından korunur; uygulama yöneticileri şifrenizi açık metin olarak göremez."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Apple veya Google ile giriş yapmayı seçerseniz, sağlayıcının ilettiği hesap tanımlayıcısı, e-posta adresi ve mevcutsa adınız oturum açma ve profil oluşturma amacıyla işlenir. Apple’ın e-posta gizleme özelliğini kullanabilirsiniz. Apple veya Google şifreniz Vizesel’e iletilmez. Bu giriş seçenekleri isteğe bağlıdır; e-posta ve şifre ile kayıt seçeneği devam eder."
           }
         ]
       },
@@ -74,7 +78,7 @@
         "blocks": [
           {
             "kind": "paragraph",
-            "text": "Profiliniz ve herkese açık paylaşımlarınız, yorumlarınız ve etkileşimleriniz diğer kullanıcılar ile oturum açmamış ziyaretçiler tarafından görülebilir. E-posta adresiniz profilinizde herkese açık gösterilmez."
+            "text": "Profiliniz ve herkese açık paylaşımlarınız, yorumlarınız ve etkileşimleriniz diğer kullanıcılar ile oturum açmamış ziyaretçiler tarafından görülebilir. E-posta adresiniz profilinizde herkese açık gösterilmez. Bir paylaşımı faydalı olarak işaretlediğinizde adınız, kullanıcı adınız ve profil fotoğrafınız ilgili paylaşımın faydalı bulanlar listesinde gösterilebilir."
           },
           {
             "kind": "paragraph",
@@ -116,7 +120,7 @@
               "İçeriklerin görünürlük kurallarına göre diğer kullanıcılar ve ziyaretçiler.",
               "Kimlik doğrulama, veritabanı, dosya saklama ve gerçek zamanlı özellikler için Supabase Pte. Ltd. ve alt hizmet sağlayıcıları.",
               "Mevcut web sürümünün sunulmasında GitHub Pages/GitHub. Ziyaret sırasında bağlantı ve teknik erişim bilgileri bu hizmet kapsamında işlenebilir; uygulama veritabanı GitHub Pages üzerinde tutulmaz.",
-              "E-posta gönderimi ve destek iletişiminde Google/Gmail.",
+              "E-posta gönderimi ve destek iletişiminde Google/Gmail. İlgili giriş yöntemini seçtiğinizde kimlik doğrulama için Apple veya Google; sağlayıcı bu işlemde hesap ve bağlantı bilgilerini kendi gizlilik politikası kapsamında işleyebilir. Küresel altyapıları nedeniyle bu işlemler Türkiye dışında gerçekleşebilir.",
               "Hukuki yükümlülük veya geçerli talepler kapsamında yetkili kurumlar ve bir hakkın korunması için gerekli hâllerde ilgili yetkili kişi veya kuruluşlar."
             ]
           },
@@ -225,9 +229,9 @@
     "id": "transfer",
     "shortTitle": "Yurt dışına aktarım",
     "filename": "transfer-consent.html",
-    "version": "2026-10-29.1",
+    "version": "2026-10-30.1",
     "title": "Vizesel Yurt Dışına Aktarım Bilgilendirmesi ve Açık Rıza",
-    "updatedAt": "29 Ekim 2026",
+    "updatedAt": "30 Ekim 2026",
     "sections": [
       {
         "heading": "Veri sorumluları",
@@ -265,6 +269,10 @@
           {
             "kind": "paragraph",
             "text": "Google/Gmail, doğrulama/şifre sıfırlama e-postaları ve destek iletişiminde e-posta adresi ile ilgili mesaj içeriğini işler. GitHub Pages, mevcut web sitesinin sunulmasında ziyaretçinin IP adresi ve bağlantı bilgilerini işleyebilir; uygulama veritabanı GitHub Pages'e taşınmaz. Bu sağlayıcıların küresel altyapıları nedeniyle ilgili veriler Türkiye dışında işlenebilir. Supabase, Gmail ve GitHub'a aynı veri kümesinin gönderildiği anlamı çıkarılmamalıdır."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Apple veya Google ile giriş seçeneğini kullanmanız hâlinde sağlayıcının hesap tanımlayıcısı, e-posta adresi ve mevcutsa ad bilgisi kimlik doğrulama ve hesap oluşturma amacıyla işlenir. Sağlayıcı, giriş sırasındaki hesap ve bağlantı bilgilerini küresel altyapısında işleyebilir. Apple veya Google şifreniz Vizesel’e gönderilmez; bu seçenekleri kullanmadan e-posta ve şifre ile devam edebilirsiniz."
           }
         ]
       },

@@ -68,3 +68,56 @@ describe("account deletion server", () => {
     expect(db.finish).not.toHaveBeenCalled();
   });
 });
+
+it("requires a fresh server-verified social sign-in when there is no password", async () => {
+  const db = backend();
+  vi.mocked(db.user).mockResolvedValue({
+    id,
+    email: "owner@example.com",
+    providers: ["google"],
+    reauthenticatedAt: Date.now() - 600000,
+  });
+  expect(
+    (await deletionHandler(db)(request({ confirmation: "SİL" }))).status,
+  ).toBe(403);
+  expect(db.begin).not.toHaveBeenCalled();
+  vi.mocked(db.user).mockResolvedValue({
+    id,
+    email: "owner@example.com",
+    providers: ["google"],
+    reauthenticatedAt: Date.now(),
+  });
+  expect(
+    (await deletionHandler(db)(request({ confirmation: "SİL" }))).status,
+  ).toBe(200);
+  expect(db.password).not.toHaveBeenCalled();
+  expect(db.finish).toHaveBeenCalledWith(id);
+});
+
+it("revokes Apple's authorization before deletion and preserves the account on revocation failure", async () => {
+  const db = backend();
+  vi.mocked(db.user).mockResolvedValue({
+    id,
+    email: "relay@example.com",
+    providers: ["apple"],
+    reauthenticatedAt: Date.now(),
+  });
+  db.revokeApple = vi.fn(async () => {});
+  expect(
+    (await deletionHandler(db)(request({ confirmation: "SİL" }))).status,
+  ).toBe(400);
+  expect(db.begin).not.toHaveBeenCalled();
+  vi.mocked(db.revokeApple).mockRejectedValueOnce(
+    new Error("provider unavailable"),
+  );
+  const body = {
+    confirmation: "SİL",
+    apple_authorization_code: "fixture-code",
+  };
+  expect((await deletionHandler(db)(request(body))).status).toBe(503);
+  expect(db.begin).not.toHaveBeenCalled();
+  expect((await deletionHandler(db)(request(body))).status).toBe(200);
+  expect(vi.mocked(db.begin).mock.invocationCallOrder[0]).toBeGreaterThan(
+    vi.mocked(db.revokeApple).mock.invocationCallOrder.at(-1)!,
+  );
+});

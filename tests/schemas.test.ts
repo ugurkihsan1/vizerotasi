@@ -12,6 +12,7 @@ describe("submission validation", () => {
         username: "mert",
         email: "mert@example.com",
         password: "longpassword123",
+        transfer: true,
         terms: true,
         privacy: true,
       }).success,
@@ -73,6 +74,7 @@ it("accepts eight-character signup passwords but rejects seven characters", () =
     username: "ayse",
     email: "ayse@example.com",
     password: "Abc12345",
+    transfer: true,
     terms: true,
     privacy: true,
   };
