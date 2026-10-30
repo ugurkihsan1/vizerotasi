@@ -114,11 +114,11 @@ export function Feed({
   const top = (
     <View style={{ gap: 12, paddingBottom: 12 }}>
       {header}
-      {primary && (
-        <View style={{ gap: 18 }}>
-          {!header && <ApplicationOverview />}
-          {!header && <OwnSubmissionNotice />}
-        </View>
+      {primary && !header && (
+        <>
+          <ApplicationOverview />
+          <OwnSubmissionNotice />
+        </>
       )}
       {!author && !saved && (
         <View
@@ -196,7 +196,7 @@ export function Feed({
         maxToRenderPerBatch={PAGE_SIZE}
         windowSize={9}
         style={styles.page}
-        contentContainerStyle={{ padding: 16, paddingTop: onScroll ? 72 : 16, paddingBottom: 32, gap: 12 }}
+        contentContainerStyle={{ padding: 16, paddingTop: onScroll ? 56 : 16, paddingBottom: 32, gap: 12 }}
         data={contentOnly ? [] : posts}
         keyExtractor={(p) => p.id}
         renderItem={({ item }) => <PostCard post={item} />}
