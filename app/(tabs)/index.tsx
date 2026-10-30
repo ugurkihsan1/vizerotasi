@@ -4,7 +4,15 @@ import { MessagesEntry } from "../../src/components/ChatEntry";
 import { useAppearance, textSize } from "../../src/lib/appearance";
 import { useAuth } from "../../src/lib/auth";
 import { useRef, useState } from "react";
-import { ScrollView, View, Pressable, Text, Animated, type NativeSyntheticEvent, type NativeScrollEvent } from "react-native";
+import {
+  ScrollView,
+  View,
+  Pressable,
+  Text,
+  Animated,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
+} from "react-native";
 import { router } from "expo-router";
 import { Feed } from "../../src/components/Feed";
 import { Onboarding } from "../../src/components/Onboarding";
@@ -23,7 +31,8 @@ export default function Home() {
     const y = Math.max(0, event.nativeEvent.contentOffset.y);
     const delta = y - lastOffset.current;
     lastOffset.current = y;
-    hiddenDistance.current = y <= 0 ? 0 : Math.max(0, Math.min(56, hiddenDistance.current + delta));
+    hiddenDistance.current =
+      y <= 0 ? 0 : Math.max(0, Math.min(56, hiddenDistance.current + delta));
     headerY.setValue(-hiddenDistance.current);
   };
   const [scope, setScope] = useState("Tümü"),
@@ -108,17 +117,56 @@ export default function Home() {
           }
         />
       ) : (
-        <View style={{ flex: 1, paddingTop: 56 }}><GroupScreen
-          onDeleted={() => setScope("Tümü")}
-          key={`${scope}:${session?.user.id ?? "guest"}`}
-          id={scope}
-          top={tabs}
-        /></View>
+        <View style={{ flex: 1, paddingTop: 56 }}>
+          <GroupScreen
+            onDeleted={() => setScope("Tümü")}
+            key={`${scope}:${session?.user.id ?? "guest"}`}
+            id={scope}
+            top={tabs}
+          />
+        </View>
       )}
-      <Animated.View style={{ position: "absolute", top: insets.top, left: 0, right: 0, height: 56, backgroundColor: colors.bg, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", transform: [{ translateY: general ? headerY : 0 }] }}>
-        <Brand />
-        <MessagesEntry />
-      </Animated.View>
+      <View
+        testID="home-header-clip"
+        pointerEvents="box-none"
+        collapsable={false}
+        style={{
+          position: "absolute",
+          top: insets.top,
+          left: 0,
+          right: 0,
+          height: 56,
+          overflow: "hidden",
+        }}
+      >
+        <Animated.View
+          testID="home-header"
+          style={{
+            height: 56,
+            backgroundColor: colors.bg,
+            paddingHorizontal: 16,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            transform: [{ translateY: general ? headerY : 0 }],
+          }}
+        >
+          <Brand />
+          <MessagesEntry />
+        </Animated.View>
+      </View>
+      <View
+        testID="home-safe-area"
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top,
+          backgroundColor: colors.bg,
+        }}
+      />
       <Onboarding />
     </View>
   );
