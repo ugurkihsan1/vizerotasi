@@ -15,8 +15,16 @@ const Context = createContext<{
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  profileLoading: boolean;
+  profileError: boolean;
   avatarNotice?: string;
-}>({ session: null, profile: null, loading: true });
+}>({
+  session: null,
+  profile: null,
+  loading: true,
+  profileLoading: false,
+  profileError: false,
+});
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(Boolean(supabase));
@@ -90,7 +98,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
   });
   return (
     <Context.Provider
-      value={{ session, profile: profile.data ?? null, loading, avatarNotice }}
+      value={{
+        session,
+        profile: profile.data ?? null,
+        loading,
+        profileLoading:
+          !!session &&
+          !profile.data &&
+          (profile.isPending || profile.isFetching),
+        profileError:
+          !!session && !profile.data && profile.isError && !profile.isFetching,
+        avatarNotice,
+      }}
     >
       {children}
     </Context.Provider>

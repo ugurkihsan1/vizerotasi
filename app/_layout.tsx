@@ -1,4 +1,5 @@
 import { SocialProfileSetup } from "../src/components/SocialProfileSetup";
+import { AppLaunchOverlay, LaunchScreen } from "../src/components/AppLaunch";
 import { NotificationSync } from "../src/components/NotificationSync";
 import { PrivacyPreferences } from "../src/components/PrivacyPreferences";
 import { PrivacySync } from "../src/components/PrivacySync";
@@ -23,7 +24,7 @@ import {
 import { useEffect, useState } from "react";
 
 import { ChatSync } from "../src/components/ChatEntry";
-import { ActivityIndicator, Platform, ScrollView, View } from "react-native";
+import { Platform, ScrollView, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
@@ -49,17 +50,27 @@ export default function Layout() {
   const appearance = useAppearance();
   const privacy = usePrivacyPreferences();
   const path = usePathname();
+  const [appearanceReady, setAppearanceReady] = useState(false);
   useEffect(() => {
-    void loadAppearance();
+    let active = true;
+    void loadAppearance().finally(() => {
+      if (active) setAppearanceReady(true);
+    });
     void loadPrivacyPreferences();
-    if (Platform.OS === "web") return;
+    if (Platform.OS === "web")
+      return () => {
+        active = false;
+      };
     void Linking.getInitialURL().then((url) => {
       if (url) captureInitialAuthUrl(url);
     });
     const listener = Linking.addEventListener("url", ({ url }) =>
       captureInitialAuthUrl(url),
     );
-    return () => listener.remove();
+    return () => {
+      active = false;
+      listener.remove();
+    };
   }, []);
   useEffect(() => {
     if (privacy.loaded && !privacyAllowsApp(Platform.OS === "web"))
@@ -81,13 +92,11 @@ export default function Layout() {
       </ThemeProvider>
     );
   // No first-launch legal pop-up: visitors can use the public app immediately.
-  if (!privacy.loaded)
+  if (!privacy.loaded || !appearanceReady)
     return (
       <SafeAreaProvider style={{ backgroundColor: colors.bg }}>
         <StatusBar style={appearance.dark ? "light" : "dark"} />
-        <View style={{ flex: 1, justifyContent: "center" }}>
-          <ActivityIndicator color={colors.navy} />
-        </View>
+        <LaunchScreen />
       </SafeAreaProvider>
     );
   // A user who explicitly refused or withdrew remains offline until changing
@@ -246,6 +255,7 @@ function ConnectedLayout() {
                 <Stack.Screen name="settings" options={{ title: "Ayarlar" }} />
               </Stack>
             </View>
+            <AppLaunchOverlay />
           </AuthProvider>
         </PersistQueryClientProvider>
       </SafeAreaProvider>

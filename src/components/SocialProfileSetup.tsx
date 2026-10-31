@@ -25,7 +25,7 @@ import { uploadAvatar, type AvatarDraft } from "../lib/avatar";
 import { ProfilePhotoPicker } from "./ProfilePhotoPicker";
 import { Brand } from "./Brand";
 import { LegalTextModal } from "./PrivacyPreferences";
-import { colors, styles, Field, Button, Message, Busy } from "./ui";
+import { colors, styles, Field, Button, Message } from "./ui";
 
 const choices = [
   { field: "transfer", label: "Açık Rıza Metni", document: "transfer" },
@@ -36,7 +36,7 @@ const choices = [
 /** Covers the mounted navigator so a new social account cannot skip setup by going back. */
 export function SocialProfileSetup() {
   useAppearance();
-  const { session, profile } = useAuth();
+  const { session, profile, profileError } = useAuth();
   const cache = useQueryClient();
   const social = (
     session?.user.app_metadata.providers ?? [
@@ -45,6 +45,8 @@ export function SocialProfileSetup() {
   ).some((provider) => provider === "apple" || provider === "google");
   if (!session || !social || (profile && !profile.needs_onboarding))
     return null;
+  // The launch overlay owns normal loading; do not present an error modal for it.
+  if (!profile && !profileError) return null;
   return (
     <Modal
       visible
@@ -57,7 +59,11 @@ export function SocialProfileSetup() {
           <SetupForm key={profile.id} profile={profile} />
         ) : (
           <View style={[styles.content, { flex: 1, justifyContent: "center" }]}>
-            <Busy />
+            <Brand cover />
+            <Text style={[styles.muted, { textAlign: "center" }]}>
+              Profilin yüklenemedi. Bağlantını kontrol edip yeniden
+              deneyebilirsin.
+            </Text>
             <Button
               secondary
               label="Yeniden dene"
