@@ -271,17 +271,15 @@ export default function Country() {
   ] as const;
   const header = (
     <View style={{ gap: 14 }}>
-      {section !== "Belgeler" && (
-        <View
-          style={{
-            borderRadius: 12,
-            overflow: "hidden",
-            backgroundColor: themeColor("#E4E9E5", "surface"),
-          }}
-        >
-          <DestinationPhoto id={id} height={156} showFlag={false} />
-        </View>
-      )}
+      <View
+        style={{
+          borderRadius: 12,
+          overflow: "hidden",
+          backgroundColor: themeColor("#E4E9E5", "surface"),
+        }}
+      >
+        <DestinationPhoto id={id} height={156} showFlag={false} />
+      </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
         <View style={{ flex: 1, gap: 3 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>

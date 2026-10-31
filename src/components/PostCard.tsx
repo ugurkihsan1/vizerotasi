@@ -249,8 +249,8 @@ export function PostCard({
         {
           borderRadius: 0,
           borderWidth: 0,
-          borderBottomWidth: 1,
-          borderBottomColor: themeColor("#E4E4E4", "border"),
+          borderBottomWidth: 2,
+          borderBottomColor: isDark() ? "#666666" : "#202020",
           shadowOpacity: 0,
           elevation: 0,
         },
