@@ -578,9 +578,9 @@ export default function Auth() {
             <View
               style={{
                 flexDirection: "row",
-                backgroundColor: themeColor("#E8EEF7", "surface"),
-                borderRadius: 14,
-                padding: 4,
+                gap: 28,
+                borderBottomWidth: 1,
+                borderBottomColor: themeColor("#E8E8E8", "border"),
               }}
             >
               {(["login", "signup"] as const).map((x) => (
@@ -590,22 +590,23 @@ export default function Auth() {
                   accessibilityState={{ selected: mode === x }}
                   aria-selected={mode === x}
                   onPress={() => changeMode(x)}
-                  style={{
-                    flex: 1,
-                    minHeight: 44,
+                  style={({ pressed }) => ({
+                    minHeight: 46,
                     justifyContent: "center",
                     alignItems: "center",
-                    backgroundColor:
-                      mode === x
-                        ? themeColor("#FFF", "surface")
-                        : "transparent",
-                    borderRadius: 11,
-                  }}
+                    paddingHorizontal: 2,
+                    borderBottomWidth: 2,
+                    borderBottomColor:
+                      mode === x ? colors.text : "transparent",
+                    marginBottom: -1,
+                    opacity: pressed ? 0.6 : 1,
+                  })}
                 >
                   <Text
                     style={{
-                      color: colors.navy,
-                      fontWeight: mode === x ? "700" : "400",
+                      color: mode === x ? colors.text : colors.muted,
+                      fontSize: 15,
+                      fontWeight: mode === x ? "600" : "400",
                     }}
                   >
                     {x === "login" ? "Giriş yap" : "Üye ol"}
