@@ -2,7 +2,7 @@ import { VisaFeeSection } from "../../src/components/VisaFeeSection";
 import { CommunityTips } from "../../src/components/CommunityTips";
 import { documentTopicId } from "../../src/lib/guide-topics";
 import { Ionicons } from "@expo/vector-icons";
-import { useAppearance, themeColor } from "../../src/lib/appearance";
+import { useAppearance, themeColor, textSize } from "../../src/lib/appearance";
 import { CountryFlag } from "../../src/components/CountryFlag";
 import { ScrollTabs } from "../../src/components/ScrollTabs";
 import { CommunityChatEntry } from "../../src/components/ChatEntry";
@@ -48,15 +48,48 @@ function Follow({ id }: { id: string }) {
   const [error, setError] = useState("");
   return (
     <>
-      <Button
-        label={follow.active ? "✓ Takip ediliyor" : "Takip et"}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={follow.active ? "Takip ediliyor" : "Takip et"}
+        accessibilityState={{
+          selected: follow.active,
+          disabled: follow.pending,
+        }}
         disabled={follow.pending}
         onPress={() =>
           gate.require(() => {
             void follow.toggle().catch(() => setError("Takip güncellenemedi."));
           })
         }
-      />
+        style={({ pressed }) => ({
+          minHeight: 44,
+          paddingHorizontal: 15,
+          borderRadius: 10,
+          borderWidth: 1,
+          borderColor: follow.active
+            ? themeColor("#E4E4E4", "border")
+            : colors.navy,
+          backgroundColor: follow.active ? colors.bg : colors.navy,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 5,
+          opacity: pressed || follow.pending ? 0.6 : 1,
+        })}
+      >
+        {follow.active && (
+          <Ionicons name="checkmark" size={15} color={colors.navy} />
+        )}
+        <Text
+          style={{
+            fontSize: textSize(12),
+            fontWeight: "600",
+            color: follow.active ? colors.navy : colors.bg,
+          }}
+        >
+          {follow.active ? "Takip ediliyor" : "Takip et"}
+        </Text>
+      </Pressable>
       <Message text={error} />
       {gate.view}
     </>
@@ -223,87 +256,191 @@ export default function Country() {
         | undefined;
     },
   });
+  const hasGuide = !!(
+    id === "spain" ||
+    getCountryGuide(id) ||
+    country?.summary ||
+    country?.source_url ||
+    country?.appointment_url
+  );
+  const section = tab === "Belgeler" || tab === "Rehber" ? tab : "Akış";
+  const sections = [
+    { label: "Akış", icon: "albums-outline" },
+    { label: "Belgeler", icon: "documents-outline" },
+    ...(hasGuide ? [{ label: "Rehber", icon: "map-outline" as const }] : []),
+  ] as const;
   const header = (
-    <View style={{ gap: 16 }}>
-      {tab !== "Belgeler" && (
+    <View style={{ gap: 14 }}>
+      {section !== "Belgeler" && (
         <View
           style={{
-            borderRadius: 24,
+            borderRadius: 12,
             overflow: "hidden",
-            backgroundColor: themeColor("#DFE9E2", "surface"),
+            backgroundColor: themeColor("#E4E9E5", "surface"),
           }}
         >
-          <DestinationPhoto id={id} height={120} />
+          <DestinationPhoto id={id} height={156} showFlag={false} />
         </View>
       )}
-      <View style={styles.row}>
-        {country && (
-          <CountryFlag
-            code={country.code}
-            emoji={country.flag}
-            name={country.name}
-          />
-        )}
-        <Text style={styles.title}>{country?.name ?? "Ülke topluluğu"}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <View style={{ flex: 1, gap: 3 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+            {country && (
+              <CountryFlag
+                code={country.code}
+                emoji={country.flag}
+                name={country.name}
+              />
+            )}
+            <Text
+              numberOfLines={2}
+              style={{
+                flexShrink: 1,
+                fontSize: textSize(25),
+                fontWeight: "700",
+                letterSpacing: -0.7,
+                color: colors.navy,
+              }}
+            >
+              {country?.name ?? "Ülke"}
+            </Text>
+          </View>
+        </View>
+        <Follow id={id} />
+        <CommunityChatEntry
+          compact
+          countryId={id}
+          name={country?.name ?? "Ülke"}
+        >
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderWidth: 1,
+              borderColor: themeColor("#E4E4E4", "border"),
+              borderRadius: 10,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons
+              name="chatbubble-ellipses-outline"
+              size={21}
+              color={colors.navy}
+            />
+          </View>
+        </CommunityChatEntry>
       </View>
-      {tab !== "Belgeler" && (
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <View style={{ flex: 1 }}>
-            <Follow id={id} />
+      {section !== "Belgeler" && (
+        <View style={{ gap: 9 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 18,
+              flexWrap: "wrap",
+            }}
+          >
+            {[
+              {
+                value: stats.data?.experiences,
+                label: "deneyim",
+                target: "Deneyimler",
+              },
+              {
+                value: stats.data?.questions,
+                label: "soru",
+                target: "Sorular",
+              },
+              {
+                value: stats.data?.tips,
+                label: "önemli bilgi",
+                target: "Önemli",
+              },
+            ].map((item) => (
+              <Pressable
+                key={item.target}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.label}: ${item.value ?? "—"}`}
+                onPress={() => setTab(item.target)}
+                style={{ minHeight: 44, justifyContent: "center" }}
+              >
+                <Text style={{ fontSize: textSize(12), color: colors.muted }}>
+                  <Text
+                    style={{
+                      fontWeight: "700",
+                      fontSize: textSize(15),
+                      color: colors.navy,
+                    }}
+                  >
+                    {item.value ?? "—"}
+                  </Text>{" "}
+                  {item.label}
+                </Text>
+              </Pressable>
+            ))}
           </View>
-          <View style={{ flex: 1 }}>
-            <CommunityChatEntry countryId={id} name={country?.name ?? "Ülke"} />
-          </View>
+          {stats.data?.average_days != null && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 5,
+                marginTop: -8,
+              }}
+            >
+              <Ionicons name="time-outline" size={13} color={colors.muted} />
+              <Text style={{ fontSize: textSize(11), color: colors.muted }}>
+                Ortalama sonuç · {stats.data.average_days} gün
+              </Text>
+            </View>
+          )}
         </View>
       )}
-      {tab !== "Belgeler" && (
-        <View style={styles.row}>
-          <Text style={styles.pillText}>
-            {stats.data?.experiences ?? "—"} deneyim
-          </Text>
-          <Text style={styles.pillText}>
-            · {stats.data?.questions ?? "—"} soru
-          </Text>
-          <Text style={styles.pillText}>
-            · {stats.data?.tips ?? "—"} önemli bilgi
-          </Text>
-        </View>
-      )}
-      {tab !== "Belgeler" && stats.data?.average_days != null && (
-        <Text style={styles.muted}>
-          Ortalama sonuç: {stats.data.average_days} gün · Topluluk deneyimleri
-        </Text>
-      )}
-      <ScrollTabs
-        plain
-        labels={
-          id === "spain"
-            ? [
-                "Akış",
-                "Deneyimler",
-                "Sorular",
-                "Ret Deneyimleri",
-                "Önemli",
-                "Belgeler",
-                "Rehber",
-              ]
-            : [
-                "Akış",
-                "Deneyimler",
-                "Sorular",
-                "Önemli",
-                "Belgeler",
-                ...(getCountryGuide(id) ||
-                country?.summary ||
-                country?.source_url ||
-                country?.appointment_url
-                  ? ["Rehber"]
-                  : []),
-              ]
-        }
-        value={tab}
-        onChange={setTab}
-      />
+      <View
+        style={{
+          flexDirection: "row",
+          borderBottomWidth: 1,
+          borderBottomColor: themeColor("#E4E4E4", "border"),
+        }}
+      >
+        {sections.map((item) => (
+          <Pressable
+            key={item.label}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
+            accessibilityState={{ selected: section === item.label }}
+            aria-pressed={section === item.label}
+            onPress={() => setTab(item.label)}
+            style={{
+              flex: 1,
+              minHeight: 48,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 7,
+              borderBottomWidth: section === item.label ? 2 : 0,
+              borderBottomColor: colors.navy,
+              marginBottom: -1,
+            }}
+          >
+            <Ionicons
+              name={item.icon}
+              size={18}
+              color={section === item.label ? colors.navy : colors.muted}
+            />
+            <Text
+              style={{
+                fontSize: textSize(13),
+                fontWeight: section === item.label ? "700" : "500",
+                color: section === item.label ? colors.navy : colors.muted,
+              }}
+            >
+              {item.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
   if (id === "spain" && tab === "Belgeler")
@@ -370,6 +507,19 @@ export default function Country() {
       key={tab}
       country={id}
       header={header}
+      homeTabs={
+        <ScrollTabs
+          labels={[
+            "Tümü",
+            "Deneyimler",
+            "Sorular",
+            "Önemli",
+            ...(id === "spain" ? ["Ret Deneyimleri"] : []),
+          ]}
+          value={tab === "Akış" ? "Tümü" : tab}
+          onChange={(label) => setTab(label === "Tümü" ? "Akış" : label)}
+        />
+      }
       baseFilter={{
         result: tab === "Ret Deneyimleri" ? "rejected" : undefined,
         kind:

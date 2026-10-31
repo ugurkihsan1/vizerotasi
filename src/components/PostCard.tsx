@@ -47,7 +47,13 @@ export const statusLabels = {
 export function postPath(post: Pick<Post, "kind" | "id">) {
   return `/${post.kind === "experience" ? "experience" : post.kind === "question" ? "question" : "tip"}/${post.id}` as "/experience/[id]";
 }
-export function Actions({ post }: { post: Post }) {
+export function Actions({
+  post,
+  compact = false,
+}: {
+  post: Post;
+  compact?: boolean;
+}) {
   const appearance = useAppearance();
   const gate = useGate();
   const { session } = useAuth();
@@ -65,7 +71,13 @@ export function Actions({ post }: { post: Post }) {
   };
   return (
     <View style={{ gap: 8 }}>
-      <View style={[styles.row, { justifyContent: "space-between" }]}>
+      <View
+        style={[
+          styles.row,
+          { justifyContent: "space-between" },
+          compact && { flexWrap: "nowrap", gap: 4 },
+        ]}
+      >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
           <Pressable
             accessibilityRole="button"
@@ -86,7 +98,11 @@ export function Actions({ post }: { post: Post }) {
           >
             <PlaneReaction active={vote.active} />
           </Pressable>
-          <PostReactions postId={post.id} count={post.helpful_count} />
+          <PostReactions
+            postId={post.id}
+            count={post.helpful_count}
+            compact={compact}
+          />
         </View>
         <Pressable
           accessibilityRole="button"
@@ -100,7 +116,9 @@ export function Actions({ post }: { post: Post }) {
           }}
         >
           <Ionicons name="chatbubble-outline" size={20} color={colors.muted} />
-          <Text style={styles.muted}>{post.comment_count} Yanıt</Text>
+          <Text style={styles.muted}>
+            {compact ? post.comment_count : `${post.comment_count} Yanıt`}
+          </Text>
         </Pressable>
         <SendPost post={post} />
         <Pressable
@@ -146,9 +164,11 @@ export function ShareButton({ post }: { post: Post }) {
 export function PostCard({
   post,
   detail = false,
+  countryPage = false,
 }: {
   post: Post;
   detail?: boolean;
+  countryPage?: boolean;
 }) {
   useAppearance();
 
@@ -243,19 +263,30 @@ export function PostCard({
                   ? "#6B582E"
                   : "#E9D8A9",
         },
+        countryPage && {
+          backgroundColor: colors.bg,
+          borderRadius: 0,
+          borderWidth: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: themeColor("#E4E4E4", "border"),
+          paddingTop: 8,
+          paddingBottom: 6,
+          shadowOpacity: 0,
+          elevation: 0,
+        },
       ]}
     >
       {post.kind === "experience" && post.result && (
         <View
           style={{
-            paddingHorizontal: detail ? 20 : 14,
+            paddingHorizontal: countryPage ? 0 : detail ? 20 : 14,
             paddingVertical: detail ? 13 : 8,
             minHeight: detail ? 46 : 34,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
             gap: 8,
-            backgroundColor: toneCap,
+            backgroundColor: countryPage ? colors.bg : toneCap,
           }}
         >
           <Text
@@ -280,31 +311,39 @@ export function PostCard({
           )}
         </View>
       )}
-      <View style={{ padding: detail ? 16 : 14, gap: detail ? 10 : 8 }}>
+      <View
+        style={{
+          padding: countryPage ? 0 : detail ? 16 : 14,
+          gap: detail ? 10 : 8,
+        }}
+      >
         <View style={[styles.row, { justifyContent: "space-between" }]}>
-          <Pressable
-            accessibilityRole="link"
-            onPress={() => router.push(`/country/${post.country_id}`)}
-          >
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 7 }}
+          {!countryPage && (
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => router.push(`/country/${post.country_id}`)}
             >
-              {country && (
-                <CountryFlag
-                  code={country.code}
-                  emoji={country.flag}
-                  name={country.name}
-                />
-              )}
-              <Text style={styles.pillText}>{country?.name ?? "Ülke"}</Text>
-            </View>
-          </Pressable>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 7 }}
+              >
+                {country && (
+                  <CountryFlag
+                    code={country.code}
+                    emoji={country.flag}
+                    name={country.name}
+                  />
+                )}
+                <Text style={styles.pillText}>{country?.name ?? "Ülke"}</Text>
+              </View>
+            </Pressable>
+          )}
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
               gap: 4,
-              marginLeft: "auto",
+              marginLeft: countryPage ? 0 : "auto",
+              flex: countryPage ? 1 : undefined,
             }}
           >
             <Text
@@ -329,6 +368,12 @@ export function PostCard({
                   paddingHorizontal: 9,
                   paddingVertical: 3,
                   borderRadius: 7,
+                },
+                countryPage && {
+                  backgroundColor: "transparent",
+                  paddingHorizontal: 0,
+                  fontSize: textSize(11),
+                  fontWeight: "500",
                 },
               ]}
             >
@@ -522,12 +567,12 @@ export function PostCard({
         {post.status === "approved" && (
           <View
             style={{
-              borderTopWidth: 1,
+              borderTopWidth: countryPage ? 0 : 1,
               borderTopColor: themeColor("#EDF0EC", "border"),
               paddingTop: detail ? 8 : 2,
             }}
           >
-            <Actions post={post} />
+            <Actions post={post} compact={countryPage} />
           </View>
         )}
       </View>

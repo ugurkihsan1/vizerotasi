@@ -21,9 +21,11 @@ type Reaction = {
 export function PostReactions({
   postId,
   count,
+  compact = false,
 }: {
   postId: string;
   count: number;
+  compact?: boolean;
 }) {
   useAppearance();
   const { session } = useAuth();
@@ -60,9 +62,13 @@ export function PostReactions({
         accessibilityRole="button"
         accessibilityLabel={`${count} kişi faydalı buldu. Listeyi aç`}
         onPress={() => setOpen(true)}
-        style={{ minHeight: 44, justifyContent: "center" }}
+        style={{
+          minHeight: 44,
+          minWidth: compact ? 32 : undefined,
+          justifyContent: "center",
+        }}
       >
-        <Text style={styles.muted}>{count} Faydalı</Text>
+        <Text style={styles.muted}>{compact ? count : `${count} Faydalı`}</Text>
       </Pressable>
       <Sheet
         title="Faydalı bulanlar"

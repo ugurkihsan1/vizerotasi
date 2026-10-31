@@ -9,9 +9,11 @@ import { photoAssets, photoCredits } from "../lib/destination-photos";
 export function DestinationPhoto({
   id,
   height = 100,
+  showFlag = true,
 }: {
   id: string;
   height?: number;
+  showFlag?: boolean;
 }) {
   const { motionReduced } = useAppearance();
 
@@ -74,7 +76,7 @@ export function DestinationPhoto({
           />
         </Pressable>
       )}
-      {country && (
+      {country && showFlag && (
         <View
           pointerEvents="none"
           style={{

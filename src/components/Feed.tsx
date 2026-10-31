@@ -239,7 +239,9 @@ export function Feed({
         }}
         data={contentOnly ? [] : posts}
         keyExtractor={(p) => p.id}
-        renderItem={({ item }) => <PostCard post={item} />}
+        renderItem={({ item }) => (
+          <PostCard post={item} countryPage={!!country} />
+        )}
         ListHeaderComponent={top}
         ListEmptyComponent={
           contentOnly ? undefined : !configured ? (

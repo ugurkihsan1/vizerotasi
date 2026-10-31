@@ -63,11 +63,13 @@ export function CommunityChatEntry({
   name,
   label = "Topluluk sohbeti",
   children,
+  compact = false,
 }: {
   countryId: string;
   name: string;
   label?: string;
   children?: ReactNode;
+  compact?: boolean;
 }) {
   useAppearance();
 
@@ -113,7 +115,9 @@ export function CommunityChatEntry({
           style={{
             alignItems: "center",
             gap: 6,
-            minWidth: 64,
+            minWidth: compact ? 44 : 64,
+            minHeight: 44,
+            justifyContent: "center",
             opacity: busy ? 0.5 : 1,
           }}
         >
