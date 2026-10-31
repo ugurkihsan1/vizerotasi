@@ -246,25 +246,11 @@ export function PostCard({
                     ? themeColor("#FFF5E7", "surface")
                     : themeColor("#FFFFFF", "surface"),
         },
-        post.kind === "question" && {
-          borderColor: themeColor("#DDE6E9", "border"),
-        },
-        tone && {
-          borderColor:
-            tone === "red"
-              ? isDark()
-                ? "#66404C"
-                : "#EBC8C5"
-              : tone === "green"
-                ? isDark()
-                  ? "#365D47"
-                  : "#D1E6D8"
-                : isDark()
-                  ? "#6B582E"
-                  : "#E9D8A9",
-        },
-        countryPage && {
-          borderRadius: 14,
+        {
+          borderRadius: 0,
+          borderWidth: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: themeColor("#E4E4E4", "border"),
           shadowOpacity: 0,
           elevation: 0,
         },

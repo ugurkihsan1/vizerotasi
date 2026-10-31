@@ -297,11 +297,15 @@ function DiscoverSearch({ initialQuery }: { initialQuery: string }) {
   return (
     <FlatList
       style={styles.page}
-      contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
+      contentContainerStyle={{ padding: 16, gap: 0, paddingBottom: 32 }}
       keyboardShouldPersistTaps="handled"
       data={!search || auxiliary || !validSearch ? [] : posts}
       keyExtractor={(p) => p.id}
-      renderItem={({ item }) => <PostCard post={item} />}
+      renderItem={({ item }) => (
+        <View style={{ marginHorizontal: -16 }}>
+          <PostCard post={item} />
+        </View>
+      )}
       ListHeaderComponent={header}
       ListEmptyComponent={
         !search || auxiliary || !validSearch ? undefined : feed.isPending ? (

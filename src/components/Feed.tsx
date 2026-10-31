@@ -235,12 +235,14 @@ export function Feed({
           padding: 16,
           paddingTop: onScroll ? 56 : 16,
           paddingBottom: 32,
-          gap: 12,
+          gap: 0,
         }}
         data={contentOnly ? [] : posts}
         keyExtractor={(p) => p.id}
         renderItem={({ item }) => (
-          <PostCard post={item} countryPage={!!country} />
+          <View style={{ marginHorizontal: -16 }}>
+            <PostCard post={item} countryPage={!!country} />
+          </View>
         )}
         ListHeaderComponent={top}
         ListEmptyComponent={
