@@ -230,11 +230,11 @@ export default function Country() {
     tab?: string;
   }>();
   const [tab, setTab] = useState(
-    initialTab === "Belgeler"
-      ? "Belgeler"
+    initialTab === "Akış"
+      ? "Akış"
       : initialTab === "Rehber"
         ? "Rehber"
-        : "Akış",
+        : "Belgeler",
   );
   const { data: countries } = useCountries();
   const country = countries?.find((c) => c.id === id);
@@ -265,8 +265,8 @@ export default function Country() {
   );
   const section = tab === "Belgeler" || tab === "Rehber" ? tab : "Akış";
   const sections = [
-    { label: "Akış", icon: "albums-outline" },
     { label: "Belgeler", icon: "documents-outline" },
+    { label: "Akış", icon: "albums-outline" },
     ...(hasGuide ? [{ label: "Rehber", icon: "map-outline" as const }] : []),
   ] as const;
   const header = (
