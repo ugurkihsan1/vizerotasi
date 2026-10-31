@@ -264,13 +264,7 @@ export function PostCard({
                   : "#E9D8A9",
         },
         countryPage && {
-          backgroundColor: colors.bg,
-          borderRadius: 0,
-          borderWidth: 0,
-          borderBottomWidth: 1,
-          borderBottomColor: themeColor("#E4E4E4", "border"),
-          paddingTop: 8,
-          paddingBottom: 6,
+          borderRadius: 14,
           shadowOpacity: 0,
           elevation: 0,
         },
@@ -279,14 +273,14 @@ export function PostCard({
       {post.kind === "experience" && post.result && (
         <View
           style={{
-            paddingHorizontal: countryPage ? 0 : detail ? 20 : 14,
+            paddingHorizontal: detail ? 20 : 14,
             paddingVertical: detail ? 13 : 8,
             minHeight: detail ? 46 : 34,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
             gap: 8,
-            backgroundColor: countryPage ? colors.bg : toneCap,
+            backgroundColor: toneCap,
           }}
         >
           <Text
@@ -313,7 +307,7 @@ export function PostCard({
       )}
       <View
         style={{
-          padding: countryPage ? 0 : detail ? 16 : 14,
+          padding: detail ? 16 : 14,
           gap: detail ? 10 : 8,
         }}
       >
