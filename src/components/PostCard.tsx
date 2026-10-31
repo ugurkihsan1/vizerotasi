@@ -3,7 +3,7 @@ import { webPath } from "../lib/web-path";
 import { PostReactions } from "./PostReactions";
 import { SendPost } from "./SendPost";
 import { DeleteContent } from "./DeleteContent";
-import { textSize, useAppearance } from "../lib/appearance";
+import { themeColor, textSize, useAppearance, isDark } from "../lib/appearance";
 
 import { PlaneReaction } from "./PlaneReaction";
 import { VerificationLabel } from "./VerificationLabel";
@@ -170,322 +170,361 @@ export function PostCard({
   detail?: boolean;
   countryPage?: boolean;
 }) {
-  const { dark } = useAppearance();
+  useAppearance();
+
   const { session } = useAuth();
   const { data: countries } = useCountries();
   const { data: author } = useProfile(post.user_id);
-  const country = countries?.find((item) => item.id === post.country_id);
+  const country = countries?.find((x) => x.id === post.country_id);
   const days =
     post.processing_days ??
     processingDays(post.application_date, post.decision_date);
   const outcome = post.kind === "experience" ? post.result : null;
+  const rejected = outcome === "rejected";
+  const tone = rejected
+    ? "red"
+    : outcome === "approved"
+      ? "green"
+      : outcome === "waiting" || post.kind === "tip"
+        ? "amber"
+        : null;
   const accent =
-    outcome === "rejected"
-      ? dark
-        ? "#EDA5AB"
-        : "#A13C49"
-      : outcome === "approved"
-        ? dark
-          ? "#91D5B0"
-          : "#247655"
-        : post.kind === "tip" || outcome === "waiting"
-          ? dark
-            ? "#DCC184"
-            : "#936A23"
-          : post.kind === "question"
-            ? dark
-              ? "#A2BEDF"
-              : "#4E729B"
-            : colors.muted;
-  const outcomeBackground =
-    outcome === "rejected"
-      ? dark
-        ? "#2B1F24"
-        : "#FBF1F2"
-      : outcome === "approved"
-        ? dark
-          ? "#17271F"
-          : "#EEF7F1"
-        : dark
-          ? "#282317"
-          : "#FAF5E9";
-  const kindIcon = {
-    experience: "document-text-outline",
-    general: "compass-outline",
-    question: "help-circle-outline",
-    tip: "flash-outline",
-    update: "megaphone-outline",
-  } as const;
-  const duration =
-    post.result === "approved" && (post.granted_days ?? 0) > 0
-      ? `${formatVisaDuration(post.granted_days!)} vize${post.entries ? ` · ${{ single: "Tek giriş", double: "Çift giriş", multi: "Çok giriş" }[post.entries] ?? ""}` : ""}`
-      : null;
-  const visaDetails = [duration, post.purpose].filter(Boolean).join(" · ");
-  const context = [post.city, post.employment_status]
-    .filter(Boolean)
-    .join(" · ");
-  const name = author?.display_name ?? "Üye";
-  const username = author?.username;
+    tone === "red"
+      ? isDark()
+        ? "#F197A2"
+        : "#9E3041"
+      : tone === "green"
+        ? isDark()
+          ? "#78D5A3"
+          : "#176744"
+        : tone === "amber"
+          ? isDark()
+            ? "#EBC86E"
+            : "#875B10"
+          : colors.blue;
+  const toneBackground =
+    tone === "red"
+      ? isDark()
+        ? "#2B2027"
+        : "#FFF3F1"
+      : tone === "green"
+        ? isDark()
+          ? "#182B22"
+          : "#F0F7F2"
+        : isDark()
+          ? "#302919"
+          : "#FFF6E5";
+  const toneCap =
+    tone === "red"
+      ? isDark()
+        ? "#482832"
+        : "#F7D1CD"
+      : tone === "green"
+        ? isDark()
+          ? "#254533"
+          : "#CDECD9"
+        : isDark()
+          ? "#4B3C1B"
+          : "#FFE8A6";
+  const visaSummary =
+    post.kind === "experience"
+      ? [
+          post.result === "approved" && (post.granted_days ?? 0) > 0
+            ? `${formatVisaDuration(post.granted_days!)} vize${post.entries ? ` · ${{ single: "Tek giriş", double: "Çift giriş", multi: "Çok giriş" }[post.entries] ?? ""}` : ""}`
+            : null,
+          post.purpose,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : "";
   return (
     <View
       testID={`post-${post.id}`}
-      style={{
-        backgroundColor: colors.bg,
-        paddingHorizontal: 16,
-        paddingTop: 18,
-        paddingBottom: 6,
-        gap: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: dark ? "#25292E" : "#E9EDF1",
-      }}
+      style={[
+        styles.card,
+        {
+          padding: 0,
+          gap: 0,
+          overflow: "hidden",
+          backgroundColor: tone
+            ? toneBackground
+            : post.kind === "general"
+              ? themeColor("#F4EFFB", "surface")
+              : post.kind === "experience"
+                ? themeColor("#F0F7F2", "surface")
+                : post.kind === "question"
+                  ? themeColor("#EFF5FD", "surface")
+                  : post.kind === "tip"
+                    ? themeColor("#FFF5E7", "surface")
+                    : themeColor("#FFFFFF", "surface"),
+        },
+        {
+          borderRadius: 0,
+          borderWidth: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: isDark() ? "#333333" : "#DDD9CF",
+          marginBottom: 6,
+          shadowOpacity: 0,
+          elevation: 0,
+        },
+      ]}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel={`${username ?? "Üye"} profilini aç`}
-          onPress={() => author && router.push(`/profile/${author.username}`)}
+      {post.kind === "experience" && post.result && (
+        <View
           style={{
-            flex: 1,
-            minHeight: 44,
+            paddingHorizontal: detail ? 20 : 14,
+            paddingVertical: detail ? 13 : 8,
+            minHeight: detail ? 46 : 34,
             flexDirection: "row",
             alignItems: "center",
-            gap: 10,
+            justifyContent: "space-between",
+            gap: 8,
+            backgroundColor: toneCap,
           }}
         >
-          <Avatar name={name} url={author?.avatar_url} size={38} />
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text
-              numberOfLines={1}
-              style={{
-                fontSize: textSize(14),
-                fontWeight: "700",
-                color: colors.navy,
-              }}
-            >
-              {name}
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: textSize(11), color: colors.muted }}
-            >
-              {username ? `@${username}` : "Topluluk üyesi"}
-            </Text>
-          </View>
-        </Pressable>
-        <Text style={{ fontSize: textSize(11), color: colors.muted }}>
-          {relativePostTime(post.created_at)}
-        </Text>
-        {session?.user.id === post.user_id && (
-          <DeleteContent id={post.id} compact redirect={detail} />
-        )}
-      </View>
-
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          flexWrap: "wrap",
-          justifyContent: "space-between",
-          columnGap: 12,
-          rowGap: 5,
-        }}
-      >
-        {!countryPage && (
-          <Pressable
-            accessibilityRole="link"
-            onPress={() => router.push(`/country/${post.country_id}`)}
-            hitSlop={6}
+          <Text
             style={{
-              minHeight: 28,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
+              fontWeight: "800",
+              fontSize: textSize(14),
+              color: accent,
             }}
           >
-            {country && (
-              <CountryFlag
-                code={country.code}
-                emoji={country.flag}
-                name={country.name}
-              />
-            )}
+            {resultLabels[post.result]}
+          </Text>
+          {post.result !== "waiting" && days !== null && (
             <Text
               style={{
                 fontSize: textSize(12),
-                fontWeight: "500",
-                color: colors.text,
+                fontWeight: "600",
+                color: accent,
               }}
             >
-              {country?.name ?? "Ülke"}
+              {days} günde sonuçlandı
             </Text>
-            <Ionicons name="chevron-forward" size={11} color={colors.muted} />
-          </Pressable>
-        )}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-          <Ionicons name={kindIcon[post.kind]} size={14} color={accent} />
-          <Text
-            style={{ fontSize: textSize(11), fontWeight: "500", color: accent }}
-          >
-            {post.kind === "tip" ? "Önemli bilgi" : kindLabels[post.kind]}
-          </Text>
+          )}
         </View>
-      </View>
-
-      {post.status !== "approved" && (
-        <Text style={{ fontSize: textSize(12), color: colors.amber }}>
-          Paylaşım · {statusLabels[post.status]}
-        </Text>
       )}
-      {post.is_sample && (
-        <Text style={{ fontSize: textSize(11), color: colors.muted }}>
-          Örnek içerik
-        </Text>
-      )}
-
-      <Pressable
-        accessibilityRole="link"
-        accessibilityLabel={post.title}
-        onPress={() => !detail && router.push(postPath(post))}
+      <View
         style={{
-          gap: 8,
-          ...(post.kind === "tip"
-            ? {
-                backgroundColor: dark ? "#211E17" : "#FFFBF2",
-                borderLeftWidth: 3,
-                borderLeftColor: dark ? "#9C814D" : "#D2AE65",
-                padding: 12,
-                borderTopRightRadius: 8,
-                borderBottomRightRadius: 8,
-              }
-            : {}),
+          padding: detail ? 16 : 14,
+          gap: detail ? 10 : 8,
         }}
       >
-        <Text
-          numberOfLines={detail ? undefined : 2}
-          style={{
-            fontSize: textSize(detail ? 22 : 18),
-            lineHeight: textSize(detail ? 29 : 25),
-            letterSpacing: -0.35,
-            fontWeight: "700",
-            color: colors.navy,
-          }}
-        >
-          {post.title}
-        </Text>
-        {!!post.body && (
-          <Text
-            numberOfLines={detail ? undefined : 3}
-            style={{
-              fontSize: textSize(detail ? 16 : 15),
-              lineHeight: textSize(detail ? 24 : 22),
-              color: colors.text,
-            }}
-          >
-            {post.body}
-          </Text>
-        )}
-      </Pressable>
-
-      {outcome && (
-        <View
-          style={{
-            backgroundColor: outcomeBackground,
-            borderRadius: 8,
-            paddingHorizontal: 12,
-            paddingVertical: 10,
-            gap: 7,
-          }}
-        >
+        <View style={[styles.row, { justifyContent: "space-between" }]}>
+          {!countryPage && (
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => router.push(`/country/${post.country_id}`)}
+            >
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 7 }}
+              >
+                {country && (
+                  <CountryFlag
+                    code={country.code}
+                    emoji={country.flag}
+                    name={country.name}
+                  />
+                )}
+                <Text style={styles.pillText}>{country?.name ?? "Ülke"}</Text>
+              </View>
+            </Pressable>
+          )}
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: 8,
+              gap: 4,
+              marginLeft: countryPage ? 0 : "auto",
+              flex: countryPage ? 1 : undefined,
             }}
           >
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
-            >
-              <Ionicons
-                name={
-                  outcome === "approved"
-                    ? "checkmark-circle-outline"
-                    : outcome === "rejected"
-                      ? "close-circle-outline"
-                      : "time-outline"
-                }
-                size={17}
-                color={accent}
-              />
-              <Text
-                style={{
-                  fontSize: textSize(13),
-                  fontWeight: "600",
-                  color: accent,
-                }}
-              >
+            <Text
+              style={[
+                styles.muted,
                 {
-                  {
-                    approved: "Onaylandı",
-                    rejected: "Reddedildi",
-                    waiting: "Sonuç bekleniyor",
-                  }[outcome]
-                }
-              </Text>
-            </View>
-            {outcome !== "waiting" && days !== null && (
-              <Text style={{ fontSize: textSize(11), color: colors.muted }}>
-                {days} günde sonuçlandı
-              </Text>
+                  color: tone
+                    ? accent
+                    : post.kind === "general"
+                      ? themeColor("#8050AD", "text")
+                      : post.kind === "question"
+                        ? themeColor("#3476B5", "text")
+                        : accent,
+                  fontSize: textSize(11),
+                  backgroundColor: "transparent",
+                  paddingHorizontal: 0,
+                  paddingVertical: 3,
+                  borderRadius: 0,
+                },
+                countryPage && {
+                  backgroundColor: "transparent",
+                  paddingHorizontal: 0,
+                  fontSize: textSize(11),
+                  fontWeight: "500",
+                },
+              ]}
+            >
+              {kindLabels[post.kind]}
+            </Text>
+            {session?.user.id === post.user_id && (
+              <DeleteContent id={post.id} compact redirect={detail} />
             )}
           </View>
-          {!!visaDetails && (
+        </View>
+        {detail && (
+          <Pressable
+            style={styles.row}
+            accessibilityRole="link"
+            accessibilityLabel={`${author?.username ?? "Üye"} profilini aç`}
+            onPress={() => author && router.push(`/profile/${author.username}`)}
+          >
+            <Avatar
+              name={author?.display_name ?? "Üye"}
+              url={author?.avatar_url}
+              size={32}
+              accent={tone ? accent : undefined}
+            />
+            <View>
+              <Text style={styles.pillText}>
+                {author?.username ?? "Topluluk üyesi"}
+                <Text
+                  style={{
+                    color: colors.muted,
+                    fontWeight: "400",
+                    fontSize: textSize(12),
+                  }}
+                >
+                  {[post.city, post.employment_status]
+                    .filter(Boolean)
+                    .map((label) => ` · ${label}`)
+                    .join("")}
+                </Text>
+              </Text>
+              <Text style={styles.muted}>
+                {relativePostTime(post.created_at)}
+              </Text>
+            </View>
+          </Pressable>
+        )}
+        {post.status !== "approved" && (
+          <Text style={{ color: colors.amber }}>
+            {statusLabels[post.status]}
+          </Text>
+        )}
+        {post.is_sample && (
+          <Text style={{ color: colors.amber }}>Örnek İçerik</Text>
+        )}
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={post.title}
+          onPress={() => !detail && router.push(postPath(post))}
+          style={{ gap: detail ? 10 : 7 }}
+        >
+          <Text
+            numberOfLines={detail ? undefined : 2}
+            style={[
+              styles.heading,
+              {
+                fontSize: detail ? textSize(20) : textSize(18),
+                lineHeight: detail ? 26 : 23,
+                letterSpacing: -0.35,
+              },
+            ]}
+          >
+            {post.title}
+          </Text>
+          {!!visaSummary && (
             <Text
               style={{
                 fontSize: textSize(12),
-                fontWeight: "500",
-                color: colors.text,
+                lineHeight: textSize(18),
+                fontWeight: "600",
+                color: accent,
               }}
             >
-              {visaDetails}
+              {visaSummary}
             </Text>
           )}
-        </View>
-      )}
-
-      {(context || post.kind === "tip" || post.kind === "experience") && (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            columnGap: 12,
-            rowGap: 5,
-          }}
-        >
-          {!!context && (
-            <Text style={{ fontSize: textSize(11), color: colors.muted }}>
-              {context}
+          {!!post.body && (
+            <Text
+              style={[
+                styles.text,
+                !detail && { fontSize: textSize(15), lineHeight: textSize(22) },
+              ]}
+              numberOfLines={detail ? undefined : 3}
+            >
+              {post.body}
             </Text>
           )}
           {(post.kind === "tip" || post.kind === "experience") &&
             (post.source_type === "official" ? (
-              <Text style={{ fontSize: textSize(10), color: colors.muted }}>
-                Resmî kaynak referansı
-              </Text>
+              <Text style={styles.muted}>Resmî kaynak referansı</Text>
             ) : (
               <VerificationLabel
                 postId={post.id}
                 compact
-                color={colors.muted}
+                color={tone ? accent : undefined}
               />
             ))}
-        </View>
-      )}
-      {post.status === "approved" && <Actions post={post} compact />}
+        </Pressable>
+        {!detail && (
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={`${author?.username ?? "Üye"} profilini aç`}
+            onPress={() => author && router.push(`/profile/${author.username}`)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              paddingTop: 1,
+            }}
+          >
+            <Avatar
+              name={author?.display_name ?? "Üye"}
+              url={author?.avatar_url}
+              size={24}
+              accent={tone ? accent : undefined}
+            />
+            <Text
+              style={{
+                flex: 1,
+                fontSize: textSize(12),
+                fontWeight: "600",
+                color: colors.navy,
+              }}
+              numberOfLines={1}
+            >
+              {author?.username ?? "Topluluk üyesi"}
+              <Text
+                style={{
+                  color: colors.muted,
+                  fontWeight: "400",
+                  fontSize: textSize(11),
+                }}
+              >
+                {[post.city, post.employment_status]
+                  .filter(Boolean)
+                  .map((label) => ` · ${label}`)
+                  .join("")}
+              </Text>
+            </Text>
+            <Text style={{ fontSize: textSize(11), color: colors.muted }}>
+              {relativePostTime(post.created_at)}
+            </Text>
+          </Pressable>
+        )}
+        {post.status === "approved" && (
+          <View
+            style={{
+              borderTopWidth: countryPage ? 0 : 1,
+              borderTopColor: themeColor("#EDF0EC", "border"),
+              paddingTop: detail ? 8 : 2,
+            }}
+          >
+            <Actions post={post} compact />
+          </View>
+        )}
+      </View>
     </View>
   );
 }
