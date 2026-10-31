@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   Alert,
   Keyboard,
@@ -8,9 +8,12 @@ import {
   View,
   Text,
   Pressable,
-  KeyboardAvoidingView,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardForm } from "./KeyboardForm";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../lib/auth";
@@ -87,6 +90,7 @@ export function SocialProfileSetup() {
 
 function SetupForm({ profile }: { profile: Profile }) {
   useAppearance();
+  const insets = useSafeAreaInsets();
   const { session } = useAuth();
   const cache = useQueryClient();
   const [name, setName] = useState(
@@ -98,6 +102,13 @@ function SetupForm({ profile }: { profile: Profile }) {
   const [step, setStep] = useState<0 | 1>(0);
   const [photo, setPhoto] = useState<AvatarDraft | null>(null);
   const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const revealActions = useCallback(() => {
+    if (step === 0) {
+      scroll.current?.scrollToEnd({ animated: false });
+      return true;
+    }
+    return false;
+  }, [step]);
   const [accepted, setAccepted] = useState({
     transfer: false,
     terms: false,
@@ -216,15 +227,23 @@ function SetupForm({ profile }: { profile: Profile }) {
     }
   };
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <KeyboardForm keyboardOffset={insets.top} onKeyboardShown={revealActions}>
       <ScrollView
         ref={scroll}
+        style={{ flex: 1 }}
+        keyboardDismissMode={
+          Platform.OS === "ios"
+            ? "interactive"
+            : Platform.OS === "web"
+              ? "none"
+              : "on-drag"
+        }
+        contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           padding: 24,
+          paddingBottom: 32,
+          flexGrow: 1,
           gap: 18,
           width: "100%",
           maxWidth: 460,
@@ -356,6 +375,6 @@ function SetupForm({ profile }: { profile: Profile }) {
         />
         <LegalTextModal document={document} onClose={() => setDocument(null)} />
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardForm>
   );
 }

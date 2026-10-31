@@ -9,6 +9,7 @@ async function prepare(
     onboarding?: boolean;
     failure?: boolean;
     reducedMotion?: boolean;
+    guest?: boolean;
   } = {},
 ) {
   let release!: () => void;
@@ -29,19 +30,20 @@ async function prepare(
   };
   const token = `${Buffer.from('{"alg":"HS256","typ":"JWT"}').toString("base64url")}.${Buffer.from(JSON.stringify({ sub: userId, exp: expires, role: "authenticated", aud: "authenticated" })).toString("base64url")}.fixture`;
   await page.addInitScript(
-    ({ user, token, expires, legal, reducedMotion }) => {
+    ({ user, token, expires, legal, reducedMotion, guest }) => {
       localStorage.clear();
-      localStorage.setItem(
-        "sb-ebnkdgvngufxarkwiyxt-auth-token",
-        JSON.stringify({
-          access_token: token,
-          refresh_token: "fixture",
-          expires_at: expires,
-          expires_in: 3600,
-          token_type: "bearer",
-          user,
-        }),
-      );
+      if (!guest)
+        localStorage.setItem(
+          "sb-ebnkdgvngufxarkwiyxt-auth-token",
+          JSON.stringify({
+            access_token: token,
+            refresh_token: "fixture",
+            expires_at: expires,
+            expires_in: 3600,
+            token_type: "bearer",
+            user,
+          }),
+        );
       localStorage.setItem(
         "vizesel-privacy-preferences-v1",
         JSON.stringify({
@@ -66,7 +68,14 @@ async function prepare(
           }),
         );
     },
-    { user, token, expires, legal, reducedMotion: options.reducedMotion },
+    {
+      user,
+      token,
+      expires,
+      legal,
+      reducedMotion: options.reducedMotion,
+      guest: options.guest,
+    },
   );
   await page.routeWebSocket(/supabase\.co/, (socket) => socket.close());
   await page.route("**/*", async (route) => {
@@ -79,6 +88,8 @@ async function prepare(
     const table = url.pathname.split("/").pop();
     if (table === "user") return route.fulfill({ json: user });
     if (table === "profiles") {
+      if (url.searchParams.get("select") === "id")
+        return route.fulfill({ json: [] });
       requests++;
       await wait;
       if (failing)
@@ -202,4 +213,121 @@ test("reduced motion dismisses the logo without a fade", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Yeniden dene", exact: true }),
   ).toHaveCount(0);
+});
+
+async function emulateAccountKeyboard(page: Page) {
+  await page.addInitScript(() => {
+    const viewport = Object.assign(new EventTarget(), {
+      height: window.innerHeight,
+      width: window.innerWidth,
+      offsetTop: 0,
+      offsetLeft: 0,
+      pageTop: 0,
+      pageLeft: 0,
+      scale: 1,
+    });
+    Object.defineProperty(window, "visualViewport", {
+      configurable: true,
+      value: viewport,
+    });
+    (
+      window as unknown as {
+        accountKeyboard: (height: number, offset?: number) => void;
+      }
+    ).accountKeyboard = (height, offset = 0) => {
+      viewport.height = height;
+      viewport.offsetTop = offset;
+      viewport.pageTop = offset;
+      viewport.dispatchEvent(new Event("resize"));
+    };
+  });
+}
+async function keyboardViewport(page: Page, height: number, offset = 0) {
+  await page.evaluate(
+    ({ height, offset }) =>
+      (
+        window as unknown as {
+          accountKeyboard: (height: number, offset: number) => void;
+        }
+      ).accountKeyboard(height, offset),
+    { height, offset },
+  );
+}
+async function aboveKeyboard(page: Page, name: string, bottom: number) {
+  const button = page.getByRole("button", { name, exact: true });
+  await expect
+    .poll(async () => {
+      const box = await button.boundingBox();
+      return !!box && box.y >= 0 && box.y + box.height <= bottom + 1;
+    })
+    .toBe(true);
+}
+for (const colorScheme of ["light", "dark"] as const) {
+  test(`${colorScheme}: login and signup actions remain above a mobile Safari keyboard`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme });
+    const fixture = await prepare(page, { guest: true });
+    fixture.release();
+    await emulateAccountKeyboard(page);
+    await page.goto("./auth");
+    await expect(page.getByTestId("launch-overlay")).toHaveCount(0);
+    await page
+      .getByLabel("E-posta", { exact: true })
+      .fill("keyboard@example.invalid");
+    await page.getByLabel("Şifre", { exact: true }).fill("fixture-password");
+    await keyboardViewport(page, 480);
+    await aboveKeyboard(page, "Giriş yap", 480);
+    await expect(page.getByLabel("Şifre", { exact: true })).toBeFocused();
+    await keyboardViewport(page, 360);
+    await aboveKeyboard(page, "Giriş yap", 360);
+    await expect(page.getByLabel("Şifre", { exact: true })).toBeFocused();
+    await keyboardViewport(page, 480, 60);
+    await aboveKeyboard(page, "Giriş yap", 540);
+    await keyboardViewport(page, 844);
+    await page.getByRole("tab", { name: "Üye ol", exact: true }).click();
+    await page
+      .getByLabel("E-posta", { exact: true })
+      .fill("keyboard@example.invalid");
+    await keyboardViewport(page, 480);
+    await aboveKeyboard(page, "Devam et", 480);
+    await keyboardViewport(page, 844);
+    await page.getByRole("button", { name: "Devam et", exact: true }).click();
+    await page.getByLabel("Kullanıcı adı", { exact: true }).fill("ornek_yolcu");
+    await page
+      .getByLabel("Şifre · en az 8 karakter", { exact: true })
+      .fill("fixture-password");
+    await keyboardViewport(page, 480);
+    await aboveKeyboard(page, "Devam et", 480);
+  });
+}
+test("social profile setup stays scrollable with the keyboard open", async ({
+  page,
+}) => {
+  const fixture = await prepare(page, { onboarding: true });
+  fixture.release();
+  await emulateAccountKeyboard(page);
+  await page.goto("./");
+  await page.getByLabel("Kullanıcı adı", { exact: true }).fill("ornek_yolcu");
+  await keyboardViewport(page, 480);
+  await aboveKeyboard(page, "Devam et", 480);
+  await keyboardViewport(page, 844);
+  await page.getByRole("button", { name: "Devam et", exact: true }).click();
+  await page.getByLabel("Adın", { exact: true }).fill("Örnek Yolcu");
+  await keyboardViewport(page, 480);
+  await expect
+    .poll(async () => {
+      const box = await page.getByLabel("Adın", { exact: true }).boundingBox();
+      return !!box && box.y >= 0 && box.y + box.height <= 481;
+    })
+    .toBe(true);
+  await page.getByTestId("keyboard-form").evaluate((element) => {
+    const scroll = [...element.querySelectorAll("div")].find(
+      (node) =>
+        getComputedStyle(node).overflowY === "auto" &&
+        node.scrollHeight > node.clientHeight,
+    );
+    if (scroll) scroll.scrollTop = scroll.scrollHeight;
+  });
+  await aboveKeyboard(page, "Hesabımı tamamla", 480);
 });

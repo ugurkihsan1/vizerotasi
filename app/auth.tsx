@@ -1,3 +1,5 @@
+import { KeyboardForm } from "../src/components/KeyboardForm";
+import { useHeaderHeight } from "expo-router/react-navigation";
 import { finishAuth } from "../src/lib/auth-navigation";
 import { SocialSignIn } from "../src/components/SocialSignIn";
 import { Avatar } from "../src/components/Avatar";
@@ -15,12 +17,11 @@ import {
   type AvatarDraft,
 } from "../src/lib/avatar";
 import { Brand } from "../src/components/Brand";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   ScrollView,
   View,
   Text,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   Keyboard,
@@ -85,6 +86,7 @@ const signupLegalChoices = [
 
 export default function Auth() {
   useAppearance();
+  const headerHeight = useHeaderHeight();
 
   const params = useLocalSearchParams<{
     mode?: string;
@@ -113,6 +115,13 @@ export default function Auth() {
   const [message, setMessage] = useState("");
   const [signupStep, setSignupStep] = useState(0);
   const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const revealActions = useCallback(() => {
+    if (mode !== "signup" || signupStep < 2) {
+      scroll.current?.scrollToEnd({ animated: false });
+      return true;
+    }
+    return false;
+  }, [mode, signupStep]);
   const [sent, setSent] = useState(false);
   const [photo, setPhoto] = useState<AvatarDraft | null>(null);
   const [legalDocument, setLegalDocument] = useState<LegalDocumentId | null>(
@@ -212,6 +221,8 @@ export default function Auth() {
     };
   }, [callbackSource, params.oauth]);
   const changeMode = (next: Mode) => {
+    Keyboard.dismiss();
+    scroll.current?.scrollTo({ y: 0, animated: false });
     setMode(next);
     setSignupStep(0);
     setConfirmation(null);
@@ -481,12 +492,22 @@ export default function Auth() {
       </ScrollView>
     );
   return (
-    <KeyboardAvoidingView
+    <KeyboardForm
       style={styles.page}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardOffset={headerHeight}
+      onKeyboardShown={revealActions}
     >
       <ScrollView
         ref={scroll}
+        style={{ flex: 1 }}
+        keyboardDismissMode={
+          Platform.OS === "ios"
+            ? "interactive"
+            : Platform.OS === "web"
+              ? "none"
+              : "on-drag"
+        }
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[
           styles.content,
           {
@@ -494,6 +515,8 @@ export default function Auth() {
             width: "100%",
             alignSelf: "center",
             paddingTop: 32,
+            paddingBottom: 32,
+            flexGrow: 1,
             gap: 20,
           },
         ]}
@@ -893,6 +916,6 @@ export default function Auth() {
           </View>
         )}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardForm>
   );
 }

@@ -30,7 +30,7 @@ export const kindLabels = {
   experience: "Vize deneyimi",
   general: "Seyahat paylaşımı",
   question: "Soru",
-  tip: "⚡ Önemli bilgi",
+  tip: "❗ Önemli bilgi",
   update: "Ülke güncellemesi",
 };
 export const resultLabels = {
@@ -213,7 +213,7 @@ export function PostCard({
     experience: "document-text-outline",
     general: "compass-outline",
     question: "help-circle-outline",
-    tip: "flash-outline",
+    tip: "alert-circle-outline",
     update: "megaphone-outline",
   } as const;
   const duration =
@@ -328,7 +328,13 @@ export function PostCard({
           </Pressable>
         )}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-          <Ionicons name={kindIcon[post.kind]} size={14} color={accent} />
+          {post.kind === "tip" ? (
+            <Text accessible={false} style={{ fontSize: textSize(13) }}>
+              ❗
+            </Text>
+          ) : (
+            <Ionicons name={kindIcon[post.kind]} size={14} color={accent} />
+          )}
           <Text
             style={{ fontSize: textSize(11), fontWeight: "500", color: accent }}
           >
@@ -461,17 +467,20 @@ export function PostCard({
         </View>
       )}
 
-      {(post.kind === "tip" || post.kind === "experience") && (
-        <View style={{ alignItems: "flex-end" }}>
-          {post.source_type === "official" ? (
-            <Text style={{ fontSize: textSize(10), color: colors.muted }}>
-              Resmî kaynak referansı
-            </Text>
-          ) : (
-            <VerificationLabel postId={post.id} compact color={colors.muted} />
-          )}
-        </View>
-      )}
+      {(post.kind === "tip" || post.kind === "experience") &&
+        (post.source_type === "official" ? (
+          <Text
+            style={{
+              fontSize: textSize(10),
+              color: colors.muted,
+              alignSelf: "flex-end",
+            }}
+          >
+            Resmî kaynak referansı
+          </Text>
+        ) : (
+          <VerificationLabel postId={post.id} compact color={colors.muted} />
+        ))}
       {post.status === "approved" && <Actions post={post} compact />}
     </View>
   );

@@ -15,6 +15,7 @@ export function VerificationLabel({
 
   const q = useVerification(postId);
   const verified = q.data?.status === "verified";
+  if (compact && !verified) return null;
   if (compact)
     return (
       <Text
@@ -24,7 +25,7 @@ export function VerificationLabel({
           lineHeight: 16,
         }}
       >
-        {verified ? "✓ Belgeyle doğrulanmış deneyim" : "Kullanıcı deneyimi"}
+        ✓ Belgeyle doğrulanmış deneyim
       </Text>
     );
   return (
@@ -44,7 +45,7 @@ export function VerificationLabel({
             ? "Belge doğrulama durumu yüklenemedi"
             : verified
               ? "✓ Belgeyle doğrulanmış deneyim"
-              : "Kullanıcı deneyimi · Belgeyle doğrulanmadı"}
+              : "Belgeyle doğrulanmadı"}
       </Text>
       <Text style={[styles.muted, { fontSize: textSize(11) }]}>
         Yayın onayı doğruluk veya resmî kural onayı değildir.
